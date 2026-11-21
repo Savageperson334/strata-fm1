@@ -5,7 +5,7 @@
 #   JIELI_TOOLCHAIN  JieLi Linux toolchain (default: ~/.jieli/toolchain; base/tools/get_toolchain.sh fetches it)
 #   AC79_SDK         JieLi AC79 SDK checkout (default: ~/fw-AC79_AIoT_SDK)
 #   PYTHON           a Python with Pillow (and libraqm, for the fonts)
-# Usually you don't run this yourself: pushing a tag vX.Y builds, tests and publishes on GitHub
+# Usually you do not run this yourself: changing VERSION on main builds, tests and publishes on GitHub
 # (.github/workflows/release.yml), and the web installer goes up with it.
 set -e
 cd "$(dirname "$0")"

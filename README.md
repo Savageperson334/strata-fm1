@@ -25,7 +25,7 @@ USB, click Connect, then Install. **Manual:** [app/docs/MANUAL.md](app/docs/MANU
 
 ## Building
 
-You don't need to build it yourself. Pushing a tag `vX.Y` makes GitHub build the firmware from source with the shared
+You don't need to build it yourself. Changing `VERSION` on `main` makes GitHub build the firmware from source with the shared
 FM-1 builder, run the tests, publish a signed release, and put the installer site on GitHub Pages
 (`.github/workflows/release.yml`). Every push to `main` runs the tests (`.github/workflows/tests.yml`).
 

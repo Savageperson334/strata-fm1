@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # STRATA's tests on every push: the sound engine, the app logic and the whole firmware in fm1-base's simulator
-# (no JieLi toolchain needed). The firmware itself is built by release.yml when a tag vX.Y is pushed.
+# (no JieLi toolchain needed). The firmware itself is built by release.yml when VERSION changes.
 name: Tests
 
 on:
