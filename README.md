@@ -1,0 +1,48 @@
+# STRATA
+
+A drone and texture synth firmware for the M-VAVE FM-1. One mode, no menus, every knob live.
+
+**Install:** open <https://savageperson334.github.io/strata-fm1/install/> in Chrome or Edge, plug in the FM-1 by
+USB, click Connect, then Install. **Manual:** [app/docs/MANUAL.md](app/docs/MANUAL.md).
+
+- Tap keys to start up to six long voices; tap again to let them fade. PLAY fades all out and brings the chord back.
+- K1–K4, SELECT, ALGO, PRESET: TONE, RATIO, MOTION, SPACE, FILTER, DRIFT, GRIT. Hold SEL for DEPTH, BEAT, FADE,
+  DECAY, RESO, AIR, SUB.
+- Each voice: two detuned FM pairs with feedback, a sub sine, and noise band-passed at its pitch. Then a resonant
+  TPT low-pass swept by a slow LFO, and a 4-line FDN reverb up to near-endless decay.
+- MIDI in over USB and TRS: notes, sustain, CC 20–33 for the fourteen controls.
+
+## Layout
+
+| Path | What |
+| --- | --- |
+| `app/app.c`, `app/app.h` | The app: keys, knobs, screen, saving, MIDI (fm1-base's contract) |
+| `app/dsp/strata_dsp.c` | The sound engine, self-contained, compiled at -O2 |
+| `app/fm1.toml` | Build and site settings |
+| `app/tests/` | Scenarios for fm1-base's host simulator |
+| `tests/` | The engine rendered to WAV and checked; the app logic on a stand-in platform; `run_tests.sh` |
+| `base/` | [fm1-base](https://github.com/charlesvestal/fm1-base) (git submodule), with felucca-bsp |
+
+## Building
+
+You don't need to build it yourself. Pushing a tag `vX.Y` makes GitHub build the firmware from source with the shared
+FM-1 builder, run the tests, publish a signed release, and put the installer site on GitHub Pages
+(`.github/workflows/release.yml`). Every push to `main` runs the tests (`.github/workflows/tests.yml`).
+
+To build locally on Linux x86-64 (or macOS with Docker), see fm1-base's README for the JieLi toolchain and the AC79
+SDK, then:
+
+    git clone --recursive https://github.com/Savageperson334/strata-fm1
+    ./build.sh                     # app/build/strata.fwsc
+    ./build.sh --host              # the host simulator
+    sh tests/run_tests.sh
+
+The engine and the app logic test with nothing but a C compiler:
+
+    cc -O2 -DPLAT_HOST -Ibase/include -Iapp/dsp tests/dsp_render.c app/dsp/strata_dsp.c -lm -o dsp_render && ./dsp_render .
+
+## Licence
+
+MPL-2.0. Built on fm1-base (MPL-2.0) by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton
+Instruments). Installing custom firmware is at your own risk. The installer can put M-VAVE's firmware back.
+M-VAVE and FM-1 are trademarks of their owners; STRATA is not affiliated with M-VAVE.

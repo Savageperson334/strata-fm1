@@ -1,0 +1,20 @@
+# The manual's screenshots (app/docs/img), from fm1-base's host simulator:
+#   app/build/host/strata_host app/tests/screens.txt app/docs/img
+wait 900
+key 0 down
+wait 40
+key 0 up
+key 7 down
+wait 40
+key 7 up
+key 11 down
+wait 40
+key 11 up
+wait 4000
+shot screen-playing.png
+press SEL
+wait 60
+turn K3 1
+wait 200
+shot screen-layer2.png
+release SEL

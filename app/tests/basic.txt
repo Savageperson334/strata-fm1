@@ -1,0 +1,86 @@
+# STRATA in fm1-base's host simulator (tests/run_tests.sh):
+#   app/build/host/strata_host app/tests/basic.txt app/build/scenarios/basic
+wait 600
+expect voices 0
+expect octave -1
+expect dirty 0
+# keys latch: tap one in, tap another, tap the first out
+key 0 down
+wait 50
+key 0 up
+wait 50
+expect voices 1
+key 7 down
+wait 50
+key 7 up
+wait 50
+expect voices 2
+key 0 down
+wait 50
+key 0 up
+wait 50
+expect voices 1
+key 0 down
+wait 50
+key 0 up
+wait 2000
+expect voices 2
+wav drone.wav
+wait 600
+wavstop
+expect peak_db_min -40
+shot playing.png
+# PLAY: out, the chord kept; again, back in
+tap PLAY
+wait 50
+expect voices 0
+expect nchord 2
+tap PLAY
+wait 50
+expect voices 2
+# a knob, then the layer under SEL
+turn K1 1
+wait 100
+expect p0 37
+expect dirty 1
+press SEL
+wait 50
+expect layer 1
+turn K4 1
+wait 100
+expect p10 62
+expect p3 45
+shot layer2.png
+release SEL
+wait 50
+expect layer 0
+tap OCT+
+wait 30
+expect octave 0
+# SAVE survives a restart
+tap SAVE
+wait 50
+expect dirty 0
+expect store_writes 1
+reboot
+wait 600
+expect octave 0
+expect p0 37
+expect p10 62
+expect voices 0
+expect nchord 2
+tap PLAY
+wait 50
+expect voices 2
+tap PLAY
+wait 50
+# MIDI: a note while held, CC 20 sets TONE
+midi 90 3C 64
+wait 50
+expect voices 1
+midi 80 3C 00
+wait 50
+expect voices 0
+midi B0 14 7F
+wait 50
+expect p0 100

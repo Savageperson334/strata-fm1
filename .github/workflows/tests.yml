@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: MPL-2.0
+# STRATA's tests on every push: the sound engine, the app logic and the whole firmware in fm1-base's simulator
+# (no JieLi toolchain needed). The firmware itself is built by release.yml when a tag vX.Y is pushed.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pillow (with raqm, for the fonts)
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq libfribidi0
+          python3 -m pip install -q Pillow
+          python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+      - name: Tests
+        run: sh tests/run_tests.sh
+      - name: Screenshots and the drone, for a look
+        if: always()
+        run: |
+          mkdir -p shots
+          app/build/host/strata_host app/tests/screens.txt shots || true
+          cp app/build/scenarios/basic/*.png app/build/scenarios/basic/*.wav shots/ 2>/dev/null || true
+          cp app/build/tests/*.wav shots/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: strata-test-output
+          path: |
+            shots/
+            app/build/tests/*.log

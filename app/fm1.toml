@@ -1,0 +1,24 @@
+# STRATA's build settings (fm1-base's tools/build.py: ./build.sh)
+name = "STRATA"                # the build's files: strata.fwsc, strata-X.Y.fwsc
+id_prefix = "FM-1_58"          # package identity: dev FM-1_5800, releases FM-1_58XXYYZZ
+usb_manufacturer = "STRATA"
+usb_product = "STRATA FM-1"
+words = "words.tsv"
+include = ["dsp"]
+o2 = ["dsp/strata_dsp.c"]      # the sound engine at -O2
+emu = ["midi"]                 # the browser emulator: Web MIDI in, as on the FM-1
+# no Bluetooth: USB and TRS MIDI only (a smaller, simpler firmware)
+
+# the site (base/tools/make_site.py)
+tagline = "a drone and texture synth for the FM-1"
+repo = "https://github.com/Savageperson334/strata-fm1"
+licence = "MPL-2.0"
+credits = "Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments)."
+
+# firmware.json, for firmware hubs (base/docs/FIRMWARE-JSON.md)
+author = "Savageperson334"
+description = "STRATA turns the M-VAVE FM-1 into a drone and texture synth with one mode and no menus. Tap keys to start long, slowly moving voices (up to six) and tap again to let them fade. All seven knobs are live: tone, FM ratio, motion, space, filter, drift and grit, with seven more under SEL. Each voice is two detuned FM pairs with a sub and tuned noise, through a resonant filter and a long stereo reverb. MIDI notes and CCs come in over USB and TRS."
+tags = ["synth", "fm", "ambient"]
+install = "https://savageperson334.github.io/strata-fm1/install/"
+site = "https://savageperson334.github.io/strata-fm1/"
+screenshot = "app/docs/img/screen-playing.png"

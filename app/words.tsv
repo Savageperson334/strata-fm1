@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MPL-2.0
+# STRATA's words for a screen reader (fm1-reader): the text on the screen <TAB> what to say.
+# url: https://savageperson334.github.io/strata-fm1/words/
+STRATA	strata
+OCT	octave
+SEL	select
+RESO	resonance
+MUTATE	mutate
+FADE	fade
