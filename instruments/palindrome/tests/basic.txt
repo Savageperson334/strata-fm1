@@ -298,7 +298,7 @@ key 12 up
 wait 100
 expect gkeys 1
 # DRIFT: left alone, the loop is made again from itself: a new ring from the one played, the page as it was
-turn ALGO 40
+turn ALGO 40 2
 wait 100
 expect drift 63
 wait 2700
@@ -320,7 +320,7 @@ wait 700
 wavstop
 expect peak_db_min -45
 # ...and with DRIFT off it stays as it is
-turn ALGO -64
+turn ALGO -64 2
 wait 100
 expect drift 0
 wait 6000
