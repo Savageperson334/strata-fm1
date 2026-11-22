@@ -14,7 +14,7 @@
 static int16_t memory[PM_RINGS][PM_BUFFER] PLAT_POOL;
 typedef struct {
     float phase, m1, m2, env, modal, filt, inc;
-    float life;                          /* 1 as it is struck, dying away from there (SUSTAIN); held at 1 at its top */
+    float life;                          /* 1 as it is struck, dying away from there (DECAY); held at 1 at its top */
     int note;
 } Voice;
 typedef struct {
@@ -74,7 +74,7 @@ static const float defaults[PM_PARAMS]={
  1.f,.20f,0,.5f,.65f,.35f,.75f,          /* (MIX: while grains sound they are what is heard; SHAPE: a bell) */
  0,.5f,0,0,0,                            /* a clean recording: no hiss, no crush, no gate, no dropouts */
  0,0,0,0,0,                              /* grains on an even pulse, all one length and pitch, one at a time */
- .7f};                                   /* SUSTAIN: a struck note, gone in a few seconds */
+ .7f};                                   /* DECAY: a struck note, gone in a few seconds */
 static float fclamp(float x,float a,float b){return x<a?a:x>b?b:x;}
 static float wrap(float x){return x-fm_floorf(x);}
 static float rnd(void){rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return (float)(rng>>8)*(1.0f/16777216.0f);}
@@ -359,7 +359,7 @@ void pm_render(float *left,float *right,uint32_t n){
         if(sr!=strike_seen[j]){strike_seen[j]=sr;trigger(position,j);trigger(position,j);}
     }
     float timing=p[S_TIMING];
-    /* SUSTAIN: how long a struck MORPH note lives: 80 ms .. 10 s to a third of its level; at the top, held */
+    /* DECAY: how long a struck MORPH note lives: 80 ms .. 10 s to a third of its level; at the top, held */
     float life_k=p[M_SUSTAIN]>=.97f?1.f:1.f-INV_RATE/(.08f*fm_exp2f(p[M_SUSTAIN]*7.f));
     for(int j=0;j<PM_VOICES;j++){            /* a note struck (again): its life from the top, its bell rung again */
         uint32_t k=struck[j];
@@ -383,7 +383,7 @@ void pm_render(float *left,float *right,uint32_t n){
                 v->note=req;v->inc=440.f*fm_exp2f((req-69.f)/12.f)*INV_RATE;
                 v->phase=v->m1=v->m2=0;v->modal=1;v->filt=0;
             }
-            /* its level follows its life: 1 while held (SUSTAIN at the top), else dying away from the strike */
+            /* its level follows its life: 1 while held (DECAY at the top), else dying away from the strike */
             v->life*=life_k;
             float gate=(req>=0&&req==v->note&&v->life>.003f)?v->life:0.f;
             float c=(req>=0&&req!=v->note)?.004f:fade;

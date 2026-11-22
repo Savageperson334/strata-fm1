@@ -1109,7 +1109,7 @@ static void draw_guide(void)
 {
     static const char *const G[12][3] = {
         {"FX", "-", ""}, {"SEL", "HOLD:", "MORE"}, {"ENV", "-", ""}, {"LFO", "-", ""}, {"EDIT", "LANES", "+HOLD"}, {"GLO", "THIS", "GUIDE"},
-        {"HOME", "HOLD:", "RESET"}, {"SAVE", "SAVE", "SOUND"}, {"ARP", "ARP", "+HOLD"}, {"SEQ", "BEAT", "+HOLD"}, {"PLAY", "FADE", "OUT/IN"}, {"REC", "MUTATE", ""}};
+        {"HOME", "HOLD:", "RESET"}, {"SAVE", "SAVE", "SOUND"}, {"ARP", "ARP", "+HOLD"}, {"SEQ", "BEAT", "+HOLD"}, {"PLAY", "FADE", "OUT IN"}, {"REC", "MUT-", "ATE"}};
     int i;
     cv_begin(240, 120, C_BLACK);
     cv_text(4, 2, &FONT_XS, "STRATA GUIDE", C_HI);
@@ -1121,9 +1121,9 @@ static void draw_guide(void)
         cv_rect(x + 1, y + 40, 38, 1, C_LINE);
         cv_rect(x + 1, y, 1, 41, C_LINE);
         cv_rect(x + 38, y, 1, 41, C_LINE);
-        cv_text(x + 4, y + 1, &FONT_XS, G[i][0], used ? C_GRAY : C_DIM);
-        cv_text(x + 4, y + 13, &FONT_XS, G[i][1], used ? C_WHITE : C_DIM);
-        cv_text(x + 4, y + 25, &FONT_XS, G[i][2], C_HI);
+        cv_text(x + 3, y + 1, &FONT_XS, G[i][0], used ? C_GRAY : C_DIM);
+        cv_text(x + 3, y + 13, &FONT_XS, G[i][1], used ? C_WHITE : C_DIM);
+        cv_text(x + 3, y + 25, &FONT_XS, G[i][2], C_HI);
     }
     cv_text(4, 104, &FONT_XS, "KEYS: NOTES IN / OUT   +HOLD: ITS KNOBS", C_WHITE);
     cv_blit(0, 0);

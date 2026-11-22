@@ -218,7 +218,7 @@ int main(void){
  pm_grain_pitch(0,-12);pm_grain_pitch(1,7);pm_grain_pitch(2,19);pm_grains(1);
  for(int k=0;k<400;k++){run(1);assert(pm_active_grains()<=PM_GRAINS);}
  assert(pm_active_grains()>PM_GRAINS/2);
- /* SUSTAIN. At its top a MORPH note is held; under it a struck note dies away by itself, and a note struck again
+ /* DECAY. At its top a MORPH note is held; under it a struck note dies away by itself, and a note struck again
   * (the same key) sounds again. MORPH's own page hears MORPH whatever MIX says. */
  pm_init();pm_set(M_SUSTAIN,1);pm_note(0,57);run(400);assert(pm_voice_sounding(0)&&run(100)>.01);
  pm_init();pm_set(M_SUSTAIN,.3f);pm_note(0,57);run(20);

@@ -51,7 +51,7 @@
       "how": "FX",
       "keys": [
         "NOTES",
-        "On MORPH's page each key strikes a synth note, up to four at once. A note dies away by itself (SUSTAIN, on MIX, says how long); with SUSTAIN at the top it holds until its key is tapped again."
+        "On MORPH's page each key strikes a synth note, up to four at once. A note dies away by itself (DECAY, on MIX, says how long); with DECAY at the top it holds until its key is tapped again."
       ],
       "knobs": {
         "KNOB1": [
@@ -155,7 +155,7 @@
           "How wide the grains are scattered left to right."
         ],
         "ALGORITHM": [
-          "SUSTAIN",
+          "DECAY",
           "How long a struck MORPH note rings before it dies away. At the top (HOLD) notes stay on until their key is tapped again."
         ],
         "PRESETS": [

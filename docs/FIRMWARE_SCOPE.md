@@ -61,7 +61,7 @@ SILT is not just an effect hanging off MORPH. The selected ring and its granular
 
 ### Implemented / documented today
 
-**MORPH — source page (FX).** An independent four-corner XY synth blends **FM, modal, additive and wavefolding** sounds. Keys strike source notes that die away (SUSTAIN; at its top they hold). X/Y, complexity, brightness, orbit/motion and excitation shape the source. MORPH may continue sounding on other pages.
+**MORPH — source page (FX).** An independent four-corner XY synth blends **FM, modal, additive and wavefolding** sounds. Keys strike source notes that die away (DECAY; at its top they hold). X/Y, complexity, brightness, orbit/motion and excitation shape the source. MORPH may continue sounding on other pages.
 
 **SILT — home/primary page (EDIT or HOME).** A granular playback engine operates the **selected recorded ring**. POSITION, SIZE, DENSITY, SPRAY, REVERSE and PITCH make it an instrument in its own right. Up to 16 grains are active globally; up to four latched keyboard pitches can play grains, including when automatic playback is off.
 

@@ -236,7 +236,7 @@ expect rings 1
 expect page 0
 wait 14000
 expect voices 0
-# SUSTAIN at its top (on MIX): notes are held, a key on, the key again off
+# DECAY at its top (on MIX): notes are held, a key on, the key again off
 tap ARP
 wait 100
 turn ALGO 24

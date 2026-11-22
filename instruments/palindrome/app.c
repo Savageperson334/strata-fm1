@@ -17,7 +17,7 @@
  *               meanwhile it does nothing but say so. With nothing sounding it is armed, and starts with the next
  *               sound (a key, PLAY). No room: the oldest ring makes room (the screen says which, beforehand).
  *
- * MORPH's notes are struck: a key sounds its note, which dies away (SUSTAIN, on MIX; at its top a note is held
+ * MORPH's notes are struck: a key sounds its note, which dies away (DECAY, on MIX; at its top a note is held
  * until its key is tapped again). MORPH is heard on its own page and through a capture of it; elsewhere, while
  * grains sound, MIX decides (as it starts: the grains alone), so a sound and its recording are not heard together.
  *   PLAY        the stream of grains, on and off
@@ -53,7 +53,7 @@ static const char *const labels[PM_PARAMS]={
  "POSITION","SIZE","DENSITY","SPRAY","PITCH","REVERSE","CARRY",
  "MIX","FADE","SCAN","SHAPE","STEREO","DAMP","LEVEL",
  "NOISE","COLOR","CRUSH","GATE","DROP",
- "TIMING","VARY","SCATTER","DETUNE","CLUSTER","SUSTAIN"};
+ "TIMING","VARY","SCATTER","DETUNE","CLUSTER","DECAY"};
 /* the control on knob j (KNOB1..4, SELECT, ALGORITHM, PRESETS) of a page, or PG_NONE (that knob sets nothing there).
  * SELECT (j 4) is the ring selector on every page, and KNOB4 on RINGS arms a delete: neither is in this table */
 #define PG_NONE 255
@@ -89,8 +89,8 @@ static void all_off(void){
     for(int j=0;j<PM_VOICES;j++){slots[j]=-1;pm_note(j,-1);}
     for(int j=0;j<PM_PITCHES;j++){gslots[j]=PM_NO_PITCH;pm_grain_pitch(j,PM_NO_PITCH);}
 }
-static int held(void){return pm_get(M_SUSTAIN)>=.97f;}   /* SUSTAIN at its top: notes are held, not struck */
-/* MORPH's keys. Held notes: a tap starts a note, a tap on a sounding one lets it go. Struck notes (SUSTAIN under its
+static int held(void){return pm_get(M_SUSTAIN)>=.97f;}   /* DECAY at its top: notes are held, not struck */
+/* MORPH's keys. Held notes: a tap starts a note, a tap on a sounding one lets it go. Struck notes (DECAY under its
  * top): a tap strikes the note, again if it is still sounding; it dies away by itself */
 static void latch(int note){
     int empty=-1;
@@ -457,8 +457,8 @@ static void pd_list(void){
 /* GLO held: what every button does, where the buttons are (two rows of six), then the keys and the knobs */
 static void pd_guide(void){
     static const char *const G[12][3]={
-        {"FX","MORPH","SOURCE"},{"SEL","RINGS","LIST"},{"ENV","SILT","SHAPE"},{"LFO","SILT","MOTION"},{"EDIT","SILT","GRAINS"},{"GLO","THIS","GUIDE"},
-        {"HOME","SILT","HOME"},{"SAVE","-",""},{"ARP","MIX",""},{"SEQ","REC FX",""},{"PLAY","GRAINS","ON/OFF"},{"REC","NEW","RING"}};
+        {"FX","MORPH","SYNTH"},{"SEL","RINGS","LIST"},{"ENV","SILT","SHAPE"},{"LFO","SILT","MOVE"},{"EDIT","SILT","PAGE"},{"GLO","THIS","GUIDE"},
+        {"HOME","SILT","HOME"},{"SAVE","-",""},{"ARP","MIX",""},{"SEQ","REC FX",""},{"PLAY","GRAIN","ON OFF"},{"REC","NEW","RING"}};
     int i;
     pd_text(4,2,"PALINDROME GUIDE",C_HI);
     pd_text(236-text_w(&FONT_XS,"LET GO OF GLO"),2,"LET GO OF GLO",C_GRAY);
@@ -467,9 +467,9 @@ static void pd_guide(void){
         int used=G[i][1][0]!='-',here=i<6?(i==0&&page==PG_MORPH)||(i==1&&page==PG_RINGS)||(i==2&&page==PG_SHAPE)||(i==3&&page==PG_MOTION)||(i==4&&page==PG_SILT)
                                          :(i==8&&page==PG_MIX)||(i==9&&page==PG_RECFX);
         pd_frame(x+1,y,38,41,here?C_HI:C_LINE);                  /* (the open page's button: framed bright) */
-        pd_text(x+4,y+1,G[i][0],used?C_GRAY:C_DIM);
-        pd_text(x+4,y+13,G[i][1],used?C_WHITE:C_DIM);
-        pd_text(x+4,y+25,G[i][2],C_HI);
+        pd_text(x+3,y+1,G[i][0],used?C_GRAY:C_DIM);
+        pd_text(x+3,y+13,G[i][1],used?C_WHITE:C_DIM);
+        pd_text(x+3,y+25,G[i][2],C_HI);
     }
     pd_text(4,104,"SELECT: THE RING, ON EVERY PAGE",C_WHITE);
     pd_text(4,122,"KEYS: THE GRAINS' PITCHES",C_WHITE);

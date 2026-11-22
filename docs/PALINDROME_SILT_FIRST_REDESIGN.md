@@ -377,7 +377,7 @@ level-evening a block.
 - **Full store (changed in 0.7, at the player's request):** section 6's "never silently destroy the oldest" is
   retired. With three rings a capture gives up the oldest ring that is not the selected one, and the screen says
   which beforehand (`REC: DROPS 01`). The selected ring, the one being played and carried, is never taken.
-- **Struck notes and monitoring (0.7):** MORPH's notes die away by themselves (SUSTAIN on MIX; at its top they
+- **Struck notes and monitoring (0.7):** MORPH's notes die away by themselves (DECAY on MIX; at its top they
   hold as before). REC with nothing sounding is armed and starts with the next sound. MORPH is heard on its own
   page and through its capture; elsewhere MIX starts on the grains alone, so the source and its recording are
   not heard on top of each other.

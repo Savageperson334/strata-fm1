@@ -40,7 +40,7 @@ void pm_panic(void);
 void pm_set(int p, float v);
 float pm_get(int p);
 void pm_note(int slot, int note);        /* a MORPH note on a voice (0..PM_VOICES-1), or -1: let go. Each call with a
-                                          * note strikes it: under SUSTAIN's top it then dies away by itself */
+                                          * note strikes it: under DECAY's top it then dies away by itself */
 int pm_voice_sounding(int slot);         /* that voice still has a note (held, or not yet died away) */
 void pm_monitor(int on);                 /* MORPH to be heard whatever MIX says (its own page; a capture of it) */
 void pm_grains(int on);

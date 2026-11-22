@@ -195,15 +195,15 @@ static void scene(void){
   /* GLO held: what every button does, where the buttons are (two rows of six), then the keys */
   static const char *const G[12][3]={
    {"FX","VOICE","KNOBS"},{"SEL","-",""},{"ENV","-",""},{"LFO","-",""},{"EDIT","WORDS","KNOBS"},{"GLO","THIS","GUIDE"},
-   {"HOME","STOP",""},{"SAVE","-",""},{"ARP","MUTATE","BY LUCK"},{"SEQ","NEW","PHRASE"},{"PLAY","BABBLE","ON/OFF"},{"REC","KEEP","A NOUN"}};
+   {"HOME","STOP",""},{"SAVE","-",""},{"ARP","MUT-","ATE"},{"SEQ","NEW","WORDS"},{"PLAY","TALK","ON OFF"},{"REC","KEEP","NOUN"}};
   label(8,2,"BABBLEBEAT GUIDE",C_HI);
   label(234-text_w(&FONT_XS,"LET GO OF GLO"),2,"LET GO OF GLO",C_GRAY);
   for(int i=0;i<12;i++){
    int x=(i%6)*40,y=17+(i/6)*42,used=G[i][1][0]!='-';
    rect(x+1,y,38,1,C_LINE);rect(x+1,y+40,38,1,C_LINE);rect(x+1,y,1,41,C_LINE);rect(x+38,y,1,41,C_LINE);
-   label(x+4,y+1,G[i][0],used?C_GRAY:C_DIM);
-   label(x+4,y+13,G[i][1],used?C_WHITE:C_DIM);
-   label(x+4,y+25,G[i][2],C_HI);
+   label(x+3,y+1,G[i][0],used?C_GRAY:C_DIM);
+   label(x+3,y+13,G[i][1],used?C_WHITE:C_DIM);
+   label(x+3,y+25,G[i][2],C_HI);
   }
   label(4,104,"WHITE KEYS: A PHRASE EACH",C_WHITE);
   label(4,122,"BLACK KEYS: MUTATE IT, LEFT TO RIGHT:",C_WHITE);

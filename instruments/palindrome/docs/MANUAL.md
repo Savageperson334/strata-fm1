@@ -69,7 +69,7 @@ Rings are concentric circles, the oldest innermost, each drawn from its own reco
 
 ![MORPH: the vector square, the rings dim behind it](img/morph.png "MORPH SOURCE · FX")
 
-Four synthesis methods blend across the XY square. A key **strikes** a note, up to four at once; each dies away by itself, as long as SUSTAIN (on MIX) says. With SUSTAIN at the top (HOLD) notes stay on until their key is tapped again.
+Four synthesis methods blend across the XY square. A key **strikes** a note, up to four at once; each dies away by itself, as long as DECAY (on MIX) says. With DECAY at the top (HOLD) notes stay on until their key is tapped again.
 
 MORPH is heard on this page and while it is being captured. Everywhere else you hear the grains alone, so a sound and its recording do not pile up; MIX brings MORPH back in.
 
@@ -161,7 +161,7 @@ Every SILT setting on SILT, SHAPE and MOTION, and STEREO on MIX, belongs to the 
 | KNOB2 | **FADE** | MORPH note attack/release |
 | KNOB3 | **SPREAD** | MORPH voice stereo width |
 | KNOB4 | **STEREO** | Grain stereo placement |
-| ALGORITHM | **SUSTAIN** | How long a struck MORPH note rings, 0.1–10 s; at the top, **HOLD** |
+| ALGORITHM | **DECAY** | How long a struck MORPH note rings, 0.1–10 s; at the top, **HOLD** |
 | PRESETS | **LEVEL** | Overall output level |
 
 ![REC FX](img/recfx.png "REC FX · SEQ")
@@ -190,7 +190,7 @@ Capture one or two MORPH notes as RING 01 first (FX, REC, play them). Values are
 | Generations | Play a patch above, REC, change PITCH, REC again: three rings, each a step further |
 | Worn copy | REC FX: NOISE 30, CRUSH 40, DROP 30; REC from SILT; repeat for more wear |
 | Layered | RINGS: CARRY 60; FX, REC, play new notes: the new ring is the old one with MORPH on top |
-| Drone | MIX: SUSTAIN to HOLD, MIX 50; FX, latch notes: MORPH stays under the grains |
+| Drone | MIX: DECAY to HOLD, MIX 50; FX, latch notes: MORPH stays under the grains |
 
 ## Notes
 
