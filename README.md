@@ -4,10 +4,10 @@ Two custom firmwares for the M-VAVE FM-1 live in this repository. They are separ
 versions, releases and installers; the FM-1 holds one at a time, and either installer can put the other (or
 M-VAVE's own firmware) back.
 
-| Firmware | What it is | Status | Site |
-| --- | --- | --- | --- |
-| **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | <https://savageperson334.github.io/strata-fm1/> |
-| **PALINDROME** | An alternate instrument: MORPH blends four synthesis methods, SILT records the sound into a loop and plays it in grains; the screen is a picture of the engine | Experimental prerelease (`palindrome-vX.Y`) | <https://savageperson334.github.io/strata-fm1/palindrome/> |
+| Firmware | What it is | Status | Site | Manual | Install |
+| --- | --- | --- | --- | --- | --- |
+| **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/) | [manual](https://savageperson334.github.io/strata-fm1/manual/) | [install](https://savageperson334.github.io/strata-fm1/install/) |
+| **PALINDROME** | An alternate instrument: MORPH blends four synthesis methods, SILT records the sound into a loop and plays it in grains; the screen is a picture of the engine | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
 
 PALINDROME's source, manual and build notes are in [instruments/palindrome](instruments/palindrome). (It was
 first published as PALIMPSEST; the old web address forwards to the new one.) Neither firmware has been tested on a
