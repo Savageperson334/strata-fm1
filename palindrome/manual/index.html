@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual · PALINDROME</title>
+<meta name="description" content="The manual for PALINDROME, a firmware for the M-VAVE FM-1.">
+<style>
+/* paper and ink: warm white paper, ink-blue type, vermilion for what is played, mustard for asides; a shade of the
+   paper for code and callouts (CTL-1's; a firmware may restyle its site) */
+:root {
+  --paper: #fbf8f1; --sheet: #efe9dc; --rule: #ddd4c2; --ink: #1e2b5a; --muted: #5d6585;
+  --hot: #e5482e; --hot-t: #f8d3c9; --cool: #d9a21b; --cool-t: #f5e4b8;
+  --hot-ink: #c23a22;                                 /* the vermilion as text: 4.5:1 on the paper */
+  color-scheme: light;
+}
+body {
+  background: var(--paper); color: var(--ink); margin: 0;
+  font: 400 17px/1.6 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  padding-inline: 16px; padding-block: 32px 64px;
+}
+main { max-width: 46rem; margin: 0 auto; }
+.page > .site { max-width: 46rem; margin-inline: auto; }
+main:focus { outline: none; }
+h1, h2, h3 { font-family: inherit; text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 2.2rem; font-weight: 700; margin: 0 0 .4rem; letter-spacing: .02em; }
+h2 { font-size: 1.3rem; font-weight: 700; margin: 3rem 0 .8rem; padding-top: .8rem; border-top: 2px solid var(--ink); }
+h2 .num { color: var(--hot); margin-right: .5em; font-variant-numeric: tabular-nums; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 .5rem; }
+p, li { max-width: 65ch; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+li { margin: .2rem 0; }
+li::marker { color: var(--hot); }
+strong { font-weight: 700; }
+a { color: var(--ink); text-decoration-color: var(--hot); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { background: var(--hot-t); }
+:focus-visible { outline: 3px solid var(--hot-ink); outline-offset: 2px; }
+.skip { position: absolute; left: 16px; top: -100px; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 0 0 6px 6px; z-index: 1; }
+.skip:focus { top: 0; }
+code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .86em; }
+code { background: var(--sheet); padding: .08em .35em; border-radius: 3px; }
+pre { background: var(--sheet); border-radius: 6px; padding: 14px 16px; overflow-x: auto; line-height: 1.45; margin: 0 0 1.2rem; }
+pre code { background: none; padding: 0; font-size: inherit; }
+hr { display: none; }
+.table { overflow-x: auto; margin: 0 0 1.3rem; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .7rem .45rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: var(--muted); border-bottom: 2px solid var(--ink); }
+td:first-child { white-space: nowrap; }
+.lede { margin-bottom: 1.6rem; }
+.status { background: var(--sheet); border-radius: 6px; padding: 12px 16px; }
+.status p { margin: 0; }
+.site { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.2rem; margin: 0 0 1.6rem; padding-bottom: .5rem; border-bottom: 2px solid var(--ink); }
+.site .home { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: var(--ink); text-decoration: none; }
+.site .home:hover { color: var(--hot-ink); background: none; }
+.site nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: .2rem 1rem; font-size: .92rem; }
+.site nav a { color: var(--ink); text-underline-offset: 3px; }
+.site nav a[aria-current] { text-decoration: none; color: var(--hot-ink); }
+a.home { color: inherit; text-decoration: none; }
+a.home:hover { background: none; color: var(--hot-ink); }
+main > a.home { display: inline-block; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 .4rem; }
+.callout { border-left: 4px solid var(--cool); background: var(--cool-t); padding: 10px 16px; margin: 0 0 1.2rem; max-width: 65ch; border-radius: 0 6px 6px 0; }
+.callout p { margin: 0; }
+details { background: var(--sheet); border-radius: 6px; padding: 0 16px; margin: 0 0 1.2rem; }
+details > summary { cursor: pointer; padding: 10px 0; }
+details[open] > summary { margin-bottom: .4rem; }
+details > :last-child { margin-bottom: 1rem; }
+.swatch { display: inline-block; width: .7em; height: .7em; margin-right: .4em; vertical-align: .02em; }
+nav.contents ol { columns: 2 14rem; column-gap: 2rem; padding-left: 1.3rem; }
+.figs { display: flex; flex-wrap: wrap; gap: 20px; margin: .4rem 0 1.6rem; }
+figure { margin: 0; flex: 0 1 auto; }
+figure img { display: block; max-width: 100%; height: auto; }
+figure.shot img { width: 300px; image-rendering: pixelated; border-radius: 4px; box-shadow: 0 0 0 1px var(--rule); }
+figure.wide { flex-basis: 100%; }
+figure.wide img { width: 100%; }
+figcaption { color: var(--muted); font-size: .88rem; margin-top: .4rem; max-width: 300px; }
+figure.wide figcaption { max-width: none; }
+nav.contents li { break-inside: avoid; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<div class="page">
+<header class="site"><a class="home" href="../">PALINDROME</a><nav><a href="../emu/">Emulator</a><a href="../install/">Install</a><a href="../manual/" aria-current="page">Manual</a><a href="https://github.com/Savageperson334/strata-fm1">Source</a></nav></header>
+<main id="content" tabindex="-1"><h1>Manual</h1>
+<p class="lede">An experimental FM-1 instrument in two halves: <strong>MORPH makes sound; SILT records it and takes it apart.</strong> Both keep running whichever one the knobs are on. It's custom firmware, installed at your own risk, and it has not been tested on a real FM-1 yet. Try the browser version first.</p>
+<div class="figs"><figure class="shot"><img src="img/morph.png" alt="The screen: MORPH&#x27;s square in the middle of SILT&#x27;s memory ring" loading="lazy"><figcaption>The screen: MORPH's square in the middle of SILT's memory ring</figcaption></figure></div>
+<h2 id="quick-start">Quick start</h2>
+<ol><li>Turn MASTER up. Tap a few keys (up to four notes latch; tap one again to let it go).</li><li>Turn KNOB1 and KNOB2 to move the white spot around the square. Each corner is a different way of making sound.</li><li>Wait two seconds for the ring to fill, then tap EDIT. The knobs are now SILT's.</li><li>Tap REC once to FREEZE what's recorded. Tap PLAY to start the grains.</li><li>Turn KNOB1 (where the grains start), KNOB2 (how long they are) and KNOB3 (how many).</li><li>Tap FX to go back to MORPH's knobs. The grains carry on.</li></ol>
+<h2 id="the-screen">The screen</h2>
+<p>The screen is a picture of what the instrument is doing, with very few words.</p>
+<ul><li><strong>The ring</strong> is SILT's memory, about a second and a half of sound, drawn as the loop it is. The recorded wave stays where it was written. The <strong>white tick</strong> is the write head going round and writing over it.</li><li><strong>The mark outside the ring</strong> is where grains start (POSITION). The <strong>dotted arc</strong> beside it is how far they scatter (SPRAY).</li><li><strong>Each grain is a spot riding the ring</strong> with a short tail. Grains playing forward ride the outside; grains playing backward ride the inside.</li><li><strong>The square</strong> in the middle is MORPH. Its four corners are four ways of making sound, each with its own small sign that lights up as much as you hear it. The <strong>white spot</strong> is where the sound is now, and the <strong>loop around it</strong> is the sound's own wave.</li><li><strong>The dotted circle</strong> in the square is the path MOVE carries the spot on. The <strong>four pips</strong> under the square are the voices, as far apart as SPREAD has them.</li><li><strong>The bars at the bottom</strong> are the knobs, placed as they sit on the FM-1: MASTER, SELECT, PRESETS and ALGORITHM on the left, KNOB1 to KNOB4 on the right.</li><li><strong>Top left</strong> says whose knobs these are: MORPH, SILT or SHARED. Turn a knob and its name and value show there for a moment. <strong>Top right</strong> says how the memory is being written.</li></ul>
+<p>Whichever half the knobs are on is drawn bright; the other is dim but still moving.</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: The screen (Corner, Sign, Sound)"><table><thead><tr><th>Corner</th><th>Sign</th><th>Sound</th></tr></thead><tbody><tr><td>Top left</td><td>A wave speeding up</td><td>FM</td></tr><tr><td>Top right</td><td>Bars dying away</td><td>Struck, bell-like tones that decay</td></tr><tr><td>Bottom left</td><td>Stacked lines</td><td>Added harmonics</td></tr><tr><td>Bottom right</td><td>A zigzag</td><td>Wavefolding</td></tr></tbody></table></div>
+<p>How the write head looks:</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: The screen (REC mode, Head, What happens)"><table><thead><tr><th>REC mode</th><th>Head</th><th>What happens</th></tr></thead><tbody><tr><td>LIVE</td><td>One white tick, moving</td><td>MORPH is recorded over the oldest sound</td></tr><tr><td>FREEZE</td><td>Two short marks, still</td><td>Nothing is written; the memory is safe</td></tr><tr><td>OVERDUB</td><td>Two ticks, moving</td><td>New sound is mixed onto what's there</td></tr><tr><td>RESAMPLE</td><td>A tick with a block, moving</td><td>The grains themselves are recorded back in</td></tr></tbody></table></div>
+<div class="figs"><figure class="shot"><img src="img/silt.png" alt="SILT: the memory frozen, grains riding the ring" loading="lazy"><figcaption>SILT: the memory frozen, grains riding the ring</figcaption></figure></div>
+<h2 id="morph-tap-fx">MORPH — tap FX</h2>
+<div class="table" tabindex="0" role="region" aria-label="Table: MORPH — tap FX (Knob, Control, What it does)"><table><thead><tr><th>Knob</th><th>Control</th><th>What it does</th></tr></thead><tbody><tr><td>KNOB1</td><td>X</td><td>The spot left and right</td></tr><tr><td>KNOB2</td><td>Y</td><td>The spot up and down</td></tr><tr><td>KNOB3</td><td>COMPLEX</td><td>How rich each corner's sound is</td></tr><tr><td>KNOB4</td><td>TONE</td><td>Low-pass: dark to bright</td></tr><tr><td>SELECT</td><td>SPREAD</td><td>How far apart the voices sit in stereo</td></tr><tr><td>ALGORITHM</td><td>MOVE</td><td>Carries the spot round a circle by itself</td></tr><tr><td>PRESETS</td><td>EXCITE</td><td>How long the struck corner rings</td></tr></tbody></table></div>
+<p>Keys latch notes and unlatch them one by one. OCT− and OCT+ move the keys; notes already playing keep their pitch.</p>
+<h2 id="silt-tap-edit">SILT — tap EDIT</h2>
+<div class="table" tabindex="0" role="region" aria-label="Table: SILT — tap EDIT (Knob, Control, What it does)"><table><thead><tr><th>Knob</th><th>Control</th><th>What it does</th></tr></thead><tbody><tr><td>KNOB1</td><td>POSITION</td><td>Where grains start, from the newest sound to the oldest</td></tr><tr><td>KNOB2</td><td>SIZE</td><td>Grain length, 20–300 ms</td></tr><tr><td>KNOB3</td><td>DENSITY</td><td>1–40 grains a second</td></tr><tr><td>KNOB4</td><td>SPRAY</td><td>How far grains scatter from POSITION</td></tr><tr><td>SELECT</td><td>PITCH</td><td>Two octaves down to two octaves up</td></tr><tr><td>ALGORITHM</td><td>REVERSE</td><td>The chance a grain plays backward</td></tr><tr><td>PRESETS</td><td>FEEDBACK</td><td>How much of the old sound survives in OVERDUB and RESAMPLE</td></tr></tbody></table></div>
+<ul><li><strong>PLAY</strong> starts and stops the stream of grains. PLAY is lit while it runs.</li><li><strong>REC</strong> steps through LIVE, FREEZE, OVERDUB, RESAMPLE.</li><li><strong>In SILT, a key</strong> jumps POSITION to that point of the memory and fires a burst of grains.</li></ul>
+<h2 id="shared-hold-sel">Shared — hold SEL</h2>
+<div class="table" tabindex="0" role="region" aria-label="Table: Shared — hold SEL (Knob, Control, What it does)"><table><thead><tr><th>Knob</th><th>Control</th><th>What it does</th></tr></thead><tbody><tr><td>KNOB1</td><td>MIX</td><td>MORPH against the grains</td></tr><tr><td>KNOB2</td><td>FADE</td><td>How slowly notes come and go</td></tr><tr><td>KNOB3</td><td>SCAN</td><td>Moves POSITION back and forth by itself</td></tr><tr><td>KNOB4</td><td>WINDOW</td><td>The grains' edges: soft to softer</td></tr><tr><td>SELECT</td><td>STEREO</td><td>How wide the grains are scattered</td></tr><tr><td>ALGORITHM</td><td>DAMP</td><td>Dulls what is recorded</td></tr><tr><td>PRESETS</td><td>LEVEL</td><td>Overall level</td></tr></tbody></table></div>
+<h2 id="the-other-buttons">The other buttons</h2>
+<ul><li><strong>HOME, held for a second,</strong> lets every note go and stops the grains. A tap only shows the version, so you can't clear everything by accident.</li><li><strong>SAVE</strong> does nothing yet: the sound and the memory are lost at power-off.</li></ul>
+<h2 id="limits">Limits</h2>
+<p>No saved patches, no MIDI in, and the memory is short. Installing PALINDROME leaves STRATA's saved sound alone, and either installer can put the other firmware (or M-VAVE's own) back.</p>
+</main>
+</div>
+</body>
+</html>
