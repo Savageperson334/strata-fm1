@@ -94,6 +94,36 @@ font-size:12px;letter-spacing:.07em}
 #fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
 @media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
 </style>
+<meta id="fm1theme-meta" name="theme-color" content="#eee8f8">
+<style id="fm1theme-style">
+:root { --paper: #f2edfa; --sheet: #e5dcf2; --rule: #cfc0e2; --ink: #34264e; --muted: #6e6087; --hot: #8358b1; --hot-t: #e8ddf4; --hot-ink: #683e96; --cool: #5d75a4; --cool-t: #dbe4f4; --ground: #eee8f8; --card: #fcfaff; --accent: #7b52a8; --teal: #5b5fa4; --bad: #a73e63; --fm1-scheme: light; }
+
+html { color-scheme: var(--fm1-scheme); }
+body { background: var(--paper) !important; color: var(--ink) !important; }
+body:has(.devicebox) { background: var(--ground) !important; }
+a { text-decoration-color: var(--hot); }
+a:focus-visible, button:focus-visible { outline-color: var(--hot-ink); }
+#fm1nav {
+  max-width: 60rem; color: var(--ink); border-bottom: 2px solid var(--rule);
+  padding: 10px 0 14px; margin-bottom: 1.6rem;
+}
+#fm1nav a { color: var(--ink); }
+#fm1nav .fm1nav-swap { border-color: var(--accent); }
+#fm1nav .fm1nav-swap a { color: var(--ink); padding: 7px 11px; }
+#fm1nav .fm1nav-swap a:hover { background: var(--hot-t); }
+#fm1nav .fm1nav-swap a[aria-current] {
+  background: var(--accent); color: var(--card); opacity: 1;
+  font-weight: 750;
+}
+body:has(.devicebox) > header h1 { color: var(--accent); }
+@media(max-width:540px) {
+  #fm1nav { align-items: stretch; }
+  #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
+  #fm1nav .fm1nav-swap { display: flex; width: 100%; }
+  #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
+}
+
+</style>
 <style id="palindrome-manual-style">
 body:has(.palindrome-modes){font-size:16px;line-height:1.5}
 body:has(.palindrome-modes) main,body:has(.palindrome-modes) #fm1nav{max-width:72rem}
@@ -115,9 +145,9 @@ body:has(.palindrome-modes) main>.figs figure.shot img{width:220px}
 </style>
 </head>
 <body>
+<nav id="fm1nav" aria-label="PALINDROME"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="./" aria-current="true">PALINDROME</a><a href="../../babblebeat/manual/">BABBLEBEAT</a></div></nav>
 <a class="skip" href="#content">Skip to content</a>
 <div class="page">
-<nav id="fm1nav" aria-label="PALINDROME"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="../manual/" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../" aria-current="true">PALINDROME</a></div></nav>
 <main id="content" tabindex="-1"><h1>Manual</h1>
 <p class="lede"><strong>SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.</strong> One press does everything: nothing is held.</p>
 <p><a href="../emu/">Play in the browser</a> · <a href="../install/">Install firmware</a></p>

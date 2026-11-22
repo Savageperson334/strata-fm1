@@ -72,9 +72,39 @@ font-size:12px;letter-spacing:.07em}
 #fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
 @media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
 </style>
+<meta id="fm1theme-meta" name="theme-color" content="#e7f5f6">
+<style id="fm1theme-style">
+:root { --paper: #eaf7f7; --sheet: #d5ebed; --rule: #b7d3da; --ink: #143847; --muted: #486675; --hot: #007d90; --hot-t: #d1ebef; --hot-ink: #086879; --cool: #338c78; --cool-t: #d8eee7; --ground: #e7f5f6; --card: #faffff; --accent: #086f88; --teal: #096f71; --bad: #ba4757; --fm1-scheme: light; }
+
+html { color-scheme: var(--fm1-scheme); }
+body { background: var(--paper) !important; color: var(--ink) !important; }
+body:has(.devicebox) { background: var(--ground) !important; }
+a { text-decoration-color: var(--hot); }
+a:focus-visible, button:focus-visible { outline-color: var(--hot-ink); }
+#fm1nav {
+  max-width: 60rem; color: var(--ink); border-bottom: 2px solid var(--rule);
+  padding: 10px 0 14px; margin-bottom: 1.6rem;
+}
+#fm1nav a { color: var(--ink); }
+#fm1nav .fm1nav-swap { border-color: var(--accent); }
+#fm1nav .fm1nav-swap a { color: var(--ink); padding: 7px 11px; }
+#fm1nav .fm1nav-swap a:hover { background: var(--hot-t); }
+#fm1nav .fm1nav-swap a[aria-current] {
+  background: var(--accent); color: var(--card); opacity: 1;
+  font-weight: 750;
+}
+body:has(.devicebox) > header h1 { color: var(--accent); }
+@media(max-width:540px) {
+  #fm1nav { align-items: stretch; }
+  #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
+  #fm1nav .fm1nav-swap { display: flex; width: 100%; }
+  #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
+}
+
+</style>
 </head>
 <body>
-<nav id="fm1nav" aria-label="STRATA"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="../manual/">Manual</a><a href="../install/" aria-current="page">Install</a><a href="https://github.com/Savageperson334/strata-fm1">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../" aria-current="true">STRATA</a><a href="../palindrome/install/">PALINDROME</a></div></nav>
+<nav id="fm1nav" aria-label="STRATA"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="../manual/">Manual</a><a href="./" aria-current="page">Install</a><a href="https://github.com/Savageperson334/strata-fm1">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="./" aria-current="true">STRATA</a><a href="../palindrome/install/">PALINDROME</a><a href="../babblebeat/install/">BABBLEBEAT</a></div></nav>
 <main>
   <button type="button" class="lang" id="lang" lang="ja">日本語</button>
   <h1>Install STRATA</h1>
