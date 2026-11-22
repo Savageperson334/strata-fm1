@@ -1,0 +1,38 @@
+wait 600
+expect mode 0
+expect voices 0
+key 0 down
+wait 60
+key 0 up
+key 7 down
+wait 60
+key 7 up
+wait 2200
+expect voices 2
+expect filled 100
+wav morph.wav
+wait 700
+wavstop
+expect peak_db_min -45
+shot morph.png
+tap EDIT
+wait 100
+expect mode 1
+tap REC
+wait 100
+expect recording 1
+tap PLAY
+wait 1400
+expect grains 1
+wav silt.wav
+wait 700
+wavstop
+expect peak_db_min -45
+shot silt.png
+tap HOME
+wait 100
+expect voices 0
+expect grains 0
+tap FX
+wait 100
+expect mode 0
