@@ -28,7 +28,6 @@ wav silt.wav
 wait 700
 wavstop
 expect peak_db_min -45
-shot silt.png
 # SILT's keys are the grains' pitches: a tap holds one (and plays it), another tap lets it go
 key 7 down
 wait 60
@@ -64,6 +63,9 @@ release REC
 wait 100
 expect recording 1
 expect noise 13
+# (every hint done: the picture for the manual)
+wait 1000
+shot silt.png
 # a tap still steps it
 tap REC
 wait 100

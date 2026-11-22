@@ -341,7 +341,7 @@ static void pd_scene(void){
         char t[28];
         int n=0;
         for(i=0;i<PM_PITCHES;i++)if(gslots[i]!=PM_NO_PITCH){
-            if(n)t[n++]=' ';
+            if(n){t[n++]=' ';t[n++]=' ';}
             if(gslots[i]>0)t[n++]='+';
             number(gslots[i],t+n);
             while(t[n])n++;
