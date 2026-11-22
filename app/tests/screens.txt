@@ -45,3 +45,9 @@ turn SELECT 1
 wait 200
 shot screen-euclid.png
 release EDIT
+# the guide (GLO held)
+press GLO
+wait 200
+shot screen-guide.png
+release GLO
+wait 100

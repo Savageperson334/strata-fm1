@@ -18,6 +18,11 @@ void bb_generate_pattern(bb_mind*,int pattern);
 void bb_rewrite(bb_mind*,int pattern);
 const char *bb_pattern_label(const bb_mind*);
 void bb_mutate(bb_mind*);
+/* the named mutations (the black keys', in this order) */
+enum {BB_OP_NOUN,BB_OP_SWAP,BB_OP_ADJ,BB_OP_REBUILD,BB_OP_NEGATE,BB_OP_TENSE,BB_OP_ASK,BB_OP_CLAUSE,BB_OP_RECALL,
+      BB_OP_STUTTER,BB_OP_DROP,BB_OP_AGAIN,BB_OPS_N};
+void bb_mutate_op(bb_mind*,int op);
+const char *bb_op_label(int op);
 void bb_remember(bb_mind*);
 void bb_rebuild(bb_mind*);
 int bb_words(const bb_mind*);

@@ -60,5 +60,26 @@ int main(void){
   assert(a.count>0&&a.count<=BB_MAX_TOKENS);
   assert(strlen(a.text)<BB_TEXT_SIZE);
  }
+ /* The named mutations (the black keys'): each one changes the sentence, every time, within bounds; the ones
+  * with a meaning mean it. */
+ a.grammar=1.f;a.damage=0.f;a.length=.3f;a.recall=0.f;a.wander=.3f;
+ for(int op=0;op<BB_OPS_N;op++){
+  int changed=0;
+  assert(bb_op_label(op)[0]);
+  for(int i=0;i<300;i++){
+   char before[BB_TEXT_SIZE];
+   bb_generate(&a);strcpy(before,a.text);
+   bb_mutate_op(&a,op);
+   assert(a.count>0&&a.count<=BB_MAX_TOKENS&&strlen(a.text)<BB_TEXT_SIZE&&a.text[0]);
+   if(strcmp(before,a.text))changed++;
+   if(op==BB_OP_NEGATE)assert(strstr(a.text," not ")!=0);
+   if(op==BB_OP_ASK)assert(a.text[strlen(a.text)-1]=='?');
+   if(op==BB_OP_AGAIN)assert(strstr(a.text," again")!=0);
+   if(op==BB_OP_RECALL)assert(a.has_memory&&strstr(a.text,a.remembered.text)!=0);
+   if(op==BB_OP_ADJ){int n=0;for(unsigned k=0;k<a.count;k++)n+=a.tok[k].role==BB_ADJ;assert(n>0);}
+  }
+  /* (a swap of two nouns that are the same word, or a noun drawn again, can leave the words as they were) */
+  assert(changed>(op==BB_OP_RECALL?60:200));
+ }
  puts("BabbleBeat grammar tests passed");
 }

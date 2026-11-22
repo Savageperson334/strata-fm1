@@ -1,124 +1,350 @@
 {
   "start": "silt",
   "tutorial_label": "Reference",
-  "intro": "Reference: tap any button, knob or key to read what it does. A button that opens a page changes the knob labels here to that page's. Nothing is ever held. Switch to Play or Guide to use the panel.",
-  "master": ["VOLUME", "Output volume. MASTER is always the volume, whatever the other knobs are doing."],
+  "intro": "Reference: tap any button, knob or key to read what it does. A button that opens a page changes the knob labels here to that page's. Switch to Play or Guide to use the panel. On the FM-1 itself, holding GLO shows a guide like this on its own screen.",
+  "master": [
+    "VOLUME",
+    "Output volume. MASTER is always the volume, whatever the other knobs are doing."
+  ],
   "screen": "The screen shows the rings as concentric circles, the oldest innermost, each one its own recording; the selected ring is the bright one, and grains ride the ring they play. MORPH is the small square in the middle. The top line names the page, the keys' job and the selected ring; under the rings are the SOURCE that REC would capture and REC's state; the boxes at the foot name what each knob sets now.",
-  "keys": ["GRAIN PITCH", "Each key latches a pitch for the grains, up to four; the grains take them in turn. C (the fifth white key) is the recorded pitch. A new key also plays its grains at once, even with PLAY off."],
-  "select": ["RING", "Selects the ring that SILT plays and the knobs edit, on every page. Each ring keeps its own settings; selecting never changes a recording."],
+  "keys": [
+    "GRAIN PITCH",
+    "Each key latches a pitch for the grains, up to four; the grains take them in turn. C (the fifth white key) is the recorded pitch. A new key also plays its grains at once, even with PLAY off."
+  ],
+  "select": [
+    "RING",
+    "Selects the ring that SILT plays and the knobs edit, on every page. Each ring keeps its own settings; selecting never changes a recording."
+  ],
   "pages": {
     "silt": {
-      "title": "SILT", "how": "EDIT or HOME",
+      "title": "SILT",
+      "how": "EDIT or HOME",
       "knobs": {
-        "KNOB1": ["POSITION", "Where grains start, round the selected ring."],
-        "KNOB2": ["SIZE", "Grain length, 20 to 500 ms."],
-        "KNOB3": ["DENSITY", "1 to 40 grain starts a second."],
-        "KNOB4": ["SPRAY", "Random scatter of each grain's start around POSITION."],
-        "ALGORITHM": ["REVERSE", "The chance a grain plays backward."],
-        "PRESETS": ["PITCH", "Shifts every grain, 24 semitones down to 24 up, on top of the held keys."]
+        "KNOB1": [
+          "POSITION",
+          "Where grains start, round the selected ring."
+        ],
+        "KNOB2": [
+          "SIZE",
+          "Grain length, 20 to 500 ms."
+        ],
+        "KNOB3": [
+          "DENSITY",
+          "1 to 40 grain starts a second."
+        ],
+        "KNOB4": [
+          "SPRAY",
+          "Random scatter of each grain's start around POSITION."
+        ],
+        "ALGORITHM": [
+          "REVERSE",
+          "The chance a grain plays backward."
+        ],
+        "PRESETS": [
+          "PITCH",
+          "Shifts every grain, 24 semitones down to 24 up, on top of the held keys."
+        ]
       }
     },
     "morph": {
-      "title": "MORPH SOURCE", "how": "FX",
-      "keys": ["NOTES", "On MORPH's page each key latches a synth note, up to four. Tap a lit key again to release it."],
+      "title": "MORPH SOURCE",
+      "how": "FX",
+      "keys": [
+        "NOTES",
+        "On MORPH's page each key latches a synth note, up to four. Tap a lit key again to release it."
+      ],
       "knobs": {
-        "KNOB1": ["X", "Moves the sound left and right across the square, between its corners' ways of making sound."],
-        "KNOB2": ["Y", "Moves the sound up and down the square."],
-        "KNOB3": ["COMPLEX", "Harmonic richness of each corner's sound."],
-        "KNOB4": ["TONE", "Low-pass filter: dark to bright."],
-        "ALGORITHM": ["MOVE", "Carries the sound round a circle in the square by itself."],
-        "PRESETS": ["EXCITE", "How long the struck MODAL corner rings."]
+        "KNOB1": [
+          "X",
+          "Moves the sound left and right across the square, between its corners' ways of making sound."
+        ],
+        "KNOB2": [
+          "Y",
+          "Moves the sound up and down the square."
+        ],
+        "KNOB3": [
+          "COMPLEX",
+          "Harmonic richness of each corner's sound."
+        ],
+        "KNOB4": [
+          "TONE",
+          "Low-pass filter: dark to bright."
+        ],
+        "ALGORITHM": [
+          "MOVE",
+          "Carries the sound round a circle in the square by itself."
+        ],
+        "PRESETS": [
+          "EXCITE",
+          "How long the struck MODAL corner rings."
+        ]
       }
     },
     "rings": {
-      "title": "RINGS", "how": "SEL",
+      "title": "RINGS",
+      "how": "SEL",
       "knobs": {
-        "KNOB1": ["CARRY", "How much of the selected ring is copied under the next capture. At 0 a capture is the source alone."],
-        "KNOB4": ["DELETE", "Turn right once to arm deleting the selected ring, twice to arm clearing everything. SEL confirms; any other button calls it off."]
+        "KNOB1": [
+          "CARRY",
+          "How much of the selected ring is copied under the next capture. At 0 a capture is the source alone."
+        ],
+        "KNOB4": [
+          "DELETE",
+          "Turn right once to arm deleting the selected ring, twice to arm clearing everything. SEL confirms; any other button calls it off."
+        ]
       }
     },
     "shape": {
-      "title": "SILT SHAPE", "how": "ENV",
+      "title": "SILT SHAPE",
+      "how": "ENV",
       "knobs": {
-        "KNOB1": ["SHAPE", "Each grain's envelope: 0 struck (fast attack), 50 a bell, 100 a slow swell."],
-        "KNOB2": ["VARY", "Random grain length, up to a quarter to four times SIZE."],
-        "KNOB3": ["SCATTER", "The chance a grain jumps an octave; higher adds fifths and two octaves."],
-        "KNOB4": ["DETUNE", "Each grain slightly off pitch, up to 50 cents either way."],
-        "ALGORITHM": ["CLUSTER", "1 to 4 grains started together, each on the next held key: low values play the keys in turn, high values as a chord."]
+        "KNOB1": [
+          "SHAPE",
+          "Each grain's envelope: 0 struck (fast attack), 50 a bell, 100 a slow swell."
+        ],
+        "KNOB2": [
+          "VARY",
+          "Random grain length, up to a quarter to four times SIZE."
+        ],
+        "KNOB3": [
+          "SCATTER",
+          "The chance a grain jumps an octave; higher adds fifths and two octaves."
+        ],
+        "KNOB4": [
+          "DETUNE",
+          "Each grain slightly off pitch, up to 50 cents either way."
+        ],
+        "ALGORITHM": [
+          "CLUSTER",
+          "1 to 4 grains started together, each on the next held key: low values play the keys in turn, high values as a chord."
+        ]
       }
     },
     "motion": {
-      "title": "SILT MOTION", "how": "LFO",
+      "title": "SILT MOTION",
+      "how": "LFO",
       "knobs": {
-        "KNOB1": ["SCAN", "Moves POSITION back and forth by itself."],
-        "KNOB2": ["TIMING", "When grains start: an even pulse at 0, irregular at 100."]
+        "KNOB1": [
+          "SCAN",
+          "Moves POSITION back and forth by itself."
+        ],
+        "KNOB2": [
+          "TIMING",
+          "When grains start: an even pulse at 0, irregular at 100."
+        ]
       }
     },
     "mix": {
-      "title": "MIX", "how": "GLO",
+      "title": "MIX",
+      "how": "ARP",
       "knobs": {
-        "KNOB1": ["MIX", "Balance between MORPH and SILT's grains."],
-        "KNOB2": ["FADE", "How slowly MORPH's notes come and go."],
-        "KNOB3": ["SPREAD", "How far apart MORPH's four voices sit in stereo."],
-        "KNOB4": ["STEREO", "How wide the grains are scattered left to right."],
-        "PRESETS": ["LEVEL", "Overall output level."]
+        "KNOB1": [
+          "MIX",
+          "Balance between MORPH and SILT's grains."
+        ],
+        "KNOB2": [
+          "FADE",
+          "How slowly MORPH's notes come and go."
+        ],
+        "KNOB3": [
+          "SPREAD",
+          "How far apart MORPH's four voices sit in stereo."
+        ],
+        "KNOB4": [
+          "STEREO",
+          "How wide the grains are scattered left to right."
+        ],
+        "PRESETS": [
+          "LEVEL",
+          "Overall output level."
+        ]
       }
     },
     "recfx": {
-      "title": "REC FX", "how": "GLO, twice",
+      "title": "REC FX",
+      "how": "SEQ",
       "knobs": {
-        "KNOB1": ["NOISE", "Hiss recorded into the next capture. With no notes held it captures noise alone."],
-        "KNOB2": ["COLOR", "The hiss's tone: low rumble to bright hiss."],
-        "KNOB3": ["CRUSH", "Reduces the next capture's resolution: grit, then a few hard steps."],
-        "KNOB4": ["GATE", "Only sound louder than this is captured; quieter stretches become silence."],
-        "ALGORITHM": ["DROP", "Random gaps in the next capture."],
-        "PRESETS": ["DAMP", "Darkens what is captured."]
+        "KNOB1": [
+          "NOISE",
+          "Hiss recorded into the next capture. With no notes held it captures noise alone."
+        ],
+        "KNOB2": [
+          "COLOR",
+          "The hiss's tone: low rumble to bright hiss."
+        ],
+        "KNOB3": [
+          "CRUSH",
+          "Reduces the next capture's resolution: grit, then a few hard steps."
+        ],
+        "KNOB4": [
+          "GATE",
+          "Only sound louder than this is captured; quieter stretches become silence."
+        ],
+        "ALGORITHM": [
+          "DROP",
+          "Random gaps in the next capture."
+        ],
+        "PRESETS": [
+          "DAMP",
+          "Darkens what is captured."
+        ]
       }
     }
   },
   "buttons": {
-    "EDIT": {"label": "SILT", "sub": "the grains", "base": "silt",
-             "text": "Opens SILT, the instrument: the grains of the selected ring. REC here captures SILT's own grains into a new ring."},
-    "HOME": {"label": "SILT HOME", "sub": "back to SILT", "base": "silt",
-             "text": "Returns to SILT from anywhere. It clears nothing."},
-    "FX": {"label": "MORPH", "sub": "the source", "base": "morph",
-           "text": "Opens MORPH, the four-corner synth that makes the sound to capture. The keys are its notes here. REC here captures MORPH into a new ring."},
-    "SEL": {"label": "RINGS", "sub": "list, delete", "base": "rings",
-            "text": "Opens the list of rings: which there are and what each was made from. KNOB4 arms a delete there and SEL confirms it."},
-    "ENV": {"label": "SHAPE", "sub": "grain shape", "base": "shape",
-            "text": "Opens SILT SHAPE: each grain's envelope and how the grains differ from one another."},
-    "LFO": {"label": "MOTION", "sub": "scan, timing", "base": "motion",
-            "text": "Opens SILT MOTION: POSITION moving by itself, and regular or irregular grain timing."},
-    "GLO": {"label": "MIX / REC FX", "sub": "press again", "pages": ["mix", "recfx"],
-            "text": "Opens MIX. Pressed again it opens REC FX, what a capture does to the sound it records; again, MIX. The screen names both and lights the one that is open."},
-    "REC": {"label": "NEW RING", "sub": "one press",
-            "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. It runs for one ring's length and finishes by itself. It never overwrites a ring: with no room left it says RINGS FULL."},
-    "PLAY": {"label": "GRAINS", "sub": "start / stop",
-             "text": "Starts and stops the continuous stream of grains. Keys still play grains by hand while it is stopped."},
-    "OCT-": {"label": "KEYS DOWN", "text": "Shifts the keys down an octave. Notes and pitches already held stay where they are."},
-    "OCT+": {"label": "KEYS UP", "text": "Shifts the keys up an octave. Notes and pitches already held stay where they are."},
-    "SAVE": {"unused": "SAVE is not available: there is no saving yet, and the rings are lost at power-off."},
-    "ARP": {"unused": "ARP is not used."},
-    "SEQ": {"unused": "SEQ is not used."}
+    "EDIT": {
+      "label": "SILT",
+      "sub": "the grains",
+      "base": "silt",
+      "text": "Opens SILT, the instrument: the grains of the selected ring. REC here captures SILT's own grains into a new ring."
+    },
+    "HOME": {
+      "label": "SILT HOME",
+      "sub": "back to SILT",
+      "base": "silt",
+      "text": "Returns to SILT from anywhere. It clears nothing."
+    },
+    "FX": {
+      "label": "MORPH",
+      "sub": "the source",
+      "base": "morph",
+      "text": "Opens MORPH, the four-corner synth that makes the sound to capture. The keys are its notes here. REC here captures MORPH into a new ring."
+    },
+    "SEL": {
+      "label": "RINGS",
+      "sub": "list, delete",
+      "base": "rings",
+      "text": "Opens the list of rings: which there are and what each was made from. KNOB4 arms a delete there and SEL confirms it."
+    },
+    "ENV": {
+      "label": "SHAPE",
+      "sub": "grain shape",
+      "base": "shape",
+      "text": "Opens SILT SHAPE: each grain's envelope and how the grains differ from one another."
+    },
+    "LFO": {
+      "label": "MOTION",
+      "sub": "scan, timing",
+      "base": "motion",
+      "text": "Opens SILT MOTION: POSITION moving by itself, and regular or irregular grain timing."
+    },
+    "GLO": {
+      "label": "GUIDE",
+      "sub": "hold",
+      "text": "Held down, the screen itself shows what every button does, laid out as the buttons are, with a line for the keys. Let go to return. Nothing else changes while it is held."
+    },
+    "REC": {
+      "label": "NEW RING",
+      "sub": "one press",
+      "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. It runs for one ring's length and finishes by itself. It never overwrites a ring: with no room left it says RINGS FULL."
+    },
+    "PLAY": {
+      "label": "GRAINS",
+      "sub": "start / stop",
+      "text": "Starts and stops the continuous stream of grains. Keys still play grains by hand while it is stopped."
+    },
+    "OCT-": {
+      "label": "KEYS DOWN",
+      "text": "Shifts the keys down an octave. Notes and pitches already held stay where they are."
+    },
+    "OCT+": {
+      "label": "KEYS UP",
+      "text": "Shifts the keys up an octave. Notes and pitches already held stay where they are."
+    },
+    "SAVE": {
+      "unused": "SAVE is not available: there is no saving yet, and the rings are lost at power-off."
+    },
+    "ARP": {
+      "label": "MIX",
+      "sub": "levels, width",
+      "base": "mix",
+      "text": "Opens MIX: the balance of MORPH and SILT, MORPH's fade and stereo width, the grains' stereo width and the output level."
+    },
+    "SEQ": {
+      "label": "REC FX",
+      "sub": "next capture",
+      "base": "recfx",
+      "text": "Opens REC FX: what the next capture does to the sound it records (noise, crush, gate, dropouts, damping). Rings that exist are never changed."
+    }
   },
   "guide": {
     "label": "Guide",
     "done": "That's the whole loop: MORPH makes a sound, REC captures it as a ring, SILT plays the ring, and REC makes the next ring from what you hear. HOME always brings you back to SILT. Reference says what every control does.",
     "steps": [
-      {"title": "Switch on", "text": "Press Switch on, on the panel. Sound starts and the screen shows SILT with no rings yet.",
-       "done": {"on": true}},
-      {"title": "SILT home", "text": "Nothing is captured yet. Press FX to open MORPH, the sound source.",
-       "show": ["FX"], "done": {"lit": "FX"}},
-      {"title": "MORPH", "text": "Tap two or three keys: each one latches a note. Turn KNOB1 and KNOB2 to move between the four ways of making sound.",
-       "show": ["keys", "KNOB1", "KNOB2"], "done": {"keys": true}},
-      {"title": "Capture", "text": "Press REC once. Watch RING 01 fill on the screen; it finishes by itself.",
-       "show": ["REC"], "done": {"rings": 1}},
-      {"title": "Play SILT", "text": "The new ring is selected and you are back on SILT. Press PLAY, then turn KNOB1 (POSITION) and KNOB2 (SIZE).",
-       "show": ["PLAY", "KNOB1", "KNOB2"], "done": {"lit": "PLAY"}},
-      {"title": "Second generation", "text": "Change the grains (PRESETS is PITCH), then press REC again. RING 02 appears around RING 01, which stays as it was.",
-       "show": ["PRESETS", "REC"], "done": {"rings": 2}},
-      {"title": "Rings", "text": "Press SEL to see the rings, then turn SELECT one step left to go back to RING 01. Its sound and its settings are still there.",
-       "show": ["SEL", "SELECT"], "done": {"lit": "SEL", "ring": 1}}
+      {
+        "title": "Switch on",
+        "text": "Press Switch on, on the panel. Sound starts and the screen shows SILT with no rings yet.",
+        "done": {
+          "on": true
+        }
+      },
+      {
+        "title": "SILT home",
+        "text": "Nothing is captured yet. Press FX to open MORPH, the sound source.",
+        "show": [
+          "FX"
+        ],
+        "done": {
+          "lit": "FX"
+        }
+      },
+      {
+        "title": "MORPH",
+        "text": "Tap two or three keys: each one latches a note. Turn KNOB1 and KNOB2 to move between the four ways of making sound.",
+        "show": [
+          "keys",
+          "KNOB1",
+          "KNOB2"
+        ],
+        "done": {
+          "keys": true
+        }
+      },
+      {
+        "title": "Capture",
+        "text": "Press REC once. Watch RING 01 fill on the screen; it finishes by itself.",
+        "show": [
+          "REC"
+        ],
+        "done": {
+          "rings": 1
+        }
+      },
+      {
+        "title": "Play SILT",
+        "text": "The new ring is selected and you are back on SILT. Press PLAY, then turn KNOB1 (POSITION) and KNOB2 (SIZE).",
+        "show": [
+          "PLAY",
+          "KNOB1",
+          "KNOB2"
+        ],
+        "done": {
+          "lit": "PLAY"
+        }
+      },
+      {
+        "title": "Second generation",
+        "text": "Change the grains (PRESETS is PITCH), then press REC again. RING 02 appears around RING 01, which stays as it was.",
+        "show": [
+          "PRESETS",
+          "REC"
+        ],
+        "done": {
+          "rings": 2
+        }
+      },
+      {
+        "title": "Rings",
+        "text": "Press SEL to see the rings, then turn SELECT one step left to go back to RING 01. Its sound and its settings are still there.",
+        "show": [
+          "SEL",
+          "SELECT"
+        ],
+        "done": {
+          "lit": "SEL",
+          "ring": 1
+        }
+      }
     ]
   }
 }

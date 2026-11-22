@@ -139,7 +139,12 @@ keeps whether the lanes are on and all four lanes' settings.
 
 ## The other buttons
 
-Three more buttons do something besides PLAY, ARP, SEQ, EDIT and the octave buttons; the rest do nothing in STRATA.
+Four more buttons do something besides PLAY, ARP, SEQ, EDIT and the octave buttons; the rest do nothing in STRATA.
+
+- **GLO, held, is the guide.** The top half of the screen shows what every button does, laid out as the buttons
+  are. Let go and the wave is back. When a button's name tells you nothing, hold GLO.
+
+![GLO held: the guide](img/screen-guide.png "The guide")
 
 - **REC = MUTATE.** Nudges the seven main controls a little in random directions. Press it a few times to wander
   somewhere new.

@@ -114,11 +114,11 @@ tap LFO
 wait 100
 expect page 4
 shot motion.png
-tap GLO
+tap ARP
 wait 100
 expect page 5
 shot mix.png
-tap GLO
+tap SEQ
 wait 100
 expect page 6
 turn K1 8
@@ -126,8 +126,18 @@ wait 100
 expect noise 13
 shot recfx.png
 turn K1 -8
-tap GLO
+tap ARP
 wait 100
+expect page 5
+# GLO held: the guide on the screen, the page as it was; let go, the page again
+press GLO
+wait 200
+expect guide 1
+expect page 5
+shot guide.png
+release GLO
+wait 100
+expect guide 0
 expect page 5
 tap HOME
 wait 100

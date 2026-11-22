@@ -34,11 +34,53 @@ tap FX
 wait 60
 expect page 0
 shot voice.png
+# the keys: a white key is its own phrase (made the first time it is played), a black key a named mutation of
+# the phrase last played
+expect key 6
+expect phrases 1
 key 9 down
 wait 50
 key 9 up
 wait 60
 expect voice 1
+expect key 5
+expect phrases 2
+key 0 down
+wait 50
+key 0 up
+wait 60
+expect key 0
+expect phrases 3
+# NEGATE (the fifth black key), then ASK (the seventh): the phrase on key 0 changes, the others do not
+key 10 down
+wait 50
+key 10 up
+wait 60
+expect op 4
+expect voice 1
+shot negate.png
+key 15 down
+wait 50
+key 15 up
+wait 60
+expect op 6
+expect key 0
+expect phrases 3
+# back to the other key: its phrase as it was left
+key 9 down
+wait 50
+key 9 up
+wait 60
+expect key 5
+expect phrases 3
+# GLO held: the guide on the screen; let go, the instrument again
+press GLO
+wait 200
+expect guide 1
+shot guide.png
+release GLO
+wait 100
+expect guide 0
 tap EDIT
 wait 60
 expect page 1

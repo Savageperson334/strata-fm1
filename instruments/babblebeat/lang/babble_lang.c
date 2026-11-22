@@ -179,38 +179,82 @@ void bb_remember(bb_mind*m){
     if(m->remembered.text==nouns[theme][w].text)m->memory_theme=(unsigned)theme;
  }
 }
-void bb_mutate(bb_mind*m){
+static const char *const BB_OPS[BB_OPS_N]={
+ "NEW NOUN","SWAP NOUNS","NEW ADJECTIVE","REBUILD","NEGATE","TENSE","ASK","ADD CLAUSE","RECALL","STUTTER","DROP","AGAIN"
+};
+const char *bb_op_label(int op){return op>=0&&op<BB_OPS_N?BB_OPS[op]:"";}
+/* One named mutation of the sentence (BB_OP_*). Each does something every time: where the sentence has nothing for
+ * it to work on (no adjective to change, a question that takes no clause), it rebuilds the sentence, around the
+ * same first noun, into a shape that has. */
+void bb_mutate_op(bb_mind*m,int op){
  int nouns[BB_MAX_TOKENS],nn=0,adjs[BB_MAX_TOKENS],na=0;
  for(unsigned i=0;i<m->count;i++){
   if(m->tok[i].role==BB_NOUN)nouns[nn++]=(int)i;
   if(m->tok[i].role==BB_ADJ)adjs[na++]=(int)i;
  }
- int op=roll(m,m->grammar>.6f?6:10);
+ if(op<0||op>=BB_OPS_N)op=BB_OP_NOUN;
  m->change=(unsigned)op+1u;
- if(op==0&&nn)m->tok[nouns[roll(m,nn)]]=noun(m);
- else if(op==1&&nn>1){
-  int ai=roll(m,nn),bi=(ai+1+roll(m,nn-1))%nn;
-  int a=nouns[ai],b=nouns[bi];
-  bb_token t=m->tok[a];m->tok[a]=m->tok[b];m->tok[b]=t;
- }else if(op==2&&na)m->tok[adjs[roll(m,na)]]=make(adj[roll(m,SZ(adj))],BB_ADJ);
- else if(op==3){bb_rewrite(m,roll(m,BB_PATTERNS_N));return;}
- else if(op==4){bb_rewrite(m,roll(m,2)?4:13);return;}
- else if(op==5){int modes[]={5,14,17};bb_rewrite(m,modes[roll(m,3)]);return;}
- else if(op==6&&m->count<BB_MAX_TOKENS-1&&m->count>2){
-  int at=roll(m,(int)m->count-1);
-  for(int i=(int)m->count;i>at;i--)m->tok[i]=m->tok[i-1];
-  m->count++;
- }else if(op==7&&m->count>3){
-  int at=roll(m,(int)m->count-1);
-  for(unsigned i=(unsigned)at;i<m->count-1;i++)m->tok[i]=m->tok[i+1];
-  m->count--;
- }else if(op==8&&m->count<BB_MAX_TOKENS-1){
-  bb_token stop=m->tok[m->count-1];m->tok[m->count-1]=AGAIN;
-  m->tok[m->count++]=stop;
- }else if(op==9){extra_clause(m);}
- else if(nn&&m->has_memory)m->tok[nouns[roll(m,nn)]]=m->remembered;
- else if(nn)m->tok[nouns[roll(m,nn)]]=noun(m);
+ switch(op){
+ case BB_OP_NOUN:if(nn)m->tok[nouns[roll(m,nn)]]=noun(m);break;
+ case BB_OP_SWAP:
+  if(nn>1){
+   int ai=roll(m,nn),bi=(ai+1+roll(m,nn-1))%nn;
+   int a=nouns[ai],b=nouns[bi];
+   bb_token t=m->tok[a];m->tok[a]=m->tok[b];m->tok[b]=t;
+  }else{bb_rewrite(m,roll(m,2)?0:9);m->change=(unsigned)op+1u;return;}   /* (one noun: a shape with two) */
+  break;
+ case BB_OP_ADJ:
+  if(na)m->tok[adjs[roll(m,na)]]=make(adj[roll(m,SZ(adj))],BB_ADJ);
+  else{bb_rewrite(m,roll(m,2)?1:0);m->change=(unsigned)op+1u;return;}    /* (none: a shape with one) */
+  break;
+ case BB_OP_REBUILD:{
+  int to=roll(m,BB_PATTERNS_N);
+  if(to==(int)m->pattern)to=(to+1)%BB_PATTERNS_N;
+  bb_rewrite(m,to);m->change=(unsigned)op+1u;return;}
+ case BB_OP_NEGATE:bb_rewrite(m,m->pattern==4?13:m->pattern==13?4:roll(m,2)?4:13);m->change=(unsigned)op+1u;return;
+ case BB_OP_TENSE:{
+  static const int modes[]={5,14,17};
+  int k=roll(m,3);
+  if(modes[k]==(int)m->pattern)k=(k+1)%3;
+  bb_rewrite(m,modes[k]);m->change=(unsigned)op+1u;return;}
+ case BB_OP_ASK:bb_rewrite(m,m->pattern==6?7:m->pattern==7?6:6+roll(m,2));m->change=(unsigned)op+1u;return;
+ case BB_OP_CLAUSE:{
+  unsigned before=m->count;
+  extra_clause(m);
+  if(m->count==before){bb_rewrite(m,roll(m,2)?16:10);m->change=(unsigned)op+1u;return;}   /* (no room, or a question) */
+  break;}
+ case BB_OP_RECALL:
+  if(!m->has_memory)bb_remember(m);      /* (nothing remembered yet: this sentence's noun is) */
+  if(nn&&m->has_memory)m->tok[nouns[roll(m,nn)]]=m->remembered;
+  break;
+ case BB_OP_STUTTER:
+  if(m->count<BB_MAX_TOKENS-1&&m->count>2){
+   int at=roll(m,(int)m->count-1);
+   for(int i=(int)m->count;i>at;i--)m->tok[i]=m->tok[i-1];
+   m->count++;
+  }
+  break;
+ case BB_OP_DROP:
+  if(m->count>3){
+   int at=roll(m,(int)m->count-1);
+   for(unsigned i=(unsigned)at;i<m->count-1;i++)m->tok[i]=m->tok[i+1];
+   m->count--;
+  }
+  break;
+ default:                                /* BB_OP_AGAIN */
+  if(m->count<BB_MAX_TOKENS-1&&m->count>0){
+   bb_token stop=m->tok[m->count-1];m->tok[m->count-1]=AGAIN;
+   m->tok[m->count++]=stop;
+  }
+  break;
+ }
  bb_rebuild(m);
+}
+/* A mutation by chance: with GRAMMAR up, one that keeps the grammar; down, the ones that break it too. */
+void bb_mutate(bb_mind*m){
+ static const uint8_t KIND[]={BB_OP_NOUN,BB_OP_SWAP,BB_OP_ADJ,BB_OP_REBUILD,BB_OP_NEGATE,BB_OP_TENSE,
+                              BB_OP_STUTTER,BB_OP_DROP,BB_OP_AGAIN,BB_OP_CLAUSE};
+ bb_mutate_op(m,KIND[roll(m,m->grammar>.6f?6:10)]);
 }
 int bb_words(const bb_mind*m){
  int n=0;

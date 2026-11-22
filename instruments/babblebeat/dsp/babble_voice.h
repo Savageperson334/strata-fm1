@@ -17,6 +17,7 @@ typedef struct {
  uint16_t slot_used[2];
  int slot_note[2];
  volatile uint32_t request,seen;
+ volatile int shift;                     /* the spoken pitch's transposition, semitones */
  /* what it is saying */
  char queue[BB_QUEUE];
  uint16_t used,pos;
@@ -43,6 +44,7 @@ typedef struct {
 } bb_voice;
 void bb_voice_init(bb_voice*);
 void bb_voice_stop(bb_voice*);
+void bb_voice_transpose(bb_voice*,int semitones);          /* the spoken pitch moved, -36..36 (a key's register) */
 void bb_voice_controls(bb_voice*,const float knobs[7]);   /* PITCH RATE TONE BREATH LEVEL STUTTER INFLECT, 0..1 */
 void bb_voice_say(bb_voice*,const bb_mind*,int note);     /* the whole sentence; note -1: the PITCH knob's, spoken */
 void bb_voice_word(bb_voice*,const bb_token*,int note);   /* one word at a MIDI note's pitch, held level */

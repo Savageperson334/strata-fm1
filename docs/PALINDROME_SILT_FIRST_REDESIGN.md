@@ -365,8 +365,9 @@ level-evening a block.
 **Decisions** (section 8):
 
 - **Ring count:** three full-length rings (above).
-- **Subpage under GLO:** GLO opens MIX; pressed again, REC FX; again, MIX. The top line names both and lights the
-  open one. One press each, nothing held.
+- **MIX and REC FX:** first both under GLO (pressed again for the other). Since 0.7 each has its own button, ARP
+  for MIX and SEQ for REC FX, one press each, and GLO, held, is the on-screen guide to every button (the same in
+  STRATA and BabbleBeat). The guide is the one hold, and it changes nothing.
 - **SELECT on MORPH:** the ring selector there too. SPREAD moved to MIX, DROP to ALGORITHM on REC FX, and CARRY
   (below) to RINGS, so SELECT is never anything else.
 - **Key state:** the four grain pitches are global, not per ring: selecting a ring changes the sound under the

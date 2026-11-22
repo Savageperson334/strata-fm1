@@ -157,3 +157,11 @@ shot euclid.png
 tap EDIT
 wait 50
 expect euc 0
+# GLO held: the guide on the screen; let go, the wave again
+press GLO
+wait 200
+expect guide 1
+shot guide.png
+release GLO
+wait 100
+expect guide 0

@@ -98,7 +98,7 @@ static void ahead(const bb_voice*v,float f[3]){
 void bb_voice_init(bb_voice*v){
  /* (field by field: no library to copy or clear with) */
  for(int k=0;k<2;k++){v->slot[k][0]=0;v->slot_used[k]=0;v->slot_note[k]=-1;}
- v->request=v->seen=0;v->queue[0]=0;v->used=v->pos=0;
+ v->request=v->seen=0;v->shift=0;v->queue[0]=0;v->used=v->pos=0;
  v->question=v->fading=v->talking=0;v->nseg=v->iseg=0;v->left=0;
  v->av=v->ah=v->af=v->accent=v->nz=0;
  v->ctl=0;v->phase=v->inc=v->flutter=0;v->hw1=v->hw2=0;v->out_gain=0;
@@ -148,6 +148,7 @@ void bb_voice_word(bb_voice*v,const bb_token*w,int note){
  uint32_t req=v->request+1u;
  hand_over(v,req,w?put(v->slot[req&1u],0,w->phones,v->stutter):0,note);
 }
+void bb_voice_transpose(bb_voice*v,int semis){v->shift=semis<-36?-36:semis>36?36:semis;}
 void bb_voice_stop(bb_voice*v){uint32_t req=v->request+1u;hand_over(v,req,0,-1);}
 int bb_voice_active(const bb_voice*v){
  uint32_t req=v->request;
@@ -268,7 +269,8 @@ static void control(bb_voice*v){
  }
  /* the pitch: a key's, held; or the PITCH knob's, a little higher at the start than at the end, lifted on each word,
   * and over the last quarter falling, or for a question rising */
- base=v->note>=0?440.f*fm_exp2f((float)(v->note-69)*(1.f/12.f)):(95.f+165.f*v->pitch);
+ base=v->note>=0?440.f*fm_exp2f((float)(v->note-69)*(1.f/12.f))
+             :(95.f+165.f*v->pitch)*fm_exp2f((float)v->shift*(1.f/12.f));
  goal=base;
  if(v->note<0){
   prog=bb_voice_progress(v);

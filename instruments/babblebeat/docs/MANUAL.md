@@ -6,14 +6,12 @@ The voice is a simple formant robot, not general text-to-speech.
 
 ## Quick start
 
-1. Press **SEQ** to make and speak a sentence. The sentence appears on screen.
-2. Press **ARP** to mutate it, then hear the changed sentence.
-3. Press **REC** to remember a noun; future sentences may return to it.
-4. Press **PLAY** to start or stop continuous, autonomous babbling.
-5. Press **EDIT** for WORDS knobs, **FX** for VOICE knobs. Both select pages
-   with a single press; there are no held-button layers.
-6. Press a key to speak the next word at that key's pitch. OCT changes
-   the keyboard register.
+1. Press a few **white keys**. Each one makes its own phrase and says it; press one again to hear it again.
+2. Press **black keys** to mutate the phrase you played last: negate it, ask it, swap its nouns.
+3. Press **REC** to remember a noun; later phrases may return to it.
+4. Press **PLAY** to start or stop continuous, autonomous babbling; **SEQ** for a new phrase on the key.
+5. Press **EDIT** for WORDS knobs, **FX** for VOICE knobs. Both select pages with a single press.
+6. Lost? Hold **GLO**: the screen shows what every button and key does.
 
 ## Buttons
 
@@ -26,9 +24,35 @@ The voice is a simple formant robot, not general text-to-speech.
 | EDIT | WORDS page |
 | FX | VOICE page |
 | HOME | Stop speaking and turn off automatic speech |
-| OCT- / OCT+ | Keyboard pitch octave |
-| SAVE | Not supported yet; shows a message |
-| Keys | Play the next word of the current phrase at the key's pitch |
+| OCT- / OCT+ | The whole voice down or up an octave |
+| GLO (hold) | The guide: what every button does, on the screen |
+| SAVE, SEL, ENV, LFO | Not used; the screen says so |
+| White keys | Sixteen phrases, one a key |
+| Black keys | Eleven mutators of the phrase last played |
+
+## Keys
+
+**White keys are phrases.** Each of the sixteen holds its own. Press one and it says its phrase; the first press
+makes it. Lower keys speak in a lower voice. The key last played is the phrase SEQ, ARP, REC and the black keys
+work on, and its mark is the tall one in the row on the screen.
+
+**Black keys are mutators.** Each changes the phrase last played in its own way and says the result:
+
+| Black key, left to right | Mutation |
+| --- | --- |
+| 1 | **NEW NOUN** — one noun replaced |
+| 2 | **SWAP NOUNS** — two nouns change places |
+| 3 | **NEW ADJECTIVE** — the adjective replaced (or the phrase rebuilt with one) |
+| 4 | **REBUILD** — another sentence pattern around the same first noun |
+| 5 | **NEGATE** — "does not" / "did not" |
+| 6 | **TENSE** — will / was / used to |
+| 7 | **ASK** — turned into a question |
+| 8 | **ADD CLAUSE** — ", and the … " |
+| 9 | **RECALL** — the remembered noun put in (remembers one if none is) |
+| 10 | **STUTTER** — a word doubled |
+| 11 | **DROP** — a word dropped |
+
+Every other key's phrase stays as you left it, so you can go back to it.
 
 ## WORDS — EDIT
 

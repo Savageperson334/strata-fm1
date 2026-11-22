@@ -551,6 +551,7 @@ static struct {
     uint32_t enc_at[NE];                 /* when each encoder last moved: fast turns go further */
     uint32_t home_t;                     /* HOME went down (0: not held, or acted) */
     uint8_t redraw_head, redraw_params;
+    uint8_t guide, redraw_guide;         /* GLO is held: the guide is on the top half of the screen */
     uint32_t frame;
 } ui;
 
@@ -824,7 +825,9 @@ static void lights(void)
     for (k = 0; k < NB; k++)             /* a held button lights while held */
         if (ui.btn >> k & 1u)
             lit |= 1u << k;
-    dim = 1u << B_SEL | 1u << B_ARP | 1u << B_SEQ | 1u << B_EDIT | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE;
+    dim = 1u << B_SEL | 1u << B_ARP | 1u << B_SEQ | 1u << B_EDIT | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE | 1u << B_GLO;
+    if (ui.guide)
+        lit |= 1u << B_GLO;
     plat_lights(lit, keys, dim, dkeys, 1);
 }
 
@@ -893,6 +896,12 @@ static void input(void)
             ui.home_t = 0;
             reset_sound();
         }
+    }
+    /* GLO held: the guide, where the wave is; let go, the wave again */
+    c = (int)((btn >> B_GLO) & 1u);
+    if (c != ui.guide) {
+        ui.guide = (uint8_t)c;
+        ui.redraw_guide = ui.redraw_head = 1;
     }
     /* a held button's layer: EDIT the lanes', SEQ the beat's, ARP the arp's, SEL the sound's second */
     c = (btn >> B_EDIT & 1u) ? 4 : (btn >> B_SEQ & 1u) ? 3 : (btn >> B_ARP & 1u) ? 2 : (int)((btn >> B_SEL) & 1u);
@@ -1094,6 +1103,32 @@ static void draw_params(void)
     cv_blit(0, 120);
 }
 
+/* GLO held: what every button does, where the buttons are (two rows of six), and the keys. It takes the top half of
+ * the screen; the knobs' boxes stay under it, naming what the knobs set as always. */
+static void draw_guide(void)
+{
+    static const char *const G[12][3] = {
+        {"FX", "-", ""}, {"SEL", "HOLD:", "MORE"}, {"ENV", "-", ""}, {"LFO", "-", ""}, {"EDIT", "LANES", "+HOLD"}, {"GLO", "THIS", "GUIDE"},
+        {"HOME", "HOLD:", "RESET"}, {"SAVE", "SAVE", "SOUND"}, {"ARP", "ARP", "+HOLD"}, {"SEQ", "BEAT", "+HOLD"}, {"PLAY", "FADE", "OUT/IN"}, {"REC", "MUTATE", ""}};
+    int i;
+    cv_begin(240, 120, C_BLACK);
+    cv_text(4, 2, &FONT_XS, "STRATA GUIDE", C_HI);
+    cv_text(236 - text_w(&FONT_XS, "LET GO OF GLO"), 2, &FONT_XS, "LET GO OF GLO", C_GRAY);
+    for (i = 0; i < 12; i++) {
+        int32_t x = (i % 6) * 40, y = 17 + (i / 6) * 42;
+        int used = G[i][1][0] != '-';
+        cv_rect(x + 1, y, 38, 1, C_LINE);
+        cv_rect(x + 1, y + 40, 38, 1, C_LINE);
+        cv_rect(x + 1, y, 1, 41, C_LINE);
+        cv_rect(x + 38, y, 1, 41, C_LINE);
+        cv_text(x + 4, y + 1, &FONT_XS, G[i][0], used ? C_GRAY : C_DIM);
+        cv_text(x + 4, y + 13, &FONT_XS, G[i][1], used ? C_WHITE : C_DIM);
+        cv_text(x + 4, y + 25, &FONT_XS, G[i][2], C_HI);
+    }
+    cv_text(4, 104, &FONT_XS, "KEYS: NOTES IN / OUT   +HOLD: ITS KNOBS", C_WHITE);
+    cv_blit(0, 0);
+}
+
 void app_ui_init(void)
 {
     lcd_fill(0, 0, 240, 240, C_BLACK);
@@ -1126,12 +1161,20 @@ void app_frame(void)
             ui.redraw_params = 1;
         }
     }
-    if (ui.redraw_head) {
-        ui.redraw_head = 0;
-        draw_head();
+    if (ui.guide) {                              /* the guide in place of the head and the wave */
+        if (ui.redraw_guide) {
+            ui.redraw_guide = 0;
+            draw_guide();
+        }
+        ++ui.frame;
+    } else {
+        if (ui.redraw_head) {
+            ui.redraw_head = 0;
+            draw_head();
+        }
+        if ((++ui.frame & 1u) == 0u)             /* the wave at about 30 frames a second */
+            draw_scope();
     }
-    if ((++ui.frame & 1u) == 0u)                 /* the wave at about 30 frames a second */
-        draw_scope();
     if (ui.redraw_params) {
         ui.redraw_params = 0;
         draw_params();
@@ -1157,6 +1200,8 @@ int app_expect(const char *what, int *got)
         *got = set.beat;
     else if (!strcmp(what, "euc"))
         *got = set.euc;
+    else if (!strcmp(what, "guide"))
+        *got = ui.guide;
     else if (!strcmp(what, "lane"))
         *got = ui.lane;
     else if (what[0] == 'L' && what[1] >= '0' && what[1] < '0' + SD_LANES && what[2]) {   /* L<lane><field> */

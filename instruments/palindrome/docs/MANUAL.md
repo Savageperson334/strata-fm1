@@ -1,6 +1,6 @@
 # PALINDROME
 
-**SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.** One press does everything: nothing is held.
+**SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.** One press does everything; hold GLO and the screen shows what every button does.
 
 [Play in the browser](../emu/) · [Install firmware](../install/)
 
@@ -24,13 +24,17 @@ Every button is one press. A page stays open until you open another.
 | SEL | Opens **RINGS**; confirms a delete armed there |
 | ENV | Opens **SILT SHAPE** |
 | LFO | Opens **SILT MOTION** |
-| GLO | Opens **MIX**; pressed again, **REC FX**; again, MIX |
+| ARP | Opens **MIX** |
+| SEQ | Opens **REC FX** |
+| GLO (hold) | The **guide**: what every button does, on the screen |
 | REC | Captures the SOURCE into a **new ring** |
 | PLAY | Grains on / off |
 | OCT− / OCT+ | Shift the keys an octave; held notes and pitches stay |
-| SAVE, ARP, SEQ | Not used; the screen says so |
+| SAVE | Not used; the screen says so |
 
 **SELECT** chooses the ring on every page. **MASTER** is always volume.
+
+![GLO held: the guide](img/guide.png "The guide · hold GLO")
 
 ## SILT
 
@@ -146,7 +150,7 @@ Every SILT setting on SILT, SHAPE and MOTION, and STEREO on MIX, belongs to the 
 
 ## MIX and REC FX
 
-**GLO — MIX; GLO again — REC FX.** The top line names both and lights the open one.
+**ARP — MIX. SEQ — REC FX.**
 
 | Knob | MIX | Function |
 | --- | --- | --- |
@@ -156,7 +160,7 @@ Every SILT setting on SILT, SHAPE and MOTION, and STEREO on MIX, belongs to the 
 | KNOB4 | **STEREO** | Grain stereo placement |
 | PRESETS | **LEVEL** | Overall output level |
 
-![REC FX](img/recfx.png "REC FX · GLO twice")
+![REC FX](img/recfx.png "REC FX · SEQ")
 
 REC FX shapes what the **next capture** records. Rings that exist are never changed.
 

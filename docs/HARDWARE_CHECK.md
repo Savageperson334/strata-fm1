@@ -56,7 +56,8 @@ This is the one that matters most: it loads the chip as hard as STRATA can.
 - [ ] Press REC again, and once more when it has finished. **Note:** are there three rings, and does a fourth REC
       say RINGS FULL without losing any?
 - [ ] Turn SELECT back and forth while the grains play. **Note:** any clicks, and does each ring sound like itself?
-- [ ] Press FX, EDIT, SEL, ENV, LFO and GLO in turn. **Note:** does each open its page with one press?
+- [ ] Press FX, EDIT, SEL, ENV, LFO, ARP and SEQ in turn. **Note:** does each open its page with one press?
+- [ ] Hold GLO. **Note:** does the guide to the buttons show at once, and does letting go bring the page back?
 - [ ] The heavy test: on SILT tap three keys, press ENV and turn ALGORITHM (CLUSTER) all the way up; press EDIT and
       turn KNOB3 (DENSITY) and KNOB2 (SIZE) all the way up, then press REC. **Note:** any crackle or stutter with
       16 grains playing and a capture running, and does the screen keep moving?

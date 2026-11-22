@@ -9,12 +9,14 @@
  *   SEL         RINGS: the rings there are and where each came from; CARRY; KNOB4 arms a delete, SEL confirms it
  *   ENV         SILT SHAPE: SHAPE VARY SCATTER DETUNE, CLUSTER
  *   LFO         SILT MOTION: SCAN, TIMING
- *   GLO         MIX, and pressed again REC FX (the two named on the screen, the one open lit); again, MIX
+ *   ARP         MIX
+ *   SEQ         REC FX: what the next capture does to the sound it records
+ *   GLO, held   the guide: what every button does, on the screen, laid out as the buttons are
  *   REC         captures the source into a NEW ring: MORPH on MORPH's page, else SILT's grains of the selected ring
  *               (MORPH while there is no ring). It runs one ring's length and finishes by itself; pressed
  *               meanwhile it does nothing but say so. No room: it says so and opens RINGS; nothing is deleted.
  *   PLAY        the stream of grains, on and off
- *   SAVE, ARP, SEQ   nothing: they say so
+ *   SAVE        nothing: it says so
  *
  * SELECT is the ring selector on every page. Everywhere but on MORPH's page the keys hold the grains' pitches.
  *
@@ -30,6 +32,7 @@ enum { PG_SILT, PG_MORPH, PG_RINGS, PG_SHAPE, PG_MOTION, PG_MIX, PG_RECFX, NPAGE
 static int page, source, octave, running, slots[PM_VOICES], replace_at;
 static int gslots[PM_PITCHES], greplace_at;  /* the keys held for the grains: semitones, PM_NO_PITCH none */
 static int arm;                          /* RINGS: 0, or what SEL would now do: 1 delete the selected ring, 2 clear all */
+static int guide;                        /* GLO is held: the guide is on the screen */
 static int played;                       /* PLAY has been pressed once (its hint no longer needed) */
 static uint32_t old_keys, old_btn, frames;
 static float gain_now;
@@ -57,7 +60,7 @@ static const uint8_t PAGE[NPAGES][7]={
     {G_MIX,G_FADE,M_SPREAD,G_STEREO,PG_NONE,PG_NONE,G_LEVEL},                   /* MIX */
     {R_NOISE,R_COLOR,R_CRUSH,R_GATE,PG_NONE,R_DROP,G_DAMP}};                    /* REC FX */
 static int pidx(int pg,int j){return PAGE[pg][j]==PG_NONE?-1:PAGE[pg][j];}
-static const uint8_t PAGE_LED[NPAGES]={B_EDIT,B_FX,B_SEL,B_ENV,B_LFO,B_GLO,B_GLO};
+static const uint8_t PAGE_LED[NPAGES]={B_EDIT,B_FX,B_SEL,B_ENV,B_LFO,B_ARP,B_SEQ};
 
 static void number(int v,char *s){
     char t[12];int n=0;unsigned u;
@@ -127,7 +130,7 @@ static void say_ring(const char *before,int slot,const char *after){
 static int8_t pd_sin[256],pd_cos[256];
 void app_init(void){
     pm_init();page=PG_SILT;source=PM_SRC_MORPH;octave=-1;running=0;replace_at=greplace_at=0;arm=0;played=0;
-    old_keys=old_btn=frames=message_until=0;gain_now=0;touched=-1;
+    old_keys=old_btn=frames=message_until=0;gain_now=0;touched=-1;guide=0;
     for(int i=0;i<256;i++){
         pd_sin[i]=(int8_t)(fm_sin_turns((float)i*(1.f/256.f))*127.f);
         pd_cos[i]=(int8_t)(fm_sin_turns((float)i*(1.f/256.f)+.25f)*127.f);
@@ -192,19 +195,19 @@ void app_input_only(void){
         }
         arm=0;newb&=~(1u<<B_SEL);
     }
-    if(newb&~((1u<<B_OCTDN)|(1u<<B_OCTUP)))arm=0;            /* any other button: not deleted */
+    if(newb&~((1u<<B_OCTDN)|(1u<<B_OCTUP)|(1u<<B_GLO)))arm=0;   /* any other button (but the guide's): not deleted */
     if(newb&(1u<<B_EDIT)){page=PG_SILT;source=PM_SRC_SILT;}
     if(newb&(1u<<B_HOME)){page=PG_SILT;source=PM_SRC_SILT;}
     if(newb&(1u<<B_FX)){page=PG_MORPH;source=PM_SRC_MORPH;}
     if(newb&(1u<<B_SEL))page=PG_RINGS;
     if(newb&(1u<<B_ENV))page=PG_SHAPE;
     if(newb&(1u<<B_LFO))page=PG_MOTION;
-    if(newb&(1u<<B_GLO))page=page==PG_MIX?PG_RECFX:PG_MIX;
+    if(newb&(1u<<B_ARP))page=PG_MIX;
+    if(newb&(1u<<B_SEQ))page=PG_RECFX;
+    guide=(int)((btn>>B_GLO)&1u);
     if(newb&(1u<<B_PLAY)){running=!running;pm_grains(running);played=1;}
     if(newb&(1u<<B_REC))capture();
     if(newb&(1u<<B_SAVE))app_say("SAVE: NOT AVAILABLE","");
-    if(newb&(1u<<B_ARP))app_say("ARP: NOT USED","");
-    if(newb&(1u<<B_SEQ))app_say("SEQ: NOT USED","");
     if((newb&(1u<<B_OCTDN))&&octave>-3)octave--;
     if((newb&(1u<<B_OCTUP))&&octave<2)octave++;
     /* the keys: MORPH's notes on its page, the grains' pitches everywhere else */
@@ -234,6 +237,7 @@ void app_input_only(void){
          * that do something dim, the three that do nothing dark */
         uint32_t lit=(1u<<PAGE_LED[page])|(running?LED_PLAY_GREEN:0),kl=0;
         if(pm_capture_state()!=PM_CAP_IDLE&&((now>>7)&1u))lit|=1u<<B_REC;
+        if(guide)lit|=1u<<B_GLO;
         if(page==PG_MORPH)for(int j=0;j<PM_VOICES;j++){
             int k=slots[j]-(53+12*octave);
             if(k>=0&&k<NKEYS)kl|=1u<<k;
@@ -243,7 +247,7 @@ void app_input_only(void){
             if(gslots[j]!=PM_NO_PITCH&&k>=0&&k<NKEYS)kl|=1u<<k;
         }
         plat_lights(lit,kl,(1u<<B_FX)|(1u<<B_SEL)|(1u<<B_ENV)|(1u<<B_LFO)|(1u<<B_EDIT)|(1u<<B_GLO)|(1u<<B_HOME)|
-                           (1u<<B_PLAY)|(1u<<B_REC),0,1);
+                           (1u<<B_ARP)|(1u<<B_SEQ)|(1u<<B_PLAY)|(1u<<B_REC),0,1);
     }
 }
 
@@ -414,12 +418,39 @@ static void pd_list(void){
     }
 }
 
+/* GLO held: what every button does, where the buttons are (two rows of six), then the keys and the knobs */
+static void pd_guide(void){
+    static const char *const G[12][3]={
+        {"FX","MORPH","SOURCE"},{"SEL","RINGS","LIST"},{"ENV","SILT","SHAPE"},{"LFO","SILT","MOTION"},{"EDIT","SILT","GRAINS"},{"GLO","THIS","GUIDE"},
+        {"HOME","SILT","HOME"},{"SAVE","-",""},{"ARP","MIX",""},{"SEQ","REC FX",""},{"PLAY","GRAINS","ON/OFF"},{"REC","NEW","RING"}};
+    int i;
+    pd_text(4,2,"PALINDROME GUIDE",C_HI);
+    pd_text(236-text_w(&FONT_XS,"LET GO OF GLO"),2,"LET GO OF GLO",C_GRAY);
+    for(i=0;i<12;i++){
+        int32_t x=(i%6)*40,y=17+(i/6)*42;
+        int used=G[i][1][0]!='-',here=i<6?(i==0&&page==PG_MORPH)||(i==1&&page==PG_RINGS)||(i==2&&page==PG_SHAPE)||(i==3&&page==PG_MOTION)||(i==4&&page==PG_SILT)
+                                         :(i==8&&page==PG_MIX)||(i==9&&page==PG_RECFX);
+        pd_frame(x+1,y,38,41,here?C_HI:C_LINE);                  /* (the open page's button: framed bright) */
+        pd_text(x+4,y+1,G[i][0],used?C_GRAY:C_DIM);
+        pd_text(x+4,y+13,G[i][1],used?C_WHITE:C_DIM);
+        pd_text(x+4,y+25,G[i][2],C_HI);
+    }
+    pd_text(4,104,"SELECT: THE RING, ON EVERY PAGE",C_WHITE);
+    pd_text(4,122,"KEYS: THE GRAINS' PITCHES",C_WHITE);
+    pd_text(4,136,"(ON MORPH'S PAGE: ITS NOTES)",C_GRAY);
+    pd_text(4,150,"OCT- OCT+: THE KEYS DOWN / UP",C_GRAY);
+    pd_text(4,164,"RINGS PAGE: KNOB4, THEN SEL, DELETES",C_GRAY);
+    pd_text(4,180,"KNOBS: NAMED BELOW (MASTER = VOLUME)",C_GRAY);
+}
+
 static void pd_scene(void){
     static const char *const TITLE[NPAGES]={"SILT","MORPH SOURCE","RINGS","SILT SHAPE","SILT MOTION","MIX","REC FX"};
     int sel=pm_ring_selected(),cap=pm_capture_slot(),morph=page==PG_MORPH,i;
     int32_t x0,y0,x1,y1,tx;
     char t[40],*e;
 
+    if(guide)pd_guide();
+    else{
     if(page==PG_RINGS)pd_list();
     else{
         /* --- the rings: each recording its own circle, the oldest innermost; the selected one bright and dense --- */
@@ -456,11 +487,7 @@ static void pd_scene(void){
     }
 
     /* --- top: the page; the keys' job; PLAY; the selected ring --- */
-    if(page==PG_MIX||page==PG_RECFX){            /* GLO's two, the one open lit */
-        tx=pd_text(4,1,"MIX",page==PG_MIX?C_HI:C_DIM);
-        tx=pd_text(tx+3,1,"|",C_LINE);
-        tx=pd_text(tx+3,1,"REC FX",page==PG_RECFX?C_HI:C_DIM);
-    }else tx=pd_text(4,1,TITLE[page],C_HI);
+    tx=pd_text(4,1,TITLE[page],C_HI);
     if(sel>=0){e=put(t,"RING ");two(ring_id(sel),e);}
     else put(t,"NO RINGS");
     x1=236-text_w(&FONT_XS,t);
@@ -516,6 +543,8 @@ static void pd_scene(void){
         }
     }
 
+    }                                        /* (not the guide) */
+
     /* --- the knobs by what they set, where they are on the panel: MASTER SELECT | KNOB1 KNOB2 over
      *     PRESETS ALGORITHM | KNOB3 KNOB4 --- */
     {
@@ -570,6 +599,7 @@ int app_expect(const char *what,int *got){
     else if(!strcmp(what,"sounding"))*got=pm_active_grains()>0;
     else if(!strcmp(what,"gkeys"))*got=gkeys();
     else if(!strcmp(what,"arm"))*got=arm;
+    else if(!strcmp(what,"guide"))*got=guide;
     else if(!strcmp(what,"size"))*got=(int)(pm_get(S_SIZE)*100+.5f);
     else if(!strcmp(what,"pitch"))*got=(int)(pm_get(S_PITCH)*100+.5f);
     else if(!strcmp(what,"noise"))*got=(int)(pm_get(R_NOISE)*100+.5f);

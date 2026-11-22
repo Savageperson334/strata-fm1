@@ -72,9 +72,9 @@ SILT is not just an effect hanging off MORPH. The selected ring and its granular
 **Additional pages:**
 - **ENV — SILT SHAPE:** grain envelope, length variation, scattered pitch, detune, cluster.
 - **LFO — SILT MOTION:** automatic scan/position movement and timing irregularity.
-- **GLO — MIX / REC FX:** balance, fade, stereo/spread/level; additional record-only transformations including noise/color/crush/gate/drop/damp. REC FX changes the *next recording*, not previously recorded PCM.
+- **ARP — MIX** and **SEQ — REC FX:** balance, fade, stereo/spread/level; and record-only transformations including noise/color/crush/gate/drop/damp. REC FX changes the *next recording*, not previously recorded PCM.
 
-**UI philosophy:** Ordinary functions need **one click/press**, with persistent pages and legible source/ring feedback. No important hidden hold gesture should be necessary in the browser. MASTER stays volume; SELECT is the ring selector. SAVE, ARP and SEQ are currently unused, rather than secretly retaining stock-firmware behavior.
+**UI philosophy:** Ordinary functions need **one click/press**, with persistent pages and legible source/ring feedback. No important hidden hold gesture should be necessary in the browser. MASTER stays volume; SELECT is the ring selector. SAVE is currently unused, rather than secretly retaining stock-firmware behavior; ARP opens MIX and SEQ opens REC FX; GLO, held, is the on-screen guide.
 
 ### The key conceptual boundary
 
@@ -125,7 +125,8 @@ The mutation engine can replace/swap word-role slots, change an adjective, or **
 - **ARP:** mutate and speak the current sentence.
 - **REC:** remember a noun for future use.
 - **PLAY:** toggle automatic, sequential babbling.
-- **Keys:** speak successive words at the pressed note pitch; OCT shifts register.
+- **White keys:** sixteen phrases, one a key; a key says its phrase (making it the first time), lower keys in a lower voice.
+- **Black keys:** eleven named mutators of the phrase last played (new noun, swap, adjective, rebuild, negate, tense, ask, clause, recall, stutter, drop). OCT shifts the voice's register.
 - **HOME:** stop speech/autoplay; **SAVE** currently shows unavailable.
 
 WORDS and VOICE are two **single-press knob pages**, not two separate firmware modes. The screen shows the sentence, active grammatical template, memory and an audio-related playhead display.
@@ -154,6 +155,10 @@ The physical FM-1 has fixed button labels, a small screen, seven encoders, note 
 - PALINDROME intentionally rejected mandatory holds: persistent pages and **one press per action** are central to its redesign.
 - BabbleBeat likewise uses **single-press WORDS/VOICE pages** and direct generate/mutate/remember actions.
 - Do not inherit an original M-VAVE button meaning unless it genuinely helps the new firmware.
+
+### A2. The screen explains the buttons
+
+The FM-1's printed button names fit none of these instruments, so **in all three, holding GLO shows a guide on the device's own screen**: the twelve buttons drawn where they are, each with what it does in that firmware, and a line or two for the keys. It is the one deliberate hold in PALINDROME and BabbleBeat, and it changes nothing: let go and the instrument is as it was. GLO has no other job in any of them.
 
 ### B. Mutation means three different things
 
