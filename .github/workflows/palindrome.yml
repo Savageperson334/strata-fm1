@@ -2,7 +2,7 @@ name: PALINDROME
 on:
   push:
     branches: [main]
-    paths: ['instruments/palindrome/**', '.github/workflows/palindrome.yml', 'scripts/publish-instrument-site.sh']
+    paths: ['instruments/palindrome/**', '.github/workflows/palindrome.yml', 'scripts/publish-instrument-site.sh', 'scripts/site_nav.py']
   workflow_dispatch:
 permissions:
   contents: read

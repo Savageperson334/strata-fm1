@@ -1,16 +1,29 @@
 # PALINDROME
 
-MORPH makes sound from four methods you blend with two knobs. SILT records that sound into a loop and plays it back
-in grains, forward and backward. The screen is a picture of it: the loop as a ring, the grains riding it.
+PALINDROME is an experimental instrument for the M-VAVE FM-1 in two halves. MORPH makes sound from four methods you
+blend with two knobs; SILT records that sound into a loop and plays it back in grains, forward and backward.
 
-![PALINDROME's screen: MORPH's square in the middle of SILT's memory ring](manual/img/silt.png "PALINDROME on the FM-1's screen")
+![PALINDROME's screen: MORPH's square in the middle of SILT's memory ring, the buttons named in the corners, the knobs named at the foot](manual/img/silt.png "PALINDROME on the FM-1's screen")
 
-Version {{VERSION}}, experimental. It has not been tested on a real FM-1 yet, so try the browser version first.
+## Start in a minute
 
-- [Play it in the browser](emu/).
-- [Install PALINDROME](install/) on an FM-1 from Chrome or Edge (custom firmware, at your own risk).
-- [Read the manual](manual/).
-- [Download {{PKG}}](firmware/{{PKG}}).
-- [Back to STRATA](../).
+1. Turn MASTER up and tap a few keys. Up to four notes latch; KNOB1 and KNOB2 move the sound around the square.
+2. Wait two seconds for the ring to fill, then tap EDIT. The knobs are now SILT's.
+3. Tap REC to freeze the loop and PLAY to start the grains.
+4. Turn KNOB1 to choose where the grains start, KNOB2 for their length, KNOB3 for how many.
 
-Built on fm1-base, MPL-2.0. M-VAVE and FM-1 are trademarks of their owners; PALINDROME is not affiliated with M-VAVE.
+## Get it
+
+- **[Install PALINDROME](install/)** from Chrome or Edge on a computer, with the FM-1 plugged in by USB. It takes
+  about a minute.
+- [Play it in the browser](emu/) first if you like. It's the same code, with sound, so you don't need an FM-1.
+- The [manual](manual/) is one page: the screen, the knobs and the buttons.
+- [Download {{PKG}}](firmware/{{PKG}}) for the command-line installer.
+- The [source](https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome) is under MPL-2.0.
+
+Version {{VERSION}}, experimental. It's custom firmware, installed at your own risk; it has been tested in a simulator,
+not yet on a real FM-1. The installer can put M-VAVE's own firmware back. PALINDROME's sibling is [STRATA](../), a drone
+and texture synth; installing one leaves the other's saved sound alone.
+
+Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). M-VAVE and
+FM-1 are trademarks of their owners; PALINDROME is not affiliated with M-VAVE.

@@ -46,6 +46,7 @@ USB, click Connect, then Install. **Manual:** <https://savageperson334.github.io
 | `tests/` | The engine rendered to WAV and checked; the app logic on a stand-in platform; `run_tests.sh` |
 | `instruments/palindrome/` | PALINDROME, the alternate firmware: its own app, engine, tests, manual and `VERSION` |
 | `scripts/publish-instrument-site.sh` | Publishes one firmware's site to GitHub Pages without touching the other's |
+| `scripts/site_nav.py` | Puts the same navigation on every page of both sites (Emulator, Manual, Install, Source; STRATA \| PALINDROME) |
 | `base/` | [fm1-base](https://github.com/charlesvestal/fm1-base) (git submodule), with felucca-bsp |
 
 ## Building

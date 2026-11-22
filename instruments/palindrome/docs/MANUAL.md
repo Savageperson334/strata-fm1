@@ -17,7 +17,7 @@ tested on a real FM-1 yet. Try the browser version first.
 
 ## The screen
 
-The screen is a picture of what the instrument is doing, with very few words.
+The screen is a picture of what the instrument is doing, with the buttons and knobs named around it.
 
 - **The ring** is SILT's memory, about a second and a half of sound, drawn as the loop it is. The recorded wave
   stays where it was written. The **white tick** is the write head going round and writing over it.
@@ -25,24 +25,20 @@ The screen is a picture of what the instrument is doing, with very few words.
   scatter (SPRAY).
 - **Each grain is a spot riding the ring** with a short tail. Grains playing forward ride the outside; grains
   playing backward ride the inside.
-- **The square** in the middle is MORPH. Its four corners are four ways of making sound, each with its own small
-  sign that lights up as much as you hear it. The **white spot** is where the sound is now, and the **loop around
-  it** is the sound's own wave.
+- **The square** in the middle is MORPH. Its four corners are four ways of making sound: FM, MODAL (struck,
+  bell-like tones), ADD (added harmonics) and FOLD (wavefolding). Each name lights up as much as you hear it. The
+  **white spot** is where the sound is now, and the **loop around it** is the sound's own wave.
 - **The dotted circle** in the square is the path MOVE carries the spot on. The **four pips** under the square
   are the voices, as far apart as SPREAD has them.
-- **The bars at the bottom** are the knobs, placed as they sit on the FM-1: MASTER, SELECT, PRESETS and ALGORITHM on
-  the left, KNOB1 to KNOB4 on the right.
-- **Top left** says whose knobs these are: MORPH, SILT or SHARED. Turn a knob and its name and value show there for
-  a moment. **Top right** says how the memory is being written.
+- **The four corners of the screen** name the buttons and show how they stand. Top: **FX: MORPH** and
+  **EDIT: SILT**, with the one whose knobs are in use lit (holding SEL shows SEL: SHARED). Bottom left: **REC:** and
+  how the memory is being written. Bottom right: **PLAY: GRAINS**, lit while the grains run.
+- **The eight boxes at the foot** name what each knob sets right now, with a bar for its value. They sit as the
+  knobs do on the FM-1: MASTER and SELECT over PRESETS and ALGORITHM on the left, KNOB1 and KNOB2 over KNOB3 and
+  KNOB4 on the right. Turn a knob and its box turns white and shows the number.
+- **A hint** appears across the middle until you've done the thing once: tap keys, then PLAY, then REC.
 
 Whichever half the knobs are on is drawn bright; the other is dim but still moving.
-
-| Corner | Sign | Sound |
-| --- | --- | --- |
-| Top left | A wave speeding up | FM |
-| Top right | Bars dying away | Struck, bell-like tones that decay |
-| Bottom left | Stacked lines | Added harmonics |
-| Bottom right | A zigzag | Wavefolding |
 
 How the write head looks:
 
