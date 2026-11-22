@@ -90,6 +90,18 @@ font-size:12px;letter-spacing:.07em}
 #fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
 @media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
 </style>
+<style id="fm1labels-style">
+#fm1labels{display:inline-flex;margin:0 0 .7rem;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font:600 12px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.07em}
+#fm1labels button{all:unset;cursor:pointer;padding:6px 14px;opacity:.72}
+#fm1labels button:hover{opacity:1}
+#fm1labels button:focus-visible{outline:2px solid currentColor;outline-offset:-4px;border-radius:999px}
+#fm1labels button[aria-pressed="true"]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+#panel text.fnl{display:none}
+#panel.fn text.fnl{display:inline}
+#panel.fn g.hasfn>text.nml{display:none}
+#panel.fn g.nofn{opacity:.4}
+</style>
 </head>
 <body>
 <nav id="fm1nav" aria-label="STRATA"><div class="fm1nav-links"><a href="../emu/" aria-current="page">Emulator</a><a href="../manual/">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../" aria-current="true">STRATA</a><a href="../palindrome/emu/">PALINDROME</a></div></nav>
@@ -99,6 +111,7 @@ font-size:12px;letter-spacing:.07em}
 <main>
 <h2 class="sr">The FM-1</h2>
 <p class="turn">Turn your phone sideways for bigger controls.</p>
+<div id="fm1labels" role="group" aria-label="What is written on the buttons"><button type="button" data-fn="0" aria-pressed="true">Names</button><button type="button" data-fn="1" aria-pressed="false">What they do</button></div>
 <div class="devicebox">
 <div class="device" id="device">
   <svg id="panel" viewBox="0 0 1000 640" aria-hidden="true" focusable="false"></svg>
@@ -808,6 +821,50 @@ $("reset").addEventListener("click", () => {
     $("reset").textContent = "Press again to forget everything";
   }
 });
+</script>
+<script id="fm1labels-js">
+(function(){
+  var FN={"FX": null, "SEL": ["HOLD:", "MORE"], "ENV": null, "LFO": null, "EDIT": ["LANES", "HOLD: SET"], "GLO": null, "HOME": ["HOLD:", "RESET"], "SAVE": ["SAVE", "SOUND"], "ARP": ["ARP", "HOLD: SET"], "SEQ": ["BEAT", "HOLD: SET"], "PLAY": ["FADE OUT", "/ BACK"], "REC": ["MUTATE"], "OCT-": ["KEYS DOWN"], "OCT+": ["KEYS UP"]},panel=document.getElementById("panel"),pill=document.getElementById("fm1labels"),tries=0;
+  if(!panel||!pill)return;
+  function build(){
+    var faces=panel.querySelectorAll("rect.btnface");
+    if(!faces.length){if(++tries<200)setTimeout(build,50);return;}
+    faces.forEach(function(face){
+      var g=face.parentNode,texts=g.querySelectorAll("text"),name=texts.length?texts[0].textContent:"";
+      if(!(name in FN))return;
+      var lines=FN[name],x=+face.getAttribute("x"),y=+face.getAttribute("y"),w=+face.getAttribute("width"),h=+face.getAttribute("height");
+      if(!lines){g.classList.add("nofn");return;}
+      g.classList.add("hasfn");
+      texts.forEach(function(t){t.classList.add("nml");});
+      lines.forEach(function(s,i){
+        var t=texts[0].cloneNode(false);
+        t.classList.remove("nml");t.classList.add("fnl");
+        t.setAttribute("font-size",lines.length>1?10.5:12);
+        t.setAttribute("letter-spacing",".02em");
+        t.setAttribute("x",x+w/2);
+        t.setAttribute("y",lines.length>1?y+h/2-1+i*12:y+h/2+4);
+        t.textContent=s;
+        t.dataset.max=w-5;
+        g.appendChild(t);
+      });
+    });
+    set(saved());
+  }
+  function fit(){                               /* a line wider than its button: squeezed to it */
+    panel.querySelectorAll("text.fnl").forEach(function(t){
+      try{if(t.getComputedTextLength()>+t.dataset.max){t.setAttribute("textLength",t.dataset.max);t.setAttribute("lengthAdjust","spacingAndGlyphs");}}catch(e){}
+    });
+  }
+  function saved(){try{return localStorage.getItem("fm1labels")==="1";}catch(e){return false;}}
+  function set(on){
+    panel.classList.toggle("fn",on);
+    pill.querySelectorAll("button").forEach(function(b){b.setAttribute("aria-pressed",String((b.dataset.fn==="1")===on));});
+    if(on)fit();
+    try{localStorage.setItem("fm1labels",on?"1":"0");}catch(e){}
+  }
+  pill.addEventListener("click",function(e){var b=e.target.closest("button");if(b)set(b.dataset.fn==="1");});
+  build();
+})();
 </script>
 </body>
 </html>
