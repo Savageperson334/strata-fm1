@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BabbleBeat · hardware status</title>
+<style>
+main{max-width:44rem;margin:3rem auto;font:17px/1.6 system-ui,sans-serif;padding:0 15px}
+h1{font-size:2rem}a{color:var(--hot-ink)}.status{background:var(--sheet);border-left:4px solid var(--hot);padding:18px;border-radius:8px}
+</style><style id="fm1nav-style">
+#fm1nav{max-width:46rem;margin:0 auto 1.4rem;padding:12px 0 10px;display:flex;flex-direction:column;align-items:flex-end;
+gap:8px;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+border-bottom:2px solid currentColor;box-sizing:border-box}
+#fm1nav a{color:inherit;text-decoration:none;background:none}
+#fm1nav .fm1nav-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 18px}
+#fm1nav .fm1nav-links a{opacity:.72;padding:2px 0;border-bottom:2px solid transparent}
+#fm1nav .fm1nav-links a:hover,#fm1nav .fm1nav-links a[aria-current]{opacity:1;border-bottom-color:currentColor}
+#fm1nav .fm1nav-swap{display:inline-flex;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font-size:12px;letter-spacing:.07em}
+#fm1nav .fm1nav-swap a{padding:5px 14px;opacity:.72}
+#fm1nav .fm1nav-swap a:hover{opacity:1}
+#fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+@media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
+</style>
+<meta id="fm1theme-meta" name="theme-color" content="#191b23">
+<style id="fm1theme-style">
+:root { --paper: #191b23; --sheet: #292d37; --rule: #4c4c5a; --ink: #f1e9de; --muted: #bcb4a9; --hot: #f6a873; --hot-t: #43332f; --hot-ink: #ffc19b; --cool: #9dc7ad; --cool-t: #303d37; --ground: #191b23; --card: #272b35; --accent: #eda06b; --teal: #a8d7bd; --bad: #ff9696; --fm1-scheme: dark; }
+
+html { color-scheme: var(--fm1-scheme); }
+body { background: var(--paper) !important; color: var(--ink) !important; }
+body:has(.devicebox) { background: var(--ground) !important; }
+a { text-decoration-color: var(--hot); }
+a:focus-visible, button:focus-visible { outline-color: var(--hot-ink); }
+#fm1nav {
+  max-width: 60rem; color: var(--ink); border-bottom: 2px solid var(--rule);
+  padding: 10px 0 14px; margin-bottom: 1.6rem;
+}
+#fm1nav a { color: var(--ink); }
+#fm1nav .fm1nav-swap { border-color: var(--accent); }
+#fm1nav .fm1nav-swap a { color: var(--ink); padding: 7px 11px; }
+#fm1nav .fm1nav-swap a:hover { background: var(--hot-t); }
+#fm1nav .fm1nav-swap a[aria-current] {
+  background: var(--accent); color: var(--card); opacity: 1;
+  font-weight: 750;
+}
+body:has(.devicebox) > header h1 { color: var(--accent); }
+@media(max-width:540px) {
+  #fm1nav { align-items: stretch; }
+  #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
+  #fm1nav .fm1nav-swap { display: flex; width: 100%; }
+  #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
+}
+
+</style>
+</head>
+<body>
+<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="../manual/">Manual</a><a href="./" aria-current="page">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../install/">STRATA</a><a href="../../palindrome/install/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav><main>
+<h1>BabbleBeat is an emulator-only preview</h1>
+<div class="status"><strong>Not yet released for hardware.</strong>
+<p>The speech and grammar code passed host simulation, but it hasn't been tested on a physical M-VAVE FM-1. There is no BabbleBeat firmware file to install at this stage.</p></div>
+<p><a href="../emu/">Play BabbleBeat in the browser</a> or <a href="../manual/">read the manual</a>.</p>
+<p>STRATA and PALINDROME have their own separate install pages. Switching instruments installs a separate firmware; BabbleBeat is not an additional mode inside them.</p>
+</main></body></html>

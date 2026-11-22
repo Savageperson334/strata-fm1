@@ -1,0 +1,249 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>BabbleBeat manual</title><style id="fm1nav-style">
+#fm1nav{max-width:46rem;margin:0 auto 1.4rem;padding:12px 0 10px;display:flex;flex-direction:column;align-items:flex-end;
+gap:8px;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+border-bottom:2px solid currentColor;box-sizing:border-box}
+#fm1nav a{color:inherit;text-decoration:none;background:none}
+#fm1nav .fm1nav-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 18px}
+#fm1nav .fm1nav-links a{opacity:.72;padding:2px 0;border-bottom:2px solid transparent}
+#fm1nav .fm1nav-links a:hover,#fm1nav .fm1nav-links a[aria-current]{opacity:1;border-bottom-color:currentColor}
+#fm1nav .fm1nav-swap{display:inline-flex;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font-size:12px;letter-spacing:.07em}
+#fm1nav .fm1nav-swap a{padding:5px 14px;opacity:.72}
+#fm1nav .fm1nav-swap a:hover{opacity:1}
+#fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+@media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
+</style>
+<meta id="fm1theme-meta" name="theme-color" content="#191b23">
+<style id="fm1theme-style">
+:root { --paper: #191b23; --sheet: #292d37; --rule: #4c4c5a; --ink: #f1e9de; --muted: #bcb4a9; --hot: #f6a873; --hot-t: #43332f; --hot-ink: #ffc19b; --cool: #9dc7ad; --cool-t: #303d37; --ground: #191b23; --card: #272b35; --accent: #eda06b; --teal: #a8d7bd; --bad: #ff9696; --fm1-scheme: dark; }
+
+html { color-scheme: var(--fm1-scheme); }
+body { background: var(--paper) !important; color: var(--ink) !important; }
+body:has(.devicebox) { background: var(--ground) !important; }
+a { text-decoration-color: var(--hot); }
+a:focus-visible, button:focus-visible { outline-color: var(--hot-ink); }
+#fm1nav {
+  max-width: 60rem; color: var(--ink); border-bottom: 2px solid var(--rule);
+  padding: 10px 0 14px; margin-bottom: 1.6rem;
+}
+#fm1nav a { color: var(--ink); }
+#fm1nav .fm1nav-swap { border-color: var(--accent); }
+#fm1nav .fm1nav-swap a { color: var(--ink); padding: 7px 11px; }
+#fm1nav .fm1nav-swap a:hover { background: var(--hot-t); }
+#fm1nav .fm1nav-swap a[aria-current] {
+  background: var(--accent); color: var(--card); opacity: 1;
+  font-weight: 750;
+}
+body:has(.devicebox) > header h1 { color: var(--accent); }
+@media(max-width:540px) {
+  #fm1nav { align-items: stretch; }
+  #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
+  #fm1nav .fm1nav-swap { display: flex; width: 100%; }
+  #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
+}
+
+</style>
+</head><body style="background:#111b1b;color:#e6f1df;font:16px/1.5 system-ui;max-width:760px;margin:1rem auto;padding:1rem">
+<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav><main><h1>BabbleBeat — grammar-driven robotic speech</h1>
+<p>A third independent FM-1 firmware, alongside STRATA and PALINDROME. A sentence
+is assembled by grammar rules first, then optionally rewritten or damaged.
+The voice is a simple formant robot, not general text-to-speech.</p>
+<h2>Quick start</h2>
+<ol>
+<li>Press <strong>SEQ</strong> to make and speak a sentence. The sentence appears on screen.</li>
+<li>Press <strong>ARP</strong> to mutate it, then hear the changed sentence.</li>
+<li>Press <strong>REC</strong> to remember a noun; future sentences may return to it.</li>
+<li>Press <strong>PLAY</strong> to start or stop continuous, autonomous babbling.</li>
+<li>Press <strong>EDIT</strong> for WORDS knobs, <strong>FX</strong> for VOICE knobs. Both select pages
+   with a single press; there are no held-button layers.</li>
+<li>Press a key to speak the next word at that key's pitch. OCT changes
+   the keyboard register.</li>
+</ol>
+<h2>Buttons</h2>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PLAY</td>
+<td>Toggle automatic phrase generation and playback</td>
+</tr>
+<tr>
+<td>SEQ</td>
+<td>New grammatically structured sentence, spoken immediately</td>
+</tr>
+<tr>
+<td>ARP</td>
+<td>Mutate the current sentence and speak the result</td>
+</tr>
+<tr>
+<td>REC</td>
+<td>Remember one noun from this sentence for later reuse</td>
+</tr>
+<tr>
+<td>EDIT</td>
+<td>WORDS page</td>
+</tr>
+<tr>
+<td>FX</td>
+<td>VOICE page</td>
+</tr>
+<tr>
+<td>HOME</td>
+<td>Stop speaking and turn off automatic speech</td>
+</tr>
+<tr>
+<td>OCT- / OCT+</td>
+<td>Keyboard pitch octave</td>
+</tr>
+<tr>
+<td>SAVE</td>
+<td>Not supported yet; shows a message</td>
+</tr>
+<tr>
+<td>Keys</td>
+<td>Play the next word of the current phrase at the key's pitch</td>
+</tr>
+</tbody>
+</table>
+<h2>WORDS — EDIT</h2>
+<table>
+<thead>
+<tr>
+<th>Knob</th>
+<th>Control</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KNOB1</td>
+<td><strong>GRAMMAR</strong></td>
+<td>High: valid structures retained; low: duplicates and omissions permitted</td>
+</tr>
+<tr>
+<td>KNOB2</td>
+<td><strong>WANDER</strong></td>
+<td>Chance of borrowing nouns from outside the selected world</td>
+</tr>
+<tr>
+<td>KNOB3</td>
+<td><strong>RECALL</strong></td>
+<td>Chance of using the remembered noun</td>
+</tr>
+<tr>
+<td>KNOB4</td>
+<td><strong>DAMAGE</strong></td>
+<td>Probability of applying automatic structural mutation</td>
+</tr>
+<tr>
+<td>SELECT</td>
+<td><strong>WORLD</strong></td>
+<td>Machine, Dream, Body or Gothic/Dracula vocabulary</td>
+</tr>
+<tr>
+<td>ALGORITHM</td>
+<td><strong>LENGTH</strong></td>
+<td>High values can append a coordinated clause</td>
+</tr>
+<tr>
+<td>PRESETS</td>
+<td><strong>STYLE</strong></td>
+<td>Statements at low values; mixed in middle; questions at high values</td>
+</tr>
+</tbody>
+</table>
+<h2>VOICE — FX</h2>
+<table>
+<thead>
+<tr>
+<th>Knob</th>
+<th>Control</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KNOB1</td>
+<td><strong>PITCH</strong></td>
+<td>Base pitch for automatic speech</td>
+</tr>
+<tr>
+<td>KNOB2</td>
+<td><strong>RATE</strong></td>
+<td>Phoneme length / speaking speed</td>
+</tr>
+<tr>
+<td>KNOB3</td>
+<td><strong>TONE</strong></td>
+<td>Formant brightness</td>
+</tr>
+<tr>
+<td>KNOB4</td>
+<td><strong>BREATH</strong></td>
+<td>Noise mixed into consonants</td>
+</tr>
+<tr>
+<td>SELECT</td>
+<td><strong>LEVEL</strong></td>
+<td>Synthesizer voice volume</td>
+</tr>
+<tr>
+<td>ALGORITHM</td>
+<td><strong>STUTTER</strong></td>
+<td>Repeat individual pronunciation codes</td>
+</tr>
+<tr>
+<td>PRESETS</td>
+<td><strong>INFLECT</strong></td>
+<td>Pitch change between successive words</td>
+</tr>
+</tbody>
+</table>
+<p>MASTER always controls volume.</p>
+<h2>How the sentence engine works</h2>
+<p>A compact lexicon tags parts of speech. Seven classes of grammatical pattern
+use third-person verbs for statements and base verbs after "does" or "do".
+Intransitive verbs are only used without objects; other templates use
+transitive verbs. Thus the generator can make:</p>
+<blockquote>
+<p>the silent machine remembers the ghost.</p>
+<p>inside the coffin the silver shadow whispers.</p>
+<p>why does the mirror follow the moon?</p>
+</blockquote>
+<p>At high GRAMMAR, mutation prefers role-preserving substitutions and swaps.
+At low GRAMMAR, tokens can repeat, disappear or be interrupted by "again".
+REC keeps a noun in a small memory slot; RECALL governs whether a later
+sentence uses it. WORLD determines the noun pool; WANDER can cross worlds.</p>
+<h3>More grammar in the second prototype</h3>
+<p>The generator now includes 18 grammatical templates, including compound
+sentences, <em>if/then</em> and <em>when</em> clauses, <em>because</em> and <em>but</em> connectors,
+relative clauses with <em>that</em>, negative past tense and future constructions.
+At high GRAMMAR, some mutations <strong>rebuild</strong> a sentence in a different
+structure while retaining its original first noun. The LENGTH parameter
+can append another coordinated clause, sometimes two at very high settings.</p>
+<p>Examples of supported structures (the vocabulary and verb are random):</p>
+<blockquote>
+<p>if the ghost whispers, the circuit remembers the moon.</p>
+<p>the machine that watches the ghost shivers.</p>
+<p>the castle did not remember the robot.</p>
+<p>when the shadow vanishes, the machine will return.</p>
+</blockquote>
+<p>WANDER retains a drifting thematic pool between sentences, with remembered
+words attracting that drift toward their own world. Lowering GRAMMAR permits
+token repeats, deletions and intrusive words, while the underlying templates
+remain valid before mutation.</p>
+<p>The four themed banks loosely echo the previous Python WordNet/Dracula
+experiment. BabbleBeat does not yet include WordNet, a full novel, the
+desktop program's advanced oracle, or live dictionary downloads.</p>
+<h2>Early voice limitations</h2>
+<p>This first voice uses a small hand-phonemized word list, a pulse/noise
+source and three resonators. It is an intentionally mechanical prototype,
+not a general English TTS engine or CHIMERA's modeled vocal tract.
+There is no text input, no recording, no save/load of patches, no MIDI
+support in the app yet, and no tested hardware release. The browser
+emulator and first real-device trials must establish intelligibility.</p></main></body></html>
