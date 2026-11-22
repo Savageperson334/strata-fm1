@@ -74,6 +74,30 @@ At low GRAMMAR, tokens can repeat, disappear or be interrupted by "again".
 REC keeps a noun in a small memory slot; RECALL governs whether a later
 sentence uses it. WORLD determines the noun pool; WANDER can cross worlds.
 
+### More grammar in the second prototype
+
+The generator now includes 18 grammatical templates, including compound
+sentences, *if/then* and *when* clauses, *because* and *but* connectors,
+relative clauses with *that*, negative past tense and future constructions.
+At high GRAMMAR, some mutations **rebuild** a sentence in a different
+structure while retaining its original first noun. The LENGTH parameter
+can append another coordinated clause, sometimes two at very high settings.
+
+Examples of supported structures (the vocabulary and verb are random):
+
+> if the ghost whispers, the circuit remembers the moon.
+
+> the machine that watches the ghost shivers.
+
+> the castle did not remember the robot.
+
+> when the shadow vanishes, the machine will return.
+
+WANDER retains a drifting thematic pool between sentences, with remembered
+words attracting that drift toward their own world. Lowering GRAMMAR permits
+token repeats, deletions and intrusive words, while the underlying templates
+remain valid before mutation.
+
 The four themed banks loosely echo the previous Python WordNet/Dracula
 experiment. BabbleBeat does not yet include WordNet, a full novel, the
 desktop program's advanced oracle, or live dictionary downloads.

@@ -45,3 +45,7 @@ is provisional; the hardware has not been validated and this prototype
 should not be published as an installable firmware yet.
 
 [Manual](docs/MANUAL.md) · [Tests](tests/)
+
+## Preview
+
+When merged to `main`, the BabbleBeat GitHub Pages job publishes an independent browser preview under `/babblebeat/` (no firmware package). The navigation switches among STRATA (teal), PALINDROME (violet), and BabbleBeat (copper/charcoal), preserving Emulator/Manual/Install context.
