@@ -1,0 +1,78 @@
+# Development preview only: no hardware firmware release or installer.
+name: BabbleBeat preview
+on:
+  push:
+    branches: [main]
+    paths: ['instruments/babblebeat/**', '.github/workflows/babblebeat.yml', 'scripts/site_nav.py', 'scripts/publish-instrument-site.sh', 'scripts/tutorial/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: babblebeat-preview
+  cancel-in-progress: false
+jobs:
+  emulator:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencies, language and DSP tests
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq libfribidi0 rsync
+          python3 -m pip install -q Pillow markdown
+          p=instruments/babblebeat
+          cc -O2 -I"$p/lang" "$p/tests/lang.c" "$p/lang/babble_lang.c" -o /tmp/bb-lang
+          /tmp/bb-lang
+          cc -O2 -Ibase/include -I"$p/lang" -I"$p/dsp" "$p/tests/voice.c" "$p/lang/babble_lang.c" "$p/dsp/babble_voice.c" -lm -o /tmp/bb-voice
+          /tmp/bb-voice
+      - name: Build host simulator and screenshots
+        run: |
+          set -euo pipefail
+          p=instruments/babblebeat
+          python3 base/tools/build.py "$p" --host
+          mkdir -p "$p/build/shots"
+          "$p/build/host/babblebeat_host" "$p/tests/basic.txt" "$p/build/shots"
+      - name: Emscripten
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          git -C "$RUNNER_TEMP/emsdk" checkout -q a2b92777574c2feda07994cd4f1079a3dfc151f8
+          "$RUNNER_TEMP/emsdk/emsdk" install 6.0.10
+          "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.10
+          echo "$RUNNER_TEMP/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+      - name: Browser emulator
+        run: python3 base/tools/build.py instruments/babblebeat --web
+      - name: Publish preview (no firmware binary)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          p=instruments/babblebeat
+          mkdir -p "$RUNNER_TEMP/bb-preview/manual" "$RUNNER_TEMP/bb-preview/install"
+          cp -r "$p/build/emu" "$RUNNER_TEMP/bb-preview/emu"
+          python3 - <<'PY'
+          import markdown,os
+          from pathlib import Path
+          body=markdown.markdown(Path('instruments/babblebeat/docs/MANUAL.md').read_text(),extensions=['tables'])
+          (Path(os.environ['RUNNER_TEMP'])/'bb-preview/manual/index.html').write_text('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>BabbleBeat manual</title></head><body style="background:#111b1b;color:#e6f1df;font:16px/1.5 system-ui;max-width:760px;margin:1rem auto;padding:1rem"><main>'+body+'</main></body></html>')
+          PY
+          cat > "$RUNNER_TEMP/bb-preview/index.html" <<'HTML'
+          <!doctype html><html lang="en"><head><meta charset="utf-8"><title>BabbleBeat</title></head><body style="background:#111b1b;color:#e6f1df;font:18px/1.5 system-ui;max-width:680px;margin:2rem auto;padding:1rem"><main><h1>BabbleBeat</h1><p>A sentence machine with a faulty little mouth.</p><p><a href="emu/">Play the emulator</a> · <a href="manual/">Manual</a></p><p>EDIT: WORDS. FX: VOICE. SEQ: New phrase. ARP: Mutate. REC: Remember. PLAY: Continuous speech.</p><p>Preview only; hardware installation is not enabled.</p></main></body></html>
+          HTML
+          cat > "$RUNNER_TEMP/bb-preview/install/index.html" <<'HTML'
+          <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Not released</title></head><body><h1>BabbleBeat is not released for hardware.</h1><p><a href="../emu/">Try the emulator instead.</a></p></body></html>
+          HTML
+          bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/bb-preview" babblebeat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: babblebeat-emulator-preview
+          path: |
+            instruments/babblebeat/build/emu/
+            instruments/babblebeat/build/shots/
