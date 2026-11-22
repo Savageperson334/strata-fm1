@@ -6,63 +6,68 @@ The voice is a simple formant robot, not general text-to-speech.
 
 ## Quick start
 
-1. Press a few **white keys**. Each one makes its own phrase and says it; press one again to hear it again.
-2. Press **black keys** to mutate the phrase you played last: negate it, ask it, swap its nouns.
-3. Press **REC** to remember a noun; later phrases may return to it.
-4. Press **PLAY** to start or stop continuous, autonomous babbling; **SEQ** for a new phrase on the key.
-5. Press **EDIT** for WORDS knobs, **FX** for VOICE knobs. Both select pages with a single press.
-6. Lost? Hold **GLO**: the screen shows what every button and key does.
+1. Press a **white key**. It has a word, and says a phrase about it. Press it again: the same phrase, now and then a new one.
+2. Press the **black key** to its right: the same word in another kind of phrase (a question, a "not", a "was").
+3. Keep playing keys. A word stays on its key; now and then it moves to the next word of its world.
+4. **SEQ** puts a new word on the key. **REC** remembers the key's word; RECALL brings it back into other phrases.
+5. **PLAY** babbles about the key's word; **HOME** stops.
+6. **SEL** steps through the three sets of knobs: VOICE, MOUTH, WORDS. Lost? Hold **GLO**.
 
 ## Buttons
 
 | Button | Action |
 | --- | --- |
-| PLAY | Toggle automatic phrase generation and playback |
-| SEQ | New grammatically structured sentence, spoken immediately |
-| ARP | Mutate the current sentence and speak the result |
-| REC | Remember one noun from this sentence for later reuse |
-| EDIT | WORDS page |
-| FX | VOICE page |
-| HOME | Stop speaking and turn off automatic speech |
+| PLAY | Babble: one phrase after another about the key's word |
+| SEQ | A new word on the key, and a phrase about it |
+| ARP | The key's phrase made again |
+| REC | Remember the key's word |
+| SEL | The next set of knobs: VOICE → MOUTH → WORDS |
+| FX | VOICE knobs |
+| EDIT | WORDS knobs |
+| HOME | Stop speaking and turn off the babble |
 | OCT- / OCT+ | The whole voice down or up an octave |
 | GLO (hold) | The guide: what every button does, on the screen |
-| SAVE, SEL, ENV, LFO | Not used; the screen says so |
-| White keys | Sixteen phrases, one a key |
-| Black keys | Eleven mutators of the phrase last played |
+| SAVE, ENV, LFO | Not used; the screen says so |
 
 ## Keys
 
-**White keys are phrases.** Each of the sixteen holds its own. Press one and it says its phrase; the first press
-makes it. Lower keys speak in a lower voice. The key last played is the phrase SEQ, ARP, REC and the black keys
-work on, and its mark is the tall one in the row on the screen.
+**A white key is a word.** The sixteen take the nouns of the WORLD in order, so neighbouring keys are neighbouring words. A key says a plain statement about its word and keeps it, so you can come back to it. Lower keys speak in a lower voice. The screen shows `WORD:` and a row of sixteen marks, the tall one the key in use.
 
-**Black keys are mutators.** Each changes the phrase last played in its own way and says the result:
+**A black key is a kind of phrase.** It uses the word of the white key on its left:
 
-| Black key, left to right | Mutation |
+| Black key, left to right | Kind | Example with *mirror* |
+| --- | --- | --- |
+| 1 | **WHY?** | why does the mirror remember the static? |
+| 2 | **NOT** | the mirror does not corrupt the filter. |
+| 3 | **WAS** | the mirror was ancient. |
+| 4 | **IF** | if the mirror shivers, the antenna haunts the signal. |
+| 5 | **WILL** | the mirror will return. |
+| 6 | **IS IT?** | is the mirror crooked? |
+| 7 | **DID NOT** | the mirror did not forget the engine. |
+| 8 | **USED TO** | the mirror used to vanish. |
+| 9 | **BECAUSE** | the mirror opens the static because the robot waits. |
+| 10 | **MAY** | the mirror may swallow the engine. |
+| 11 | **WHEN** | when the mirror dreams, the signal will return. |
+
+**What changes, and how fast**
+
+| Knob (WORDS) | Sets |
 | --- | --- |
-| 1 | **NEW NOUN** — one noun replaced |
-| 2 | **SWAP NOUNS** — two nouns change places |
-| 3 | **NEW ADJECTIVE** — the adjective replaced (or the phrase rebuilt with one) |
-| 4 | **REBUILD** — another sentence pattern around the same first noun |
-| 5 | **NEGATE** — "does not" / "did not" |
-| 6 | **TENSE** — will / was / used to |
-| 7 | **ASK** — turned into a question |
-| 8 | **ADD CLAUSE** — ", and the … " |
-| 9 | **RECALL** — the remembered noun put in (remembers one if none is) |
-| 10 | **STUTTER** — a word doubled |
-| 11 | **DROP** — a word dropped |
+| **WANDER** | How often a key's word moves when you play it. It moves one step, to the next word of its world, never a jump. At 0 it never moves |
+| **DAMAGE** | How often a key's phrase is made again when you play it. At 0 a phrase stays until you change it |
+| **GRAMMAR** | Low: a changed phrase may be broken instead (a word doubled, dropped, an "again") |
 
-Every other key's phrase stays as you left it, so you can go back to it.
+When a white key's word moves, the black key beside it follows the next time it is played.
 
 ## WORDS — EDIT
 
 | Knob | Control | Function |
 | --- | --- | --- |
 | KNOB1 | **GRAMMAR** | High: valid structures retained; low: duplicates and omissions permitted |
-| KNOB2 | **WANDER** | Chance of borrowing nouns from outside the selected world |
-| KNOB3 | **RECALL** | Chance of using the remembered noun |
-| KNOB4 | **DAMAGE** | How often a new sentence is mutated as it is made (GRAMMAR decides how gently) |
-| SELECT | **WORLD** | Machine, Dream, Body or Gothic/Dracula vocabulary |
+| KNOB2 | **WANDER** | How often a key's word moves a step; also, other nouns borrowed from outside the world |
+| KNOB3 | **RECALL** | How often the remembered word returns. Past 70 the phrases fix on it and loop back on themselves: "the mirror was, the mirror was pale." |
+| KNOB4 | **DAMAGE** | How often a key's phrase is made again as it is played (GRAMMAR decides how gently) |
+| SELECT | **WORLD** | Machine, Dream, Body or Gothic/Dracula vocabulary, for keys that have no word yet |
 | ALGORITHM | **LENGTH** | High values can append a coordinated clause |
 | PRESETS | **STYLE** | Statements at low values; mixed in middle; questions at high values |
 
@@ -77,6 +82,17 @@ Every other key's phrase stays as you left it, so you can go back to it.
 | SELECT | **LEVEL** | Synthesizer voice volume |
 | ALGORITHM | **STUTTER** | Repeat individual pronunciation codes |
 | PRESETS | **INFLECT** | How much the pitch moves: a lift on each word, a fall at the end, a rise for a question |
+
+## MOUTH — SEL
+
+SEL steps VOICE → MOUTH → WORDS. The middle of each MOUTH knob is the voice as it is made.
+
+| Knob | Control | Function |
+| --- | --- | --- |
+| KNOB1 | **SIZE** | A small mouth (every resonance higher) to a large one |
+| KNOB2 | **SLUR** | Crisp, to sliding lazily from sound to sound |
+| KNOB3 | **GAP** | The quiet between words: run together, to spaced out |
+| KNOB4 | **WAVER** | How much the pitch trembles |
 
 MASTER always controls volume.
 

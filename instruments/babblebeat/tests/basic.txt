@@ -34,45 +34,60 @@ tap FX
 wait 60
 expect page 0
 shot voice.png
-# the keys: a white key is its own phrase (made the first time it is played), a black key a named mutation of
-# the phrase last played
-expect key 6
-expect phrases 1
+# the keys: a white key has a word and says a phrase about it (made the first time it is played)
+expect key 11
+expect words 1
+expect has 1
 key 9 down
 wait 50
 key 9 up
 wait 60
 expect voice 1
-expect key 5
+expect key 9
+expect white 5
+expect words 2
 expect phrases 2
-key 0 down
-wait 50
-key 0 up
-wait 60
-expect key 0
-expect phrases 3
-# NEGATE (the fifth black key), then ASK (the seventh): the phrase on key 0 changes, the others do not
+expect has 1
+# the black key to its right: the same word, in its own kind of phrase (the fifth black key: WILL)
 key 10 down
 wait 50
 key 10 up
 wait 60
-expect op 4
-expect voice 1
-shot negate.png
-key 15 down
-wait 50
-key 15 up
-wait 60
-expect op 6
-expect key 0
+expect key 10
+expect sharp 4
+expect white 5
+expect pattern 5
+expect words 2
 expect phrases 3
-# back to the other key: its phrase as it was left
+expect has 1
+expect voice 1
+shot sharp.png
+# another black key: its own word (the white key on its left, given now), its own kind (IF)
+key 8 down
+wait 50
+key 8 up
+wait 60
+expect sharp 3
+expect white 4
+expect pattern 8
+expect words 3
+expect has 1
+# back to the white key: still about its word
 key 9 down
 wait 50
 key 9 up
 wait 60
-expect key 5
-expect phrases 3
+expect key 9
+expect words 3
+expect has 1
+# SEQ: a new word on the key, and a phrase about it; REC remembers the key's word
+tap SEQ
+wait 60
+expect has 1
+expect words 3
+tap REC
+wait 60
+expect remember 1
 # GLO held: the guide on the screen; let go, the instrument again
 press GLO
 wait 200
@@ -81,6 +96,20 @@ shot guide.png
 release GLO
 wait 100
 expect guide 0
+# SEL: the next set of knobs (VOICE, MOUTH, WORDS); FX and EDIT go straight to theirs
+tap SEL
+wait 60
+expect page 2
+turn K1 8
+wait 60
+expect size 63
+shot mouth.png
+tap SEL
+wait 60
+expect page 1
+tap SEL
+wait 60
+expect page 0
 tap EDIT
 wait 60
 expect page 1

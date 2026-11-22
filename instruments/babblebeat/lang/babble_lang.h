@@ -24,6 +24,14 @@ enum {BB_OP_NOUN,BB_OP_SWAP,BB_OP_ADJ,BB_OP_REBUILD,BB_OP_NEGATE,BB_OP_TENSE,BB_
 void bb_mutate_op(bb_mind*,int op);
 const char *bb_op_label(int op);
 void bb_remember(bb_mind*);
+/* a key's word: the nouns of a world in order; the word next to one in its world (how a key's word moves: a
+ * step, not a jump); a sentence of a pattern whose first noun is the word; that word made the memory */
+bb_token bb_noun_of(int theme,int i);
+bb_token bb_noun_near(bb_mind*,const bb_token *word);
+void bb_phrase(bb_mind*,const bb_token *word,int pattern);
+void bb_remember_word(bb_mind*,const bb_token *word);
+int bb_statement(bb_mind*);              /* a plain statement's pattern, by chance (the white keys' kind) */
+int bb_chance(bb_mind*,float p);         /* 1 with probability p */
 void bb_rebuild(bb_mind*);
 int bb_words(const bb_mind*);
 const bb_token *bb_word_at(const bb_mind*,int i);

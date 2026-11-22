@@ -1,11 +1,15 @@
-# PALINDROME: the walk a player takes. SILT is home; MORPH is the source; REC makes a new ring each time and
-# touches no other; nothing is held. (page: 0 SILT, 1 MORPH, 2 RINGS, 3 SHAPE, 4 MOTION, 5 MIX, 6 REC FX)
+# PALINDROME: the walk a player takes. SILT is home; MORPH is the seed; REC makes a new ring each time; DRIFT makes
+# the next by itself. (page: 0 SILT, 1 MORPH, 2 RINGS, 3 SHAPE, 4 MOTION, 5 MIX, 6 REC FX)
 wait 3000
 expect page 0
 expect rings 0
 expect ring 0
 expect voices 0
 shot silt0.png
+# DRIFT off for the walk by hand (its own part is at the end)
+turn ALGO -64
+wait 100
+expect drift 0
 # REC with nothing sounding: armed, no capture, no ring; REC again: not armed
 tap REC
 wait 100
@@ -51,10 +55,10 @@ expect parent 0
 expect page 0
 wait 1800
 shot silt1.png
-# PLAY: grains of ring 01; the keys are their pitches now, MORPH's notes stay as they were
-tap PLAY
-wait 100
+# a seed from MORPH is heard at once: the grains run. The keys are their pitches now (the seed's last key, 7, the
+# ring as it was recorded), MORPH's notes stay as they were
 expect grains 1
+expect root 7
 turn K3 30
 turn K2 20
 key 7 down
@@ -94,16 +98,16 @@ shot silt.png
 # each ring keeps its own settings: 02's SIZE is its own, 01 still has the PITCH it was left with
 turn K2 -24
 wait 100
-expect size 29
+expect size 49
 turn SELECT -1
 wait 100
 expect ring 1
 expect pitch 63
-expect size 66
+expect size 86
 turn SELECT 1
 wait 100
 expect ring 2
-expect size 29
+expect size 49
 turn SELECT -1
 wait 100
 # the other pages: one press each, and they stay
@@ -254,3 +258,72 @@ wait 60
 key 5 up
 wait 100
 expect voices 0
+# touch and go. Everything cleared (and DECAY back under its top): a key on SILT strikes MORPH, the note is caught
+# as ring 01 and the grains play it; the same key then plays the ring as it was recorded
+tap SEL
+wait 100
+turn K4 1
+wait 100
+turn K4 1
+wait 100
+tap SEL
+wait 200
+expect rings 0
+expect grains 0
+tap ARP
+wait 100
+turn ALGO -19
+wait 100
+expect sustain 70
+tap EDIT
+wait 100
+expect page 0
+shot empty.png
+key 12 down
+wait 60
+key 12 up
+wait 200
+expect capturing 1
+expect voices 1
+wait 2800
+expect rings 1
+expect ring 7
+expect grains 1
+expect root 12
+expect page 0
+shot touch.png
+key 12 down
+wait 60
+key 12 up
+wait 100
+expect gkeys 1
+# DRIFT: left alone, the loop is made again from itself: a new ring from the one played, the page as it was
+turn ALGO 40
+wait 100
+expect drift 63
+wait 2700
+expect gen 1
+expect capturing 1
+shot drift.png
+wait 1500
+expect gen 0
+expect rings 2
+expect ring 8
+expect parent 7
+expect page 0
+wait 4400
+expect rings 3
+expect ring 9
+expect parent 8
+wav drift.wav
+wait 700
+wavstop
+expect peak_db_min -45
+# ...and with DRIFT off it stays as it is
+turn ALGO -64
+wait 100
+expect drift 0
+wait 6000
+expect capturing 0
+expect rings 3
+expect ring 9

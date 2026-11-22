@@ -9,10 +9,10 @@
   "pages": {
     "words": {
       "title": "WORDS",
-      "how": "tap EDIT",
+      "how": "tap EDIT, or SEL",
       "keys": [
-        "PHRASES + MUTATORS",
-        "White keys: sixteen phrases, one a key. A key says its phrase (the first press makes it), lower keys in a lower voice; the key last played is the phrase the other controls work on. Black keys: eleven mutators that change that phrase and say it, left to right: NEW NOUN, SWAP NOUNS, NEW ADJECTIVE, REBUILD, NEGATE, TENSE, ASK, ADD CLAUSE, RECALL, STUTTER, DROP."
+        "WORDS + KINDS OF PHRASE",
+        "White keys: sixteen words, one a key (the WORLD's nouns in order). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
       ],
       "knobs": {
         "KNOB1": [
@@ -21,15 +21,15 @@
         ],
         "KNOB2": [
           "WANDER",
-          "Chance to pull nouns from other themed worlds."
+          "How often a key's word moves when it is played: one step to the next word of its world, never a jump. At 0 it never moves."
         ],
         "KNOB3": [
           "RECALL",
-          "Likelihood of using the noun remembered with REC."
+          "How often the word remembered with REC returns. Past 70 the phrases fix on it and loop back on themselves."
         ],
         "KNOB4": [
           "DAMAGE",
-          "How frequently generation automatically mutates syntax."
+          "How often a key's phrase is made again as it is played. At 0 it stays until you change it."
         ],
         "SELECT": [
           "WORLD",
@@ -47,10 +47,10 @@
     },
     "voice": {
       "title": "VOICE",
-      "how": "tap FX",
+      "how": "tap FX, or SEL",
       "keys": [
-        "PHRASES + MUTATORS",
-        "White keys: sixteen phrases, one a key. A key says its phrase (the first press makes it), lower keys in a lower voice; the key last played is the phrase the other controls work on. Black keys: eleven mutators that change that phrase and say it, left to right: NEW NOUN, SWAP NOUNS, NEW ADJECTIVE, REBUILD, NEGATE, TENSE, ASK, ADD CLAUSE, RECALL, STUTTER, DROP."
+        "WORDS + KINDS OF PHRASE",
+        "White keys: sixteen words, one a key (the WORLD's nouns in order). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
       ],
       "knobs": {
         "KNOB1": [
@@ -82,6 +82,32 @@
           "Pitch contour across the successive words of a phrase."
         ]
       }
+    },
+    "mouth": {
+      "title": "MOUTH",
+      "how": "tap SEL",
+      "keys": [
+        "WORDS + KINDS OF PHRASE",
+        "White keys: sixteen words, one a key (the WORLD's nouns in order). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
+      ],
+      "knobs": {
+        "KNOB1": [
+          "SIZE",
+          "A small mouth, every resonance higher, to a large one."
+        ],
+        "KNOB2": [
+          "SLUR",
+          "Crisp, to sliding lazily from sound to sound."
+        ],
+        "KNOB3": [
+          "GAP",
+          "The quiet between words: run together, to spaced out."
+        ],
+        "KNOB4": [
+          "WAVER",
+          "How much the pitch trembles."
+        ]
+      }
     }
   },
   "buttons": {
@@ -98,20 +124,20 @@
     "PLAY": {
       "label": "BABBLE",
       "sub": "on / off",
-      "text": "Babbles: new phrases one after another on the key last played. Press again, or HOME, to stop."
+      "text": "Babbles: one phrase after another about the word of the key last played. Press again, or HOME, to stop."
     },
     "SEQ": {
-      "label": "NEW PHRASE",
-      "text": "Makes a new phrase on the key last played, and says it."
+      "label": "NEW WORD",
+      "text": "Puts a new word on the key last played, and says a phrase about it."
     },
     "ARP": {
-      "label": "MUTATE",
-      "sub": "by chance",
-      "text": "Mutates the phrase on the key last played with a mutation chosen by chance, and says it. The black keys choose the mutation."
+      "label": "CHANGE",
+      "sub": "the phrase",
+      "text": "Makes the phrase on the key last played again, about the same word, and says it."
     },
     "REC": {
       "label": "REMEMBER",
-      "text": "Keep one noun from this sentence as a possible subject or object in later sentences."
+      "text": "Remembers the word of the key last played. RECALL then brings it back into other phrases."
     },
     "HOME": {
       "label": "STOP",
@@ -134,7 +160,9 @@
       "text": "Held down, the screen itself shows what every button does, laid out as the buttons are, with a line for the keys. Let go to return. Nothing else changes while it is held."
     },
     "SEL": {
-      "unused": "SEL is not used."
+      "label": "NEXT KNOBS",
+      "base": "mouth",
+      "text": "Steps through the three sets of knobs: VOICE, MOUTH, WORDS. MOUTH is reached only this way."
     },
     "ENV": {
       "unused": "ENV is not used."

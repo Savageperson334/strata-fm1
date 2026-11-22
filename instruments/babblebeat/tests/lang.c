@@ -81,5 +81,30 @@ int main(void){
   /* (a swap of two nouns that are the same word, or a noun drawn again, can leave the words as they were) */
   assert(changed>(op==BB_OP_RECALL?60:200));
  }
+ /* A key's word. Every kind of phrase made about a word has the word in it; the word next to it is another word,
+  * and a step back from there can be the word again (a walk along its world, not a jump). */
+ {bb_mind k;bb_init(&k,99);k.recall=0;
+  for(int w=0;w<48;w++){
+   bb_token word=bb_noun_of(w/12,w),nearby;
+   assert(word.text&&word.role==BB_NOUN);
+   for(int pattern=0;pattern<18;pattern++){bb_phrase(&k,&word,pattern);assert(strstr(k.text,word.text)!=0);}
+   bb_phrase(&k,&word,bb_statement(&k));assert(k.text[strlen(k.text)-1]=='.');
+   nearby=bb_noun_near(&k,&word);assert(nearby.text&&nearby.text!=word.text);
+  }
+  bb_token word=bb_noun_of(1,3);bb_remember_word(&k,&word);assert(k.has_memory&&k.remembered.text==word.text);}
+ /* RECALL's top end: the sentences loop back on themselves (longer, the opening said again), still bounded and
+  * still ended; under 70 they do not. */
+ {bb_mind k;long plain=0,looped=0;int again=0;
+  bb_init(&k,7);k.damage=0;k.length=0;k.recall=.5f;
+  for(int i=0;i<300;i++){bb_generate(&k);plain+=(long)k.count;}
+  k.recall=1.f;
+  for(int i=0;i<300;i++){
+   bb_generate(&k);looped+=(long)k.count;
+   assert(k.count<=BB_MAX_TOKENS);
+   {size_t n=strlen(k.text);assert(k.text[n-1]=='.'||k.text[n-1]=='?');}
+   assert(k.has_memory);
+   {const char *c=strstr(k.text,", ");if(c&&!strncmp(c+2,k.text,4))again++;}
+  }
+  assert(looped>plain+600);assert(again>150);}
  puts("BabbleBeat grammar tests passed");
 }

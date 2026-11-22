@@ -34,6 +34,12 @@ enum { M_X, M_Y, M_COMPLEX, M_TONE, M_SPREAD, M_MOVE, M_EXCITE,
        S_CLUSTER,                        /* grains started together: 1 .. 4, each on the next held key */
        M_SUSTAIN,                        /* a MORPH note's life: struck and gone in a moment .. dying away over seconds
                                           * .. (the top of the knob) held until let go */
+       G_DRIFT,                          /* the loop made again by itself: never (it stays as it is) .. now and then,
+                                          * most of it kept .. one generation after another, each all new. The
+                                          * engine only holds the value: the panel starts the generations */
+       S_LOOP,                           /* the play point going round the ring by itself: still (POSITION alone) ..
+                                          * at the speed it was recorded (the middle: the ring heard as a loop) ..
+                                          * four times that */
        PM_PARAMS };
 void pm_init(void);
 void pm_panic(void);
@@ -72,6 +78,12 @@ void pm_ring_wave(int slot, float *lo, float *hi, uint32_t n);   /* the ring in 
  * handed over by pm_service. The rings there already are not touched --- */
 enum { PM_CAP_IDLE, PM_CAP_RECORDING, PM_CAP_FINISHING };
 enum { PM_ERR_BUSY = -1, PM_ERR_FULL = -2, PM_ERR_NOSRC = -3 };
+/* a generation: a capture of SILT's grains with the ring they play kept under them. keep 0..1: how much of the new
+ * ring is the old one as it was (in place, so what stays, stays put), the rest the grains. Returns as pm_capture */
+int pm_capture_keep(int source,float keep);
+#ifdef PLAT_HOST
+const int16_t *pm_ring_pcm(int slot);    /* (the tests': a ring's samples, PM_BUFFER of them) */
+#endif
 int pm_capture(int source);              /* 0: started. PM_ERR_BUSY: one is running (nothing new is made);
                                           * PM_ERR_NOSRC: SILT with no ring. With every slot taken the oldest ring makes
                                           * room (never the selected one, which a capture reads): pm_capture_dropped */

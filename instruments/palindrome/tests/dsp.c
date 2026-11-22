@@ -234,5 +234,38 @@ int main(void){
   pm_grains(0);run(400);pm_note(0,48);run(200);morph_alone=run(100);assert(morph_alone>.01);   /* no grains: MORPH */
   pm_grains(1);run(300);pm_monitor(1);run(300);mon=run(100);pm_monitor(0);
   assert(mon>.005);}
+ /* Generations (DRIFT). The loop made again from itself, the ring it plays kept under the new one: forty of them
+  * neither swell nor die away, nor sink into a hum; with most of the ring kept each is nearly the one before, with
+  * little kept it is not; and the play point goes round the ring by itself (LOOP) or stays (LOOP 0). */
+ {static int16_t before[PM_BUFFER];
+  float keeps[2]={.88f,.15f};
+  for(int k=0;k<2;k++){
+   int slot=-1,ev,guard;double ab=0,aa=0,bb=0,e=0;int z=0;const int16_t *a;
+   pm_init();pm_note(0,60);pm_note(1,67);
+   assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
+   pm_grains(1);run(300);
+   for(int g=0;g<40;g++){
+    a=pm_ring_pcm(pm_ring_selected());assert(a);
+    for(int i=0;i<(int)PM_BUFFER;i++)before[i]=a[i];
+    assert(pm_capture_keep(PM_SRC_SILT,keeps[k])==0);
+    ev=PM_EV_NONE;guard=0;
+    while(!(ev=pm_service(&slot))){run(1);assert(++guard<400);}
+    assert(ev==PM_EV_COMMITTED);
+    run(200);
+   }
+   assert(pm_ring_count()==PM_RINGS);
+   a=pm_ring_pcm(pm_ring_selected());
+   for(int i=0;i<(int)PM_BUFFER;i++){
+    ab+=(double)a[i]*before[i];aa+=(double)a[i]*a[i];bb+=(double)before[i]*before[i];
+    e+=(double)a[i]*a[i];if(i)z+=(a[i-1]<0)!=(a[i]<0);
+   }
+   e=sqrt(e/PM_BUFFER)/32768.;
+   assert(e>.12&&e<.3);                                    /* as loud as the first */
+   assert(z>(int)PM_BUFFER/100&&z<(int)PM_BUFFER/8);        /* still notes: not a hum, not a hiss */
+   if(k==0)assert(ab/sqrt(aa*bb)>.95);else assert(ab/sqrt(aa*bb)<.8);
+  }
+  {float p0,p1;
+   pm_set(S_LOOP,.5f);run(4);p0=pm_position();run(40);p1=pm_position();assert(p0!=p1);
+   pm_set(S_LOOP,0);run(40);p0=pm_position();run(40);p1=pm_position();assert(p0==p1);}}
  puts("PALINDROME DSP smoke passed");
 }

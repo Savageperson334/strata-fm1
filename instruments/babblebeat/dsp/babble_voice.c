@@ -22,7 +22,7 @@
 #define GAIN_HISS 2.2f
 /* Set against a speech recogniser's score on the lexicon's words (and checked by ear): the table's lengths are
  * spoken at three quarters, the formants glide a little slower and ring a little longer than the textbook's */
-#define DUR .75f
+#define DUR .92f
 #define GLIDE .8f
 #define BW .8f
 #define NASAL 200.f                      /* Hz added to the upper formants' widths while a nasal sounds */
@@ -107,6 +107,7 @@ void bb_voice_init(bb_voice*v){
  v->level_at=0;v->level_peak=0;v->level_n=0;
  v->noise=0xBABB1Eu;v->note=-1;
  v->pitch=.32f;v->rate=.52f;v->tone=.5f;v->breath=.18f;v->volume=.78f;v->stutter=0;v->inflect=.3f;
+ v->size=.5f;v->slur=.5f;v->gap=.5f;v->waver=0;
  v->f1=500;v->f2=1500;v->f3=2500;v->f0=120;v->ff=4000;v->fbw=2000;
  v->closing=.16f;v->inv_closing=1.f/.16f;v->peak=1;
 }
@@ -114,6 +115,9 @@ void bb_voice_controls(bb_voice*v,const float k[7]){
  v->pitch=k[0];v->rate=k[1];v->tone=k[2];v->breath=k[3];
  v->volume=k[4];v->stutter=k[5];v->inflect=k[6];
 }
+/* MOUTH. SIZE: the whole mouth smaller or larger (every formant up or down); SLUR: how lazily it moves from sound
+ * to sound; GAP: the quiet between words; WAVER: how much the pitch trembles */
+void bb_voice_mouth(bb_voice*v,const float k[4]){v->size=k[0];v->slur=k[1];v->gap=k[2];v->waver=k[3];}
 /* (a private generator for STUTTER's doubling: the sound's own belongs to the other side) */
 static uint32_t stutter_rng=0x51A77E5u;
 static uint16_t put(char *q,uint16_t n,const char*s,float stutter){
@@ -169,7 +173,7 @@ static bb_seg *stretch(bb_voice*v,float ms,float f1,float f2,float f3,float av,f
  s->n=ms*scale*DUR/STEP_MS;
  if(s->n<3)s->n=3;
  s->nz=0;
- s->f1=f1;s->f2=f2;s->f3=f3;s->av=av;s->ah=ah;s->af=af;s->kf=kf*GLIDE;s->ka=ka;
+ s->f1=f1;s->f2=f2;s->f3=f3;s->av=av;s->ah=ah;s->af=af;s->kf=kf*GLIDE*(1.65f-1.3f*v->slur);s->ka=ka;
  return s;
 }
 /* the next thing in the queue, as one to three stretches. 0: nothing left */
@@ -180,11 +184,11 @@ static int next_phone(bb_voice*v){
   char c=v->queue[v->pos++];
   const phone*p=find(c);
   if(c==' '){                            /* between words: a breath of quiet, and the next word's lift in pitch */
-   stretch(v,34,v->f1,v->f2,v->f3,0,0,0,.1f,.22f);
+   stretch(v,34.f*.25f*fm_exp2f(4.f*v->gap),v->f1,v->f2,v->f3,0,0,0,.1f,.22f);
    v->accent=1;
    return 1;
   }
-  if(c==','){stretch(v,200,v->f1,v->f2,v->f3,0,0,0,.1f,.2f);return 1;}
+  if(c==','){stretch(v,200.f*(.5f+v->gap),v->f1,v->f2,v->f3,0,0,0,.1f,.2f);return 1;}
   if(!p)continue;                        /* (the final mark, or a letter the table lacks) */
   ahead(v,f);
   switch(p->kind){
@@ -281,11 +285,11 @@ static void control(bb_voice*v){
  v->accent*=.985f;
  v->flutter+=5.3f*(float)CTL/BB_SR;
  if(v->flutter>=1)v->flutter-=1;
- goal*=1.f+.006f*fm_sin_turns(v->flutter);
+ goal*=1.f+(.006f+.07f*v->waver*v->waver)*fm_sin_turns(v->flutter);
  v->f0+=(clip(goal,55.f,1100.f)-v->f0)*.2f;
  v->inc=v->f0/BB_SR;
  /* TONE: a darker, larger voice .. a brighter, smaller one (the formants moved together, the pulse's edge) */
- scale=.88f+.26f*v->tone;
+ scale=(.88f+.26f*v->tone)*(1.28f-.56f*v->size);   /* (SIZE up: a larger mouth, its formants lower) */
  v->closing=.24f-.14f*v->tone;v->inv_closing=1.f/v->closing;
  v->peak=2.f*v->inv_closing;
  resonator(v,0,v->f1*scale,BW*(70.f+(v->f1<300.f?60.f:0.f)));          /* (a nasal's or a closure's low F1: wider, duller) */

@@ -1,17 +1,17 @@
 # PALINDROME
 
-**SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.** One press does everything; hold GLO and the screen shows what every button does.
+**A sound, looped, and made again from itself.** MORPH strikes the seed, SILT loops it, DRIFT makes each new generation from the last. One press does everything; hold GLO and the screen shows what every button does.
 
 [Play in the browser](../emu/) · [Install firmware](../install/)
 
 ## Quick start
 
-1. The FM-1 starts on **SILT** with no rings. Press **FX** for MORPH and raise MASTER.
-2. Press **REC**, then play a note or two. The capture starts with the first note; RING 01 fills on the screen and finishes by itself, and you are back on SILT with it selected.
-3. Press **PLAY** for grains, or tap keys to play them yourself. Turn POSITION, SIZE and DENSITY.
-4. Press **REC** again. What SILT is playing becomes RING 02; RING 01 stays as it was.
-5. Turn **SELECT** to go between the rings. Each one keeps its own sound and its own settings.
-6. Keep going. With three rings, each new capture takes the place of the oldest.
+1. The FM-1 starts on **SILT** with no rings. Raise MASTER and **tap a key**. MORPH strikes a note, it is caught as RING 01, and the grains loop it.
+2. **Leave it.** Every few seconds DRIFT makes the loop again from itself: a new ring around the last. The screen shows the three newest generations.
+3. Turn **DRIFT** (ALGORITHM) down to OFF and the loop stays as it is. Turn it up and generations come faster and keep less.
+4. **Tap keys.** The key you seeded with plays the ring as recorded; the others transpose it.
+5. Turn POSITION, SIZE and DENSITY. A knob you are turning is heard first; the next generation waits for your hands.
+6. **FX** opens MORPH to play by itself. Press **REC** there, then a key, for a new seed.
 
 ## Buttons
 
@@ -52,16 +52,31 @@ Plays up to 16 grains from the selected ring. Each grain has a position, length,
 | KNOB3 | **DENSITY** | 1–40 starts/sec |
 | KNOB4 | **SPRAY** | Random start position |
 | SELECT | **RING** | Which ring plays and is edited |
-| ALGORITHM | **REVERSE** | Reverse probability |
+| ALGORITHM | **DRIFT** | The loop made again by itself: OFF, now and then, back to back |
 | PRESETS | **PITCH** | −24 to +24 semitones |
 
 ### Grain keys
 
-Everywhere except MORPH's page the keys are grain pitches. Tap up to four to latch them; tap again to release. A new key triggers grains at once, even with PLAY off. C is the recorded pitch at the default octave. CLUSTER (SILT SHAPE) sets whether pitches play in turn or together. The top line shows them: `KEYS: 0 +7`.
+Everywhere except MORPH's page the keys are grain pitches. Tap up to four to latch them; tap again to release. A new key triggers grains at once, even with PLAY off. The key the seed was struck with plays the ring as recorded (C until there is one). CLUSTER (SILT SHAPE) sets whether pitches play in turn or together. The top line shows them: `KEYS: 0 +7`.
+
+### DRIFT
+
+A generation is SILT's grains recorded over a share of the ring they play, as a new ring. It is evened to the same loudness every time, so generation after generation neither swells nor dies away.
+
+| DRIFT | What happens |
+| --- | --- |
+| **OFF** | Nothing changes by itself. The loop is stable |
+| Low | A generation every ten seconds or so; most of the ring is kept, so it changes slowly |
+| High | One generation after another; little is kept, so it soon becomes something else |
+
+- The screen counts down: `DRIFT: NEXT 4s`, then a percentage while the generation is made.
+- DRIFT waits while you play: a key, a knob or a button starts the count again. It also waits on MORPH's and RINGS' pages and while no grains sound.
+- What the grains do is what the next generation becomes: SPRAY blurs it, PITCH moves it, REVERSE turns it round, REC FX wear it.
+- The three newest generations stay as rings. **SELECT** an older one and DRIFT carries on from there.
 
 ### The screen
 
-Rings are concentric circles, the oldest innermost, each drawn from its own recording. The selected ring is bright and dense. The tick outside it is POSITION and the dotted arc is SPRAY; moving dots are grains. The small square in the middle is MORPH. Under the rings: **SOURCE** (what REC would capture) and **REC**: READY, ARMED, a percentage while capturing, or DROPS 01 (the ring the next capture replaces).
+Rings are concentric circles, the oldest innermost, each drawn from its own recording. The selected ring is bright and dense. The tick outside it is POSITION and the dotted arc is SPRAY; moving dots are grains. The small square in the middle is MORPH. Under the rings: **SOURCE** (what REC would capture) and **REC**: READY, ARMED, a percentage while capturing, DROPS 01 (the ring the next capture replaces), or DRIFT's countdown.
 
 ## MORPH
 
@@ -69,9 +84,9 @@ Rings are concentric circles, the oldest innermost, each drawn from its own reco
 
 ![MORPH: the vector square, the rings dim behind it](img/morph.png "MORPH SOURCE · FX")
 
-Four synthesis methods blend across the XY square. A key **strikes** a note, up to four at once; each dies away by itself, as long as DECAY (on MIX) says. With DECAY at the top (HOLD) notes stay on until their key is tapped again.
+Four synthesis methods blend across the XY square. A key **strikes** a note, up to four at once; each dies away by itself, as long as DECAY (on MIX) says, richest and brightest at the strike and plainer as it fades. With DECAY at the top (HOLD) notes stay on until their key is tapped again.
 
-MORPH is heard on this page and while it is being captured. Everywhere else you hear the grains alone, so a sound and its recording do not pile up; MIX brings MORPH back in.
+MORPH is an instrument by itself here, and whenever there are no rings. It is heard on this page and while it is being captured. Everywhere else you hear the grains alone, so a sound and its recording do not pile up; MIX brings MORPH back in.
 
 | Knob | Control | Function |
 | --- | --- | --- |
@@ -107,6 +122,7 @@ A ring is 1.49 seconds of sound. There is room for three. A capture always makes
 | **MORPH** | On MORPH's page, and whenever there are no rings | MORPH alone |
 | **SILT 02** | Everywhere else, once a ring exists | SILT's grains of the selected ring alone |
 
+- **No rings yet**: a key on any page but MORPH's strikes a note and captures it at once.
 - The capture runs for one ring's length and **ends by itself**. Pressing REC meanwhile does nothing.
 - The new ring appears only when it is complete, evened in level, and is then selected. Its number never changes.
 - A ring made from SILT starts with PITCH, REVERSE, SCATTER and DETUNE at rest, so they are not applied twice.
@@ -141,6 +157,7 @@ A delete happens only when **SEL** is pressed while it is armed. Any other butto
 | KNOB3 | **SCATTER** | Random octave and interval jumps |
 | KNOB4 | **DETUNE** | Up to ±50 cents per grain |
 | ALGORITHM | **CLUSTER** | 1–4 simultaneous grains |
+| PRESETS | **REVERSE** | Reverse probability |
 
 **LFO — movement**
 
@@ -148,6 +165,7 @@ A delete happens only when **SEL** is pressed while it is armed. Any other butto
 | --- | --- | --- |
 | KNOB1 | **SCAN** | Automatic POSITION movement |
 | KNOB2 | **TIMING** | Regular → irregular starts |
+| KNOB3 | **LOOP** | The play point going round the ring: OFF still, 50 as recorded, 100 four times as fast |
 
 Every SILT setting on SILT, SHAPE and MOTION, and STEREO on MIX, belongs to the selected ring.
 
@@ -183,11 +201,14 @@ Capture one or two MORPH notes as RING 01 first (FX, REC, play them). Values are
 
 | Patch | Settings |
 | --- | --- |
+| Stable loop | DRIFT OFF, LOOP 50, SPRAY 0: the seed, round and round |
+| Slow erosion | DRIFT 20, SPRAY 20: the same loop, a little further off every time |
+| Frozen cloud | MOTION: LOOP OFF; SPRAY 60: grains from one place, as before 0.8 |
 | Chord cloud | Keys C/G/C; CLUSTER 100, SHAPE 50, SIZE 70, DENSITY 40 |
 | Plucked arp | 3–4 keys; CLUSTER 0, TIMING 0, SHAPE 0, SIZE 30, DENSITY 60 |
 | Shimmer | SCATTER 40, DETUNE 60, REVERSE 50, SIZE 70, STEREO 100 |
 | Rain | TIMING 100, VARY 80, SIZE 20, SPRAY 100, DENSITY 80 |
-| Generations | Play a patch above, REC, change PITCH, REC again: three rings, each a step further |
+| Generations | DRIFT 100, then turn PITCH between generations: each ring a step further |
 | Worn copy | REC FX: NOISE 30, CRUSH 40, DROP 30; REC from SILT; repeat for more wear |
 | Layered | RINGS: CARRY 60; FX, REC, play new notes: the new ring is the old one with MORPH on top |
 | Drone | MIX: DECAY to HOLD, MIX 50; FX, latch notes: MORPH stays under the grains |

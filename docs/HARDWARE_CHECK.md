@@ -50,9 +50,10 @@ This is the one that matters most: it loads the chip as hard as STRATA can.
 ## 5. PALINDROME (optional, 3 minutes)
 
 - [ ] Install it from <https://savageperson334.github.io/strata-fm1/palindrome/install/>.
-- [ ] Press FX, press REC once (the screen says ARMED), then tap three keys. **Note:** does a ring fill on the screen and finish in about a
-      second and a half, and does the screen go back to SILT with RING 01?
-- [ ] Press PLAY. **Note:** do you hear grains, and do the ring and its dots move smoothly or in jerks?
+- [ ] Tap one key and wait. **Note:** does a ring fill on the screen and finish in about a
+      second and a half, do the grains then loop the note, and does a second ring appear by itself a few seconds later?
+- [ ] Turn ALGORITHM (DRIFT) all the way down, then listen. **Note:** do the ring and its dots move smoothly or in jerks,
+      and does the loop now stay the same?
 - [ ] Press REC again, and once more when it has finished. **Note:** are there three rings, and does a fourth REC
       say which ring makes room (not the selected one) and leave three?
 - [ ] Turn SELECT back and forth while the grains play. **Note:** any clicks, and does each ring sound like itself?

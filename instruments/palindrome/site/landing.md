@@ -1,15 +1,15 @@
 # PALINDROME
 
-**SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.** One press does everything; hold GLO and the screen shows what every button does.
+**A sound, looped, and made again from itself.** MORPH strikes the seed, SILT loops it, DRIFT makes each new generation from the last. Hold GLO and the screen shows what every button does.
 
 ![SILT playing the selected ring, an older ring inside it](manual/img/silt.png "PALINDROME")
 
 ## Play
 
-- **FX — MORPH:** strike notes that die away and blend four synthesis methods with KNOB1/2.
-- **REC:** one press captures a new ring, starting with your next note. It ends by itself; with three rings the oldest makes room.
-- **EDIT — SILT:** PLAY starts grains from the selected ring; keys are their pitches.
-- **REC again:** what SILT plays becomes the next ring. **SELECT** moves between rings; each keeps its settings.
+- **Tap a key.** MORPH strikes a note; it is caught as a ring and the grains loop it.
+- **Leave it.** DRIFT makes the loop again from itself every few seconds: a new ring around the last.
+- **DRIFT (ALGORITHM):** down to OFF the loop is stable; up, it changes faster.
+- **FX — MORPH:** the synth by itself. REC, then a key, captures a new seed. **SELECT** moves between rings.
 
 [Play in the browser](emu/) · [Control reference](manual/) · [Install on FM-1](install/)
 

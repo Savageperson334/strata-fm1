@@ -108,6 +108,22 @@ static void extra_clause(bb_mind*m){
  m->count--;
  lit(m,&COMMA);lit(m,&AND);subj(m,0);I(m,0);lit(m,&DOT);
 }
+/* RECALL's top end: the sentence loses its way and starts again from its beginning ("the mirror was, the mirror
+ * was pale."): it keeps its opening words and says the whole of itself after them */
+static void loop_back(bb_mind*m){
+ bb_token t[BB_MAX_TOKENS];
+ int n=(int)m->count,body=n-1,cut,k=0;
+ if(n<4||m->tok[n-1].role!=BB_PUNCT)return;
+ cut=2+roll(m,body-2>0?body-2:1);       /* (the opening: two words at least, never the whole) */
+ if(cut>body-1)cut=body-1;
+ while(cut>2&&m->tok[cut-1].role==BB_PUNCT)cut--;   /* (not ending on a comma of its own) */
+ if(n+cut+1>BB_MAX_TOKENS)return;
+ for(int i=0;i<cut;i++)t[k++]=m->tok[i];
+ t[k++]=COMMA;
+ for(int i=0;i<n;i++)t[k++]=m->tok[i];
+ for(int i=0;i<k;i++)m->tok[i]=t[i];
+ m->count=(unsigned)k;
+}
 void bb_generate_pattern(bb_mind*m,int pattern){
  m->count=0;
  m->pattern=(unsigned)(pattern<0?0:pattern%BB_PATTERNS_N);
@@ -137,6 +153,14 @@ void bb_generate_pattern(bb_mind*m,int pattern){
   if(m->length>.94f&&roll(m,100)<50)extra_clause(m);
  }
  m->force_once=0;
+ /* RECALL past 70: it fixes on a word of its own if it was given none, and more and more often loops */
+ if(m->recall>.7f){
+  if(!m->has_memory)bb_remember(m);
+  if(roll(m,100)<(int)((m->recall-.7f)*300.f)){
+   loop_back(m);
+   if(m->recall>.9f&&roll(m,100)<50)loop_back(m);
+  }
+ }
  bb_rebuild(m);
 }
 const char *bb_pattern_label(const bb_mind*m){
@@ -179,6 +203,24 @@ void bb_remember(bb_mind*m){
     if(m->remembered.text==nouns[theme][w].text)m->memory_theme=(unsigned)theme;
  }
 }
+void bb_remember_word(bb_mind*m,const bb_token *w){
+ if(!w||!w->text)return;
+ m->remembered=*w;m->has_memory=1;
+ for(int theme=0;theme<4;theme++)for(int i=0;i<12;i++)if(w->text==nouns[theme][i].text)m->memory_theme=(unsigned)theme;
+}
+bb_token bb_noun_of(int theme,int i){return make(nouns[theme&3][((i%12)+12)%12],BB_NOUN);}
+bb_token bb_noun_near(bb_mind*m,const bb_token *w){
+ for(int theme=0;theme<4;theme++)for(int i=0;i<12;i++)if(w&&w->text==nouns[theme][i].text)
+  return bb_noun_of(theme,i+(roll(m,2)?1:11));
+ return bb_noun_of((int)m->theme,roll(m,12));
+}
+void bb_phrase(bb_mind*m,const bb_token *w,int pattern){
+ if(w&&w->text){m->forced=*w;m->force_once=1;}
+ bb_generate_pattern(m,pattern);
+ m->change=0;
+}
+int bb_statement(bb_mind*m){static const uint8_t S[]={0,1,3,2,11,16,10,0,1,3};return S[roll(m,SZ(S))];}
+int bb_chance(bb_mind*m,float p){return roll(m,1000)<(int)(p*1000.f);}
 static const char *const BB_OPS[BB_OPS_N]={
  "NEW NOUN","SWAP NOUNS","NEW ADJECTIVE","REBUILD","NEGATE","TENSE","ASK","ADD CLAUSE","RECALL","STUTTER","DROP","AGAIN"
 };

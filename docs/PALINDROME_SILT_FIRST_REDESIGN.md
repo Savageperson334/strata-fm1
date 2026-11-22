@@ -381,6 +381,12 @@ level-evening a block.
   hold as before). REC with nothing sounding is armed and starts with the next sound. MORPH is heard on its own
   page and through its capture; elsewhere MIX starts on the grains alone, so the source and its recording are
   not heard on top of each other.
+- **Looped and iterated (0.8):** the first key on SILT strikes MORPH and is captured at once (no ring: no other
+  way to make a sound). The play point goes round the ring by itself (LOOP), so a ring is heard as the loop it is.
+  DRIFT makes generations unasked: SILT's grains over a share of the ring they play (`pm_capture_keep`), evened
+  by loudness, with nothing under 20 Hz kept, so that 120 of them in a row stay level and stay notes (measured in
+  tests/dsp.c for 40). DRIFT waits for the player's hands and on MORPH's and RINGS' pages. The key the seed was
+  struck with plays a ring as recorded. MORPH's tone follows its envelope.
 - **An aborted or empty capture** is discarded and the rings are untouched. A capture is finite, so there is no
   cancel: REC pressed meanwhile says it ends by itself.
 - **FEEDBACK became CARRY:** with no overdub there is nothing to feed back. CARRY copies the selected ring under

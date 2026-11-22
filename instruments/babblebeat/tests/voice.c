@@ -52,8 +52,8 @@ int main(void){
   say("iiii",-1);ee_hi=near(8000,20000,2270);ee_lo=near(8000,20000,910);ee_mid=near(8000,20000,1130);
   say("uuuu",-1);oo_hi=near(8000,20000,2270);oo_lo=near(8000,20000,910);
   say("aaaa",-1);ah_mid=near(8000,20000,1130);
-  if(getenv("BB_SHOW"))printf("ee hi/lo %.1f  oo lo/hi %.1f  ah/ee mid %.1f\n",ee_hi/ee_lo,oo_lo/oo_hi,ah_mid/ee_mid);
-  assert(ee_hi>4*ee_lo);assert(oo_lo>20*oo_hi);assert(ah_mid>50*ee_mid);}
+  if(getenv("BB_SHOW"))printf("ee hi/lo %.1f  ee hi/oo hi %.1f  oo lo/hi %.1f  ah/ee mid %.1f\n",ee_hi/ee_lo,ee_hi/oo_hi,oo_lo/oo_hi,ah_mid/ee_mid);
+  (void)ee_lo;assert(ee_hi>2.5*oo_hi);   /* (ee against oo up there. Not more: a harmonic on or beside the narrow formant swings it several times over) */assert(oo_lo>20*oo_hi);assert(ah_mid>50*ee_mid);}
  /* A hiss is noise up high, not voice: s has far more above 5 kHz than at the voice's pitch. */
  {say("ssss",-1);if(getenv("BB_SHOW"))printf("s hi/lo %.1f\n",near(4000,14000,5800)/near(4000,14000,150));assert(near(4000,14000,5800)>30*near(4000,14000,150));}
  /* A word played from a key is at the key's pitch: A4, 440 Hz, and not a neighbour's. */

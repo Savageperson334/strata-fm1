@@ -30,6 +30,7 @@ typedef struct {
  float ff,fbw;                           /* the hiss's centre and width */
  /* the controls */
  float pitch,rate,tone,breath,volume,stutter,inflect;
+ float size,slur,gap,waver;             /* the MOUTH knobs */
  /* the sound */
  uint32_t noise,ctl;
  float phase,inc,closing,inv_closing,peak,flutter;
@@ -46,6 +47,7 @@ void bb_voice_init(bb_voice*);
 void bb_voice_stop(bb_voice*);
 void bb_voice_transpose(bb_voice*,int semitones);          /* the spoken pitch moved, -36..36 (a key's register) */
 void bb_voice_controls(bb_voice*,const float knobs[7]);   /* PITCH RATE TONE BREATH LEVEL STUTTER INFLECT, 0..1 */
+void bb_voice_mouth(bb_voice*,const float knobs[4]);      /* SIZE SLUR GAP WAVER, 0..1 (the middle: as it was made) */
 void bb_voice_say(bb_voice*,const bb_mind*,int note);     /* the whole sentence; note -1: the PITCH knob's, spoken */
 void bb_voice_word(bb_voice*,const bb_token*,int note);   /* one word at a MIDI note's pitch, held level */
 int bb_voice_active(const bb_voice*);    /* something is being said, or is about to be */

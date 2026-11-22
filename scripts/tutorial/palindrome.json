@@ -6,10 +6,10 @@
     "VOLUME",
     "Output volume. MASTER is always the volume, whatever the other knobs are doing."
   ],
-  "screen": "The screen shows the rings as concentric circles, the oldest innermost, each one its own recording; the selected ring is the bright one, and grains ride the ring they play. MORPH is the small square in the middle. The top line names the page, the keys' job and the selected ring; under the rings are the SOURCE that REC would capture and REC's state; the boxes at the foot name what each knob sets now.",
+  "screen": "The screen shows the rings as concentric circles, the oldest innermost, each one its own recording; the selected ring is the bright one, and grains ride the ring they play. MORPH is the small square in the middle. The top line names the page, the keys' job and the selected ring; under the rings are the SOURCE that REC would capture and REC's state, or DRIFT's countdown to the next generation; the boxes at the foot name what each knob sets now.",
   "keys": [
     "GRAIN PITCH",
-    "Each key latches a pitch for the grains, up to four; the grains take them in turn. C (the fifth white key) is the recorded pitch. A new key also plays its grains at once, even with PLAY off."
+    "With no ring yet, a key strikes MORPH and the note is caught as the first ring. After that each key latches a pitch for the grains, up to four; the grains take them in turn. The key the seed was struck with plays the ring as recorded. A new key also plays its grains at once, even with PLAY off."
   ],
   "select": [
     "RING",
@@ -37,8 +37,8 @@
           "Random scatter of each grain's start around POSITION."
         ],
         "ALGORITHM": [
-          "REVERSE",
-          "The chance a grain plays backward."
+          "DRIFT",
+          "The loop made again from itself, by itself. OFF: it stays as it is. Low: a new generation now and then, most of the ring kept. High: one after another, little kept. It waits while you play, and on MORPH's and RINGS' pages."
         ],
         "PRESETS": [
           "PITCH",
@@ -51,7 +51,7 @@
       "how": "FX",
       "keys": [
         "NOTES",
-        "On MORPH's page each key strikes a synth note, up to four at once. A note dies away by itself (DECAY, on MIX, says how long); with DECAY at the top it holds until its key is tapped again."
+        "On MORPH's page each key strikes a synth note, up to four at once. A note dies away by itself (DECAY, on MIX, says how long); with DECAY at the top it holds until its key is tapped again. A note is richest and brightest as it is struck, and plainer as it dies away."
       ],
       "knobs": {
         "KNOB1": [
@@ -117,6 +117,10 @@
         "ALGORITHM": [
           "CLUSTER",
           "1 to 4 grains started together, each on the next held key: low values play the keys in turn, high values as a chord."
+        ],
+        "PRESETS": [
+          "REVERSE",
+          "The chance a grain plays backward."
         ]
       }
     },
@@ -131,6 +135,10 @@
         "KNOB2": [
           "TIMING",
           "When grains start: an even pulse at 0, irregular at 100."
+        ],
+        "KNOB3": [
+          "LOOP",
+          "The play point going round the ring by itself: OFF it stays at POSITION, 50 is the speed it was recorded at (the ring heard as a loop), 100 four times that."
         ]
       }
     },
@@ -240,7 +248,7 @@
     "REC": {
       "label": "NEW RING",
       "sub": "one press",
-      "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. It runs for one ring's length and finishes by itself. With nothing sounding it is armed and starts with the next sound. With three rings, the oldest (never the selected one) makes room: the screen says which, REC: DROPS 01."
+      "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. DRIFT does the same by itself. It runs for one ring's length and finishes by itself. With nothing sounding it is armed and starts with the next sound. With three rings, the oldest (never the selected one) makes room: the screen says which, REC: DROPS 01."
     },
     "PLAY": {
       "label": "GRAINS",
@@ -273,7 +281,7 @@
   },
   "guide": {
     "label": "Guide",
-    "done": "That's the whole loop: MORPH makes a sound, REC captures it as a ring, SILT plays the ring, and REC makes the next ring from what you hear. HOME always brings you back to SILT. Reference says what every control does.",
+    "done": "That's the loop: a key strikes MORPH, SILT loops the note, and DRIFT (ALGORITHM on SILT) makes it again from itself. Turned down to OFF the loop stays as it is; turned up it changes faster. HOME always brings you back to SILT. Reference says what every control does.",
     "steps": [
       {
         "title": "Switch on",
@@ -283,70 +291,54 @@
         }
       },
       {
-        "title": "SILT home",
-        "text": "Nothing is captured yet. Press FX to open MORPH, the sound source.",
+        "title": "Touch",
+        "text": "Tap any key. MORPH strikes a note, the note is caught as RING 01, and the grains start to loop it.",
         "show": [
-          "FX"
-        ],
-        "done": {
-          "lit": "FX"
-        }
-      },
-      {
-        "title": "MORPH",
-        "text": "Tap a key or two: each strikes a note that dies away. Turn KNOB1 and KNOB2 to move between the four ways of making sound.",
-        "show": [
-          "keys",
-          "KNOB1",
-          "KNOB2"
-        ],
-        "done": {
-          "keys": true
-        }
-      },
-      {
-        "title": "Capture",
-        "text": "Press REC once. If the screen says ARMED, tap a key: the capture starts with the note. Watch RING 01 fill; it finishes by itself.",
-        "show": [
-          "REC"
+          "keys"
         ],
         "done": {
           "rings": 1
         }
       },
       {
-        "title": "Play SILT",
-        "text": "The new ring is selected and you are back on SILT. Press PLAY, then turn KNOB1 (POSITION) and KNOB2 (SIZE).",
-        "show": [
-          "PLAY",
-          "KNOB1",
-          "KNOB2"
-        ],
-        "done": {
-          "lit": "PLAY"
-        }
-      },
-      {
-        "title": "Second generation",
-        "text": "Change the grains (PRESETS is PITCH), then press REC again. RING 02 appears around RING 01, which stays as it was.",
-        "show": [
-          "PRESETS",
-          "REC"
-        ],
+        "title": "The loop",
+        "text": "That is your note going round. Now leave it alone: in a few seconds DRIFT makes the loop again from itself, and a second ring appears around the first.",
         "done": {
           "rings": 2
         }
       },
       {
         "title": "Rings",
-        "text": "Press SEL to see the rings, then turn SELECT one step left to go back to RING 01. Its sound and its settings are still there.",
+        "text": "Each ring is a generation. Press SEL to see them and which ring each came from. DRIFT waits while this page is open.",
         "show": [
-          "SEL",
-          "SELECT"
+          "SEL"
         ],
         "done": {
-          "lit": "SEL",
-          "ring": 1
+          "lit": "SEL"
+        }
+      },
+      {
+        "title": "MORPH",
+        "text": "Press FX. This is MORPH by itself: tap keys, and turn KNOB1 and KNOB2 to move between the four ways of making sound.",
+        "show": [
+          "FX",
+          "keys",
+          "KNOB1",
+          "KNOB2"
+        ],
+        "done": {
+          "lit": "FX"
+        }
+      },
+      {
+        "title": "A new seed",
+        "text": "Press REC, then tap a key. The note is captured as a new ring, and you are back on SILT with it looping.",
+        "show": [
+          "REC",
+          "keys"
+        ],
+        "done": {
+          "lit": "EDIT"
         }
       }
     ]

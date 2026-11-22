@@ -57,6 +57,8 @@ My understanding of the desired expansion is that it should make the existing dr
 
 **SILT is the instrument; MORPH is the injector.** The defining gesture is **make a recording, manipulate it, capture its output into another distinct recording**, and return to any earlier generation without destroying it.
 
+**The key idea (0.8): a sound, looped, and made again from itself.** A key strikes MORPH (an envelope-shaped, complex seed, never noise); the note is caught as a ring; SILT loops it; **DRIFT** makes the next generation from the last by itself, each evened to the same loudness. DRIFT off, the loop is stable; up, it drifts. All of it follows from the first touch.
+
 SILT is not just an effect hanging off MORPH. The selected ring and its granular manipulation are the primary surface. The system has a visual and audible history: **concentric circles for separate audio generations**.
 
 ### Implemented / documented today
@@ -125,8 +127,9 @@ The mutation engine can replace/swap word-role slots, change an adjective, or **
 - **ARP:** mutate and speak the current sentence.
 - **REC:** remember a noun for future use.
 - **PLAY:** toggle automatic, sequential babbling.
-- **White keys:** sixteen phrases, one a key; a key says its phrase (making it the first time), lower keys in a lower voice.
-- **Black keys:** eleven named mutators of the phrase last played (new noun, swap, adjective, rebuild, negate, tense, ask, clause, recall, stutter, drop). OCT shifts the voice's register.
+- **White keys:** sixteen **words**, one a key (the WORLD's nouns in order); a key says a phrase about its word and keeps it, lower keys in a lower voice. The word can move, one step at a time (WANDER), never erratically; the phrase is made again now and then (DAMAGE).
+- **Black keys:** the word of the white key on their left, in another **kind of phrase**, a kind a key (why?, not, was, if, will, is it?, did not, used to, because, may, when). OCT shifts the voice's register.
+- **SEL** steps through the knob sets (VOICE, MOUTH, WORDS); **RECALL** past 70 fixes on the remembered word and loops the phrases back on themselves.
 - **HOME:** stop speech/autoplay; **SAVE** currently shows unavailable.
 
 WORDS and VOICE are two **single-press knob pages**, not two separate firmware modes. The screen shows the sentence, active grammatical template, memory and an audio-related playhead display.
