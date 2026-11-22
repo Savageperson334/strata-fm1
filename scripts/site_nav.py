@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 REPO = "https://github.com/Savageperson334/strata-fm1"
-SOURCE = {"strata": REPO, "palindrome": REPO + "/tree/main/instruments/palindrome"}
+SOURCE = {"strata": REPO, "palindrome": REPO + "/tree/main/instruments/palindrome", "babblebeat": REPO + "/tree/main/instruments/babblebeat"}
 PAGES = (("", "index.html"), ("emu", "emu/index.html"), ("manual", "manual/index.html"),
          ("install", "install/index.html"))
 LINKS = (("emu", "Emulator"), ("manual", "Manual"), ("install", "Install"))
@@ -70,19 +70,25 @@ def emu_tutorial(html, instrument):
 
 
 def nav(instrument, section):
-    """the block for one page: section "" (the front page), "emu", "manual" or "install" """
-    up = "../" if section else ""                                    # to this firmware's front page
-    other = "palindrome" if instrument == "strata" else "strata"
-    other_root = up + ("palindrome/" if instrument == "strata" else "../")
-    here = lambda s: up + (s + "/" if s else "") or "./"             # noqa: E731
-    there = other_root + (section + "/" if section else "")
-    links = "".join(f'<a href="{here(s)}"{" aria-current=" + chr(34) + "page" + chr(34) if s == section else ""}>{label}</a>'
-                    for s, label in LINKS)
+    """Cross-links among STRATA, PALINDROME, and BABBLEBEAT, in any section."""
+    import posixpath
+    roots = {"strata": "", "palindrome": "palindrome", "babblebeat": "babblebeat"}
+    current_dir = posixpath.join(roots[instrument], section) if section else roots[instrument]
+    def relative(target_instrument, target_section):
+        target = posixpath.join(roots[target_instrument], target_section)
+        rel = posixpath.relpath(target or ".", start=current_dir or ".")
+        return "./" if rel == "." else rel + "/"
+    links = "".join(
+        f'<a href="{relative(instrument, s)}"{" aria-current=" + chr(34) + "page" + chr(34) if s == section else ""}>{label}</a>'
+        for s, label in LINKS
+    )
     links += f'<a href="{SOURCE[instrument]}">Source</a>'
-    swap = {instrument: f'<a href="{here("")}" aria-current="true">{instrument.upper()}</a>',
-            other: f'<a href="{there}">{other.upper()}</a>'}
+    swap = "".join(
+        f'<a href="{relative(name, "")}"{" aria-current=" + chr(34) + "true" + chr(34) if name == instrument else ""}>{name.upper()}</a>'
+        for name in ("strata", "palindrome", "babblebeat")
+    )
     return (f'<nav id="fm1nav" aria-label="{instrument.upper()}"><div class="fm1nav-links">{links}</div>'
-            f'<div class="fm1nav-swap" role="group" aria-label="Firmware">{swap["strata"]}{swap["palindrome"]}</div></nav>')
+            f'<div class="fm1nav-swap" role="group" aria-label="Firmware">{swap}</div></nav>')
 
 
 def apply(html, instrument, section):
@@ -150,7 +156,7 @@ def palindrome_manual(html):
 
 def main(site, instrument):
     if instrument not in SOURCE:
-        raise SystemExit("site_nav: strata or palindrome")
+        raise SystemExit("site_nav: strata, palindrome, or babblebeat")
     done = []
     for section, rel in PAGES:
         f = Path(site) / rel
