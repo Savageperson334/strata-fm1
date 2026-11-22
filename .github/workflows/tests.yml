@@ -41,6 +41,21 @@ jobs:
           python3 base/tools/build.py "$p" --host
           mkdir -p shots/palindrome
           "$p/build/host/palindrome_host" "$p/tests/basic.txt" shots/palindrome
+      - name: Three-firmware site themes and navigation
+        run: python3 tests/test_site_nav.py
+      - name: BabbleBeat grammar, voice and host simulator tests
+        run: |
+          set -euo pipefail
+          p=instruments/babblebeat
+          cc -O2 -I"$p/lang" "$p/tests/lang.c" "$p/lang/babble_lang.c" -o /tmp/bb-lang
+          /tmp/bb-lang
+          cc -O2 -Ibase/include -I"$p/lang" -I"$p/dsp" "$p/tests/voice.c" "$p/lang/babble_lang.c" "$p/dsp/babble_voice.c" -lm -o /tmp/bb-voice
+          /tmp/bb-voice
+          # The embedded toolchain has no standard C library headers.
+          if grep -nE '#include <(string|stdlib|stdio|math)\.h>' "$p/app.c" "$p/app.h" "$p"/dsp/*.[ch] "$p"/lang/*.[ch]; then exit 1; fi
+          python3 base/tools/build.py "$p" --host
+          mkdir -p shots/babblebeat
+          "$p/build/host/babblebeat_host" "$p/tests/basic.txt" shots/babblebeat
       - name: Screenshots and the drone, for a look
         if: always()
         run: |

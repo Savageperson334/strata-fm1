@@ -1,0 +1,58 @@
+# Theme/navigation-only updates to all published firmware sites.
+# This does not build or release firmware; sound assets and installers are preserved.
+name: Refresh Pages themes
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/site_nav.py'
+      - 'scripts/tutorial/**'
+      - 'scripts/publish-instrument-site.sh'
+      - '.github/workflows/refresh-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: pages-theme-update
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Three-way navigation and theme tests
+        run: python3 tests/test_site_nav.py
+      - name: Update existing Pages without replacing sound assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          for attempt in 1 2 3 4 5; do
+            rm -rf "$tmp/pages"
+            git clone -q --depth 1 --branch gh-pages "$remote" "$tmp/pages"
+            cd "$GITHUB_WORKSPACE"
+            python3 scripts/site_nav.py "$tmp/pages" strata
+            if [ -f "$tmp/pages/palindrome/index.html" ]; then
+              python3 scripts/site_nav.py "$tmp/pages/palindrome" palindrome
+            fi
+            if [ -f "$tmp/pages/babblebeat/index.html" ]; then
+              python3 scripts/site_nav.py "$tmp/pages/babblebeat" babblebeat
+            fi
+            cd "$tmp/pages"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            if git diff --cached --quiet; then
+              echo "Current theme and navigation already installed."
+              exit 0
+            fi
+            git commit -q -m "Update all firmware website themes and navigation"
+            if git push -q "$remote" HEAD:gh-pages; then exit 0; fi
+            cd "$GITHUB_WORKSPACE"
+            sleep "$attempt"
+          done
+          echo "Pages advanced during theme refresh; refusing to overwrite." >&2
+          exit 1

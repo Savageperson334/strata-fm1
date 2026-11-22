@@ -1,16 +1,19 @@
-# STRATA and PALINDROME
+# STRATA, PALINDROME and BABBLEBEAT
 
-Two custom firmwares for the M-VAVE FM-1 live in this repository. They are separate instruments with separate
-versions, releases and installers; the FM-1 holds one at a time, and either installer can put the other (or
-M-VAVE's own firmware) back.
+Three custom firmwares for the M-VAVE FM-1 live in this repository. They are separate instruments with separate
+source trees and independent versioning; the FM-1 holds one at a time.
+STRATA and PALINDROME provide firmware installers. BabbleBeat is a browser-first prototype; no hardware
+installer is available yet.
 
 | Firmware | What it is | Status | Site | Manual | Install |
 | --- | --- | --- | --- | --- | --- |
 | **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/) | [manual](https://savageperson334.github.io/strata-fm1/manual/) | [install](https://savageperson334.github.io/strata-fm1/install/) |
 | **PALINDROME** | An alternate instrument: MORPH blends four synthesis methods, SILT records the sound into a loop and plays it in grains; the screen is a picture of the engine | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
+| **BABBLEBEAT** | Grammar-driven sentences, remembered nouns, structural mutations and a robotic formant voice | Browser prototype (`0.1`) | [site](https://savageperson334.github.io/strata-fm1/babblebeat/) | [manual](https://savageperson334.github.io/strata-fm1/babblebeat/manual/) | [emulator](https://savageperson334.github.io/strata-fm1/babblebeat/emu/) (no hardware installer) |
+
 
 PALINDROME's source, manual and build notes are in [instruments/palindrome](instruments/palindrome). (It was
-first published as PALIMPSEST; the old web address forwards to the new one.) Neither firmware has been tested on a
+first published as PALIMPSEST; the old web address forwards to the new one.) No custom firmware here has been tested on a
 real FM-1 yet: [docs/HARDWARE_CHECK.md](docs/HARDWARE_CHECK.md) is a ten-minute check for the first person who does. The rest of
 this page is about STRATA.
 
