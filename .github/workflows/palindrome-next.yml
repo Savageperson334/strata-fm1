@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
-# PALINDROME's SILT-first redesign, before it is released (docs/PALINDROME_SILT_FIRST_REDESIGN.md): on every push to
-# its branch, the tests, the simulator's walk, the device build's memory report, and a playable preview of the
-# browser emulator at /palindrome/next/. No version, no release, no installer: the released site is not touched.
+# PALINDROME's staging slot, /palindrome/next/: unreleased work on the branch below gets its tests, the simulator's
+# walk, the device build's memory report and a playable preview of the browser emulator there. No version, no
+# release, no installer: the released site is not touched (scripts/publish-instrument-site.sh leaves /next/ alone).
+# It was first used for the SILT-first redesign, released as 0.6: what is published there now is that build.
 name: PALINDROME next (preview)
 
 on:

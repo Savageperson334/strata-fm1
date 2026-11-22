@@ -10,18 +10,20 @@ installer is available yet.
 | Firmware | What it is | Status | Site | Manual | Install |
 | --- | --- | --- | --- | --- | --- |
 | **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/) | [manual](https://savageperson334.github.io/strata-fm1/manual/) | [install](https://savageperson334.github.io/strata-fm1/install/) |
-| **PALINDROME** | An alternate instrument: MORPH blends four synthesis methods, SILT records the sound into a loop and plays it in grains; the screen is a picture of the engine | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
-| **BABBLEBEAT** | Grammar-driven sentences, remembered nouns, structural mutations and a robotic formant voice | Browser prototype (`0.1`) | [site](https://savageperson334.github.io/strata-fm1/babblebeat/) | [manual](https://savageperson334.github.io/strata-fm1/babblebeat/manual/) | [emulator](https://savageperson334.github.io/strata-fm1/babblebeat/emu/) (no hardware installer) |
+| **PALINDROME** | SILT plays grains from recorded rings; MORPH, a four-corner synth, is the source; each press of REC captures a new ring and never overwrites an older one | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
+| **BABBLEBEAT** | Grammar-driven sentences, remembered nouns, structural mutations and a small formant-synthesis voice | Browser prototype (`0.1`) | [site](https://savageperson334.github.io/strata-fm1/babblebeat/) | [manual](https://savageperson334.github.io/strata-fm1/babblebeat/manual/) | [emulator](https://savageperson334.github.io/strata-fm1/babblebeat/emu/) (no hardware installer) |
 
 
-PALINDROME's source, manual and build notes are in [instruments/palindrome](instruments/palindrome). (It was
-first published as PALIMPSEST; the old web address forwards to the new one.) No custom firmware here has been tested on a
-real FM-1 yet: [docs/HARDWARE_CHECK.md](docs/HARDWARE_CHECK.md) is a ten-minute check for the first person who does. The rest of
-this page is about STRATA.
+PALINDROME's source, manual and build notes are in [instruments/palindrome](instruments/palindrome) (it was
+first published as PALIMPSEST; the old web address forwards to the new one), and BabbleBeat's in
+[instruments/babblebeat](instruments/babblebeat). No custom firmware here has been tested on a real FM-1 yet:
+[docs/HARDWARE_CHECK.md](docs/HARDWARE_CHECK.md) is a ten-minute check for the first person who does. The next
+section is about STRATA; the layout and building sections cover all three.
 
 ## STRATA
 
-A drone and texture synth firmware for the M-VAVE FM-1. One mode, no menus, every knob live.
+A drone and texture synth firmware for the M-VAVE FM-1. No menus: the seven knobs are always live, and SEL, ARP,
+SEQ and EDIT each give them a second set while held.
 
 **Install:** open <https://savageperson334.github.io/strata-fm1/install/> in Chrome or Edge, plug in the FM-1 by
 USB, click Connect, then Install. **Manual:** <https://savageperson334.github.io/strata-fm1/manual/>
@@ -49,9 +51,12 @@ USB, click Connect, then Install. **Manual:** <https://savageperson334.github.io
 | `app/fm1.toml` | Build and site settings |
 | `app/tests/` | Scenarios for fm1-base's host simulator |
 | `tests/` | The engine rendered to WAV and checked; the app logic on a stand-in platform; `run_tests.sh` |
-| `instruments/palindrome/` | PALINDROME, the alternate firmware: its own app, engine, tests, manual and `VERSION` |
-| `scripts/publish-instrument-site.sh` | Publishes one firmware's site to GitHub Pages without touching the other's |
-| `scripts/site_nav.py` | Puts the same navigation on every page of both sites (Emulator, Manual, Install, Source; STRATA \| PALINDROME) |
+| `instruments/palindrome/` | PALINDROME: its own app, engine (`dsp/`), tests, manual and `VERSION` |
+| `instruments/babblebeat/` | BabbleBeat: its own app, grammar (`lang/`), voice (`dsp/`), tests, manual and `VERSION` |
+| `docs/` | [What each firmware is and is not](docs/FIRMWARE_SCOPE.md), the hardware checklist, and the design plans (STRATA's modulation, PALINDROME's SILT-first redesign) |
+| `scripts/publish-instrument-site.sh` | Publishes one firmware's site to GitHub Pages without touching the others' |
+| `scripts/site_nav.py` | The same navigation and each firmware's colours on every page of all three sites, and the emulators' Play / Guide / Tutorial switch |
+| `scripts/tutorial/` | That switch: its script and style, and each firmware's text for it (`strata.json`, `palindrome.json`, `babblebeat.json`) |
 | `base/` | [fm1-base](https://github.com/charlesvestal/fm1-base) (git submodule), with felucca-bsp |
 
 ## Building
@@ -60,7 +65,11 @@ You don't need to build it yourself. Changing `VERSION` on `main` makes GitHub b
 FM-1 builder, run the tests, publish a signed release, and put the installer site on GitHub Pages
 (`.github/workflows/release.yml`). Every push to `main` runs the tests (`.github/workflows/tests.yml`).
 PALINDROME builds, releases and publishes on its own when `instruments/palindrome/` changes
-(`.github/workflows/palindrome.yml`), from `instruments/palindrome/VERSION`.
+(`.github/workflows/palindrome.yml`), from `instruments/palindrome/VERSION`. BabbleBeat has no firmware release:
+`.github/workflows/babblebeat.yml` publishes its browser emulator and manual. A change to the shared navigation,
+colours or tutorial text is applied to the published pages by `.github/workflows/refresh-pages.yml`, with no
+firmware rebuilt. `tests.yml` also builds all three for the FM-1 itself, releasing nothing, and reports each
+one's image and memory use.
 
 To build locally on Linux x86-64 (or macOS with Docker), see fm1-base's README for the JieLi toolchain and the AC79
 SDK, then:
@@ -78,4 +87,4 @@ The engine and the app logic test with nothing but a C compiler:
 
 MPL-2.0. Built on fm1-base (MPL-2.0) by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton
 Instruments). Installing custom firmware is at your own risk. The installer can put M-VAVE's firmware back.
-M-VAVE and FM-1 are trademarks of their owners; STRATA is not affiliated with M-VAVE.
+M-VAVE and FM-1 are trademarks of their owners; STRATA, PALINDROME and BabbleBeat are not affiliated with M-VAVE.

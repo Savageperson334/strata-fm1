@@ -82,3 +82,34 @@ jobs:
           path: |
             shots/
             app/build/tests/*.log
+
+  device:
+    # The three firmwares built for the FM-1 itself (JieLi's toolchain), releasing nothing: that each still fits
+    # and passes the build's own checks (no double arithmetic, no stray register access), and what each uses of the
+    # image slot, the RAM and the pool. Its failing does not fail the tests: it is here to be read.
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Toolchain
+        run: |
+          sudo apt-get install -y -qq libfribidi0
+          python3 -m pip install -q Pillow
+          sh base/tools/setup_toolchain.sh --only jieli,ac79-sdk
+      - name: Device builds and their memory
+        run: |
+          set -uo pipefail
+          status=0
+          for p in app instruments/palindrome instruments/babblebeat; do
+            echo "::group::$p"
+            if python3 base/tools/build.py "$p" > "/tmp/build.log" 2>&1; then echo "built"; else status=1; echo "FAILED"; tail -30 /tmp/build.log; fi
+            echo "::endgroup::"
+            echo "== $p: $(grep -E '  ok    image [0-9]+ B' /tmp/build.log | tail -1 | sed 's/^ *ok *//')"
+            grep -E '^ *(FAIL|fail|error)' /tmp/build.log | head -5 || true
+          done
+          exit $status

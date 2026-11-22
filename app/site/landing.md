@@ -1,6 +1,6 @@
 # STRATA
 
-STRATA turns the M-VAVE FM-1 into a drone and texture synth with one mode and no menus. Tap a key and a voice fades
+STRATA turns the M-VAVE FM-1 into a drone and texture synth with no menus. Tap a key and a voice fades
 in and keeps going; tap it again and it fades away. Every knob changes the sound while it plays.
 
 ![STRATA playing three voices: the wave on top, the notes F2 C3 E3 lit below, and the eight boxes placed as the knobs are](manual/img/screen-playing.png "STRATA on the FM-1's screen")
