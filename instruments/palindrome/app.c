@@ -512,7 +512,7 @@ static void pd_guide(void){
     pd_text(4,104,"SELECT: THE RING, ON EVERY PAGE",C_WHITE);
     pd_text(4,122,"KEYS: THE GRAINS' PITCHES",C_WHITE);
     pd_text(4,136,"(NO RING YET, OR FX: MORPH'S NOTES)",C_GRAY);
-    pd_text(4,150,"OCT- OCT+: THE KEYS DOWN / UP",C_GRAY);
+    pd_text(4,150,"DRIFT OFF: THE LOOP STAYS AS IT IS",C_GRAY);
     pd_text(4,164,"RINGS PAGE: KNOB4, THEN SEL, DELETES",C_GRAY);
     pd_text(4,180,"KNOBS: NAMED BELOW (MASTER = VOLUME)",C_GRAY);
 }
