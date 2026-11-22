@@ -40,7 +40,7 @@ instruments/babblebeat/build/host/babblebeat_host \
 python3 base/tools/build.py instruments/babblebeat --web
 ~~~
 
-The hardware build also needs the JieLi SDK/toolchain. Firmware package ID 5A
+The hardware build also needs the JieLi SDK/toolchain. Firmware package ID 60
 is provisional; the hardware has not been validated and this prototype
 should not be published as an installable firmware yet.
 

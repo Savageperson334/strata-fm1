@@ -1,6 +1,6 @@
 # Independent third FM-1 firmware, no shared patch state.
 name = "BABBLEBEAT"
-id_prefix = "FM-1_5A"      # provisional until hardware/package identity validation
+id_prefix = "FM-1_60"      # provisional until hardware/package identity validation
 usb_manufacturer = "BabbleBeat"
 usb_product = "BabbleBeat FM-1"
 include = ["lang", "dsp"]
