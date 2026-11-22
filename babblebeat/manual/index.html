@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BABBLEBEAT: BabbleBeat</title>
+<meta name="description" content="BabbleBeat for BABBLEBEAT, a firmware for the M-VAVE FM-1.">
+<style>
+/* paper and ink: warm white paper, ink-blue type, vermilion for what is played, mustard for asides; a shade of the
+   paper for code and callouts (CTL-1's; a firmware may restyle its site) */
+:root {
+  --paper: #fbf8f1; --sheet: #efe9dc; --rule: #ddd4c2; --ink: #1e2b5a; --muted: #5d6585;
+  --hot: #e5482e; --hot-t: #f8d3c9; --cool: #d9a21b; --cool-t: #f5e4b8;
+  --hot-ink: #c23a22;                                 /* the vermilion as text: 4.5:1 on the paper */
+  color-scheme: light;
+}
+body {
+  background: var(--paper); color: var(--ink); margin: 0;
+  font: 400 17px/1.6 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  padding-inline: 16px; padding-block: 32px 64px;
+}
+main { max-width: 46rem; margin: 0 auto; }
+.page > .site { max-width: 46rem; margin-inline: auto; }
+main:focus { outline: none; }
+h1, h2, h3 { font-family: inherit; text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 2.2rem; font-weight: 700; margin: 0 0 .4rem; letter-spacing: .02em; }
+h2 { font-size: 1.3rem; font-weight: 700; margin: 3rem 0 .8rem; padding-top: .8rem; border-top: 2px solid var(--ink); }
+h2 .num { color: var(--hot); margin-right: .5em; font-variant-numeric: tabular-nums; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 .5rem; }
+p, li { max-width: 65ch; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+li { margin: .2rem 0; }
+li::marker { color: var(--hot); }
+strong { font-weight: 700; }
+a { color: var(--ink); text-decoration-color: var(--hot); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { background: var(--hot-t); }
+:focus-visible { outline: 3px solid var(--hot-ink); outline-offset: 2px; }
+.skip { position: absolute; left: 16px; top: -100px; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 0 0 6px 6px; z-index: 1; }
+.skip:focus { top: 0; }
+code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .86em; }
+code { background: var(--sheet); padding: .08em .35em; border-radius: 3px; }
+pre { background: var(--sheet); border-radius: 6px; padding: 14px 16px; overflow-x: auto; line-height: 1.45; margin: 0 0 1.2rem; }
+pre code { background: none; padding: 0; font-size: inherit; }
+hr { display: none; }
+.table { overflow-x: auto; margin: 0 0 1.3rem; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .7rem .45rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: var(--muted); border-bottom: 2px solid var(--ink); }
+td:first-child { white-space: nowrap; }
+.lede { margin-bottom: 1.6rem; }
+.status { background: var(--sheet); border-radius: 6px; padding: 12px 16px; }
+.status p { margin: 0; }
+.site { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.2rem; margin: 0 0 1.6rem; padding-bottom: .5rem; border-bottom: 2px solid var(--ink); }
+.site .home { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: var(--ink); text-decoration: none; }
+.site .home:hover { color: var(--hot-ink); background: none; }
+.site nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: .2rem 1rem; font-size: .92rem; }
+.site nav a { color: var(--ink); text-underline-offset: 3px; }
+.site nav a[aria-current] { text-decoration: none; color: var(--hot-ink); }
+a.home { color: inherit; text-decoration: none; }
+a.home:hover { background: none; color: var(--hot-ink); }
+main > a.home { display: inline-block; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 .4rem; }
+.callout { border-left: 4px solid var(--cool); background: var(--cool-t); padding: 10px 16px; margin: 0 0 1.2rem; max-width: 65ch; border-radius: 0 6px 6px 0; }
+.callout p { margin: 0; }
+details { background: var(--sheet); border-radius: 6px; padding: 0 16px; margin: 0 0 1.2rem; }
+details > summary { cursor: pointer; padding: 10px 0; }
+details[open] > summary { margin-bottom: .4rem; }
+details > :last-child { margin-bottom: 1rem; }
+.swatch { display: inline-block; width: .7em; height: .7em; margin-right: .4em; vertical-align: .02em; }
+nav.contents ol { columns: 2 14rem; column-gap: 2rem; padding-left: 1.3rem; }
+.figs { display: flex; flex-wrap: wrap; gap: 20px; margin: .4rem 0 1.6rem; }
+figure { margin: 0; flex: 0 1 auto; }
+figure img { display: block; max-width: 100%; height: auto; }
+figure.shot img { width: 300px; image-rendering: pixelated; border-radius: 4px; box-shadow: 0 0 0 1px var(--rule); }
+figure.wide { flex-basis: 100%; }
+figure.wide img { width: 100%; }
+figcaption { color: var(--muted); font-size: .88rem; margin-top: .4rem; max-width: 300px; }
+figure.wide figcaption { max-width: none; }
+nav.contents li { break-inside: avoid; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+<style id="fm1nav-style">
+#fm1nav{max-width:46rem;margin:0 auto 1.4rem;padding:12px 0 10px;display:flex;flex-direction:column;align-items:flex-end;
+gap:8px;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+border-bottom:2px solid currentColor;box-sizing:border-box}
+#fm1nav a{color:inherit;text-decoration:none;background:none}
+#fm1nav .fm1nav-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 18px}
+#fm1nav .fm1nav-links a{opacity:.72;padding:2px 0;border-bottom:2px solid transparent}
+#fm1nav .fm1nav-links a:hover,#fm1nav .fm1nav-links a[aria-current]{opacity:1;border-bottom-color:currentColor}
+#fm1nav .fm1nav-swap{display:inline-flex;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font-size:12px;letter-spacing:.07em}
+#fm1nav .fm1nav-swap a{padding:5px 14px;opacity:.72}
+#fm1nav .fm1nav-swap a:hover{opacity:1}
+#fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+@media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
+</style>
+<meta id="fm1theme-meta" name="theme-color" content="#191b23">
+<style id="fm1theme-style">
+:root { --paper: #191b23; --sheet: #292d37; --rule: #4c4c5a; --ink: #f1e9de; --muted: #bcb4a9; --hot: #f6a873; --hot-t: #43332f; --hot-ink: #ffc19b; --cool: #9dc7ad; --cool-t: #303d37; --ground: #191b23; --card: #272b35; --accent: #eda06b; --teal: #a8d7bd; --bad: #ff9696; --fm1-scheme: dark; }
+
+html { color-scheme: var(--fm1-scheme); }
+body { background: var(--paper) !important; color: var(--ink) !important; }
+body:has(.devicebox) { background: var(--ground) !important; }
+a { text-decoration-color: var(--hot); }
+a:focus-visible, button:focus-visible { outline-color: var(--hot-ink); }
+#fm1nav {
+  max-width: 60rem; color: var(--ink); border-bottom: 2px solid var(--rule);
+  padding: 10px 0 14px; margin-bottom: 1.6rem;
+}
+#fm1nav a { color: var(--ink); }
+#fm1nav .fm1nav-swap { border-color: var(--accent); }
+#fm1nav .fm1nav-swap a { color: var(--ink); padding: 7px 11px; }
+#fm1nav .fm1nav-swap a:hover { background: var(--hot-t); }
+#fm1nav .fm1nav-swap a[aria-current] {
+  background: var(--accent); color: var(--card); opacity: 1;
+  font-weight: 750;
+}
+body:has(.devicebox) > header h1 { color: var(--accent); }
+@media(max-width:540px) {
+  #fm1nav { align-items: stretch; }
+  #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
+  #fm1nav .fm1nav-swap { display: flex; width: 100%; }
+  #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
+}
+
+</style>
+</head>
+<body>
+<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav>
+<a class="skip" href="#content">Skip to content</a>
+<div class="page">
+<main id="content" tabindex="-1">
+<a class="home" href="../">BABBLEBEAT</a>
+<h1>BabbleBeat</h1>
+<p><strong>A word on every key, and a tiny robotic voice.</strong> A third FM-1 firmware beside STRATA and PALINDROME. Sentences are built by grammar rules; the voice is a formant robot that says only the words it knows.</p>
+<p>Custom firmware, installed at your own risk. It has not run on a real FM-1 yet. <a href="../install/">Install</a> · <a href="../emu/">Try it in the browser</a>.</p>
+<h2 id="quick-start">Quick start</h2>
+<ol><li>Press a <strong>white key</strong>. It has a word, and says a phrase about it. Press it again: the same phrase, now and then a new one.</li><li>Press the <strong>black key</strong> to its right: the same word in another kind of phrase (a question, a "not", a "was").</li><li>Keep playing keys. A word stays on its key; now and then it moves to the next word of its world.</li><li><strong>SEQ</strong> puts a new word on the key. <strong>REC</strong> remembers the key's word; RECALL brings it back into other phrases.</li><li><strong>PLAY</strong> babbles about the key's word; <strong>HOME</strong> stops.</li><li><strong>EDIT</strong>, then <strong>GRAMMAR</strong> (KNOB1): every phrase is built another way, bare to nested.</li><li><strong>SEL</strong> steps through the three sets of knobs: VOICE, MOUTH, WORDS. Lost? Hold <strong>GLO</strong>.</li></ol>
+<div class="figs"><figure class="shot"><img src="img/guide.png" alt="GLO held: the guide" loading="lazy"><figcaption>The guide · hold GLO</figcaption></figure></div>
+<h2 id="buttons">Buttons</h2>
+<div class="table" tabindex="0" role="region" aria-label="Table: Buttons (Button, Action)"><table><thead><tr><th>Button</th><th>Action</th></tr></thead><tbody><tr><td>PLAY</td><td>Babble: one phrase after another about the key's word</td></tr><tr><td>SEQ</td><td>A new word on the key, and a phrase about it</td></tr><tr><td>ARP</td><td>The key's phrase made again</td></tr><tr><td>REC</td><td>Remember the key's word</td></tr><tr><td>SEL</td><td>The next set of knobs: VOICE → MOUTH → WORDS</td></tr><tr><td>FX</td><td>VOICE knobs</td></tr><tr><td>EDIT</td><td>WORDS knobs</td></tr><tr><td>HOME</td><td>Stop speaking and turn off the babble</td></tr><tr><td>OCT- / OCT+</td><td>The whole voice down or up an octave</td></tr><tr><td>GLO (hold)</td><td>The guide: what every button does, on the screen</td></tr><tr><td>SAVE, ENV, LFO</td><td>Not used; the screen says so</td></tr></tbody></table></div>
+<h2 id="keys">Keys</h2>
+<p><strong>A white key is a word.</strong> The sixteen take the nouns of the WORLD in order, so neighbouring keys are neighbouring words. A key says a plain statement about its word and keeps it, so you can come back to it. Lower keys speak in a lower voice. The screen shows <code>WORD:</code> and a row of sixteen marks, the tall one the key in use.</p>
+<div class="figs"><figure class="shot"><img src="img/sharp.png" alt="A black key: WILL, about the word of the white key on its left" loading="lazy"><figcaption>A black key</figcaption></figure></div>
+<p><strong>A black key is a kind of phrase.</strong> It uses the word of the white key on its left:</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: Keys (Black key, left to right, Kind, Example with mirror (GRAMMAR at PLAIN))"><table><thead><tr><th>Black key, left to right</th><th>Kind</th><th>Example with <em>mirror</em> (GRAMMAR at PLAIN)</th></tr></thead><tbody><tr><td>1</td><td><strong>WHY?</strong></td><td>why does the mirror haunt the static?</td></tr><tr><td>2</td><td><strong>NOT</strong></td><td>the mirror does not follow the machine.</td></tr><tr><td>3</td><td><strong>WAS</strong></td><td>the mirror was silver inside the signal.</td></tr><tr><td>4</td><td><strong>IF</strong></td><td>if the mirror dreams, the filter watches the voltage.</td></tr><tr><td>5</td><td><strong>WILL</strong></td><td>the mirror will forget the circuit.</td></tr><tr><td>6</td><td><strong>IS IT?</strong></td><td>does the mirror haunt the engine?</td></tr><tr><td>7</td><td><strong>DID NOT</strong></td><td>the mirror did not corrupt the voltage.</td></tr><tr><td>8</td><td><strong>USED TO</strong></td><td>the mirror used to corrupt the static.</td></tr><tr><td>9</td><td><strong>BECAUSE</strong></td><td>the mirror watches the signal because the terminal sings.</td></tr><tr><td>10</td><td><strong>MAY</strong></td><td>the mirror may follow the voltage.</td></tr><tr><td>11</td><td><strong>WHEN</strong></td><td>when the mirror vanishes, the antenna will forget the engine.</td></tr></tbody></table></div>
+<h2 id="grammar">GRAMMAR</h2>
+<p>GRAMMAR (EDIT, KNOB1) sets how <strong>every phrase on the unit</strong> is built: white keys, black keys and PLAY's babble. There are five levels. Turn across one and the phrase on the screen is built again that way and said; each other key follows when it is next played. The screen names the kind and the level under the phrase, for example <code>WHY?  NESTED</code>.</p>
+<div class="figs"><figure class="shot"><img src="img/nested.png" alt="GRAMMAR at NESTED" loading="lazy"><figcaption>GRAMMAR · NESTED</figcaption></figure></div>
+<div class="table" tabindex="0" role="region" aria-label="Table: GRAMMAR (GRAMMAR, Level, A white key, The WHY? key, The NOT key)"><table><thead><tr><th>GRAMMAR</th><th>Level</th><th>A white key</th><th>The WHY? key</th><th>The NOT key</th></tr></thead><tbody><tr><td>0–19</td><td><strong>BARE</strong></td><td>the strange mirror.</td><td>why the mirror?</td><td>not the mirror.</td></tr><tr><td>20–39</td><td><strong>SIMPLE</strong></td><td>the mirror vanishes.</td><td>why is the mirror silver?</td><td>the mirror is not synthetic.</td></tr><tr><td>40–59</td><td><strong>PLAIN</strong></td><td>the mirror watches the static.</td><td>why does the mirror haunt the static?</td><td>the mirror does not follow the machine.</td></tr><tr><td>60–79</td><td><strong>JOINED</strong></td><td>the mirror waits, but the filter forgets the engine.</td><td>why does the mirror watch the signal, and why does the circuit sleep?</td><td>the mirror does not swallow the engine, and the engine does not whisper.</td></tr><tr><td>80–100</td><td><strong>NESTED</strong></td><td>the mirror that opens the robot returns.</td><td>why does the mirror that waits watch the speaker when the terminal sleeps?</td><td>the mirror that waits does not haunt the robot because the robot is not pale.</td></tr></tbody></table></div>
+<p><strong>What changes, and how fast</strong></p>
+<div class="table" tabindex="0" role="region" aria-label="Table: GRAMMAR (Knob (WORDS), Sets)"><table><thead><tr><th>Knob (WORDS)</th><th>Sets</th></tr></thead><tbody><tr><td><strong>WANDER</strong></td><td>How often a key's word moves when you play it. It moves one step, to the next word of its world, never a jump. At 0 it never moves</td></tr><tr><td><strong>DAMAGE</strong></td><td>How often a key's phrase is made again when you play it. At 0 a phrase stays until you change it. Past 60 it may be broken instead (a word doubled, dropped, an "again")</td></tr></tbody></table></div>
+<p>When a white key's word moves, the black key beside it follows the next time it is played.</p>
+<h2 id="words-edit">WORDS — EDIT</h2>
+<div class="table" tabindex="0" role="region" aria-label="Table: WORDS — EDIT (Knob, Control, Function)"><table><thead><tr><th>Knob</th><th>Control</th><th>Function</th></tr></thead><tbody><tr><td>KNOB1</td><td><strong>GRAMMAR</strong></td><td>How every phrase on the unit is built: BARE, SIMPLE, PLAIN, JOINED, NESTED</td></tr><tr><td>KNOB2</td><td><strong>WANDER</strong></td><td>How often a key's word moves a step; also, other nouns borrowed from outside the world</td></tr><tr><td>KNOB3</td><td><strong>RECALL</strong></td><td>How often the remembered word returns. Past 70 the phrases fix on it and loop back on themselves: "the mirror was, the mirror was pale."</td></tr><tr><td>KNOB4</td><td><strong>DAMAGE</strong></td><td>How often a key's phrase is made again as it is played; past 60 it may be broken instead</td></tr><tr><td>SELECT</td><td><strong>WORLD</strong></td><td>Machine, Dream, Body or Gothic/Dracula vocabulary, for keys that have no word yet</td></tr><tr><td>ALGORITHM</td><td><strong>LENGTH</strong></td><td>High values can append a further clause (from PLAIN up)</td></tr><tr><td>PRESETS</td><td><strong>STYLE</strong></td><td>Statements at low values; mixed in middle; questions at high values</td></tr></tbody></table></div>
+<h2 id="voice-fx">VOICE — FX</h2>
+<div class="table" tabindex="0" role="region" aria-label="Table: VOICE — FX (Knob, Control, Function)"><table><thead><tr><th>Knob</th><th>Control</th><th>Function</th></tr></thead><tbody><tr><td>KNOB1</td><td><strong>PITCH</strong></td><td>Base pitch for automatic speech</td></tr><tr><td>KNOB2</td><td><strong>RATE</strong></td><td>Phoneme length / speaking speed</td></tr><tr><td>KNOB3</td><td><strong>TONE</strong></td><td>A darker, larger voice to a brighter, smaller one</td></tr><tr><td>KNOB4</td><td><strong>BREATH</strong></td><td>Breath noise in the voiced sounds</td></tr><tr><td>SELECT</td><td><strong>LEVEL</strong></td><td>Synthesizer voice volume</td></tr><tr><td>ALGORITHM</td><td><strong>STUTTER</strong></td><td>Repeat individual pronunciation codes</td></tr><tr><td>PRESETS</td><td><strong>INFLECT</strong></td><td>How much the pitch moves: a lift on each word, a fall at the end, a rise for a question</td></tr></tbody></table></div>
+<h2 id="mouth-sel">MOUTH — SEL</h2>
+<p>SEL steps VOICE → MOUTH → WORDS. The middle of each MOUTH knob is the voice as it is made.</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: MOUTH — SEL (Knob, Control, Function)"><table><thead><tr><th>Knob</th><th>Control</th><th>Function</th></tr></thead><tbody><tr><td>KNOB1</td><td><strong>SIZE</strong></td><td>A small mouth (every resonance higher) to a large one</td></tr><tr><td>KNOB2</td><td><strong>SLUR</strong></td><td>Crisp, to sliding lazily from sound to sound</td></tr><tr><td>KNOB3</td><td><strong>GAP</strong></td><td>The quiet between words: run together, to spaced out</td></tr><tr><td>KNOB4</td><td><strong>WAVER</strong></td><td>How much the pitch trembles</td></tr></tbody></table></div>
+<p>MASTER always controls volume.</p>
+<h2 id="how-the-sentence-engine-works">How the sentence engine works</h2>
+<p>A compact lexicon tags parts of speech. There are twelve kinds of phrase (the statement and the eleven black-key kinds), and each has a form at each of GRAMMAR's five levels. Statements use third-person verbs, and base verbs follow "does", "did", "will" and "may". Verbs that take no object are never given one.</p>
+<p>REC keeps a word in a small memory slot; RECALL governs whether a later phrase uses it. WORLD decides the nouns; WANDER can cross worlds. LENGTH can add a further clause. DAMAGE past 60 lets tokens repeat, disappear or be interrupted by "again".</p>
+<p>The four themed banks loosely echo an earlier Python WordNet/Dracula experiment. BabbleBeat does not include WordNet, a full novel or live dictionary downloads.</p>
+<h2 id="voice-limitations">Voice limitations</h2>
+<p>The voice is a small formant synthesizer with a hand-phonemized word list: a glottal pulse and breath noise through four gliding formants, with shaped noise for hisses and stops. It is robotic on purpose, and it is not a general English TTS engine or CHIMERA's modeled vocal tract. There is no text input, no recording, no save/load of patches and no MIDI support in the app yet. The firmware has not run on a real FM-1: the first trials must establish intelligibility.</p>
+</main>
+</div>
+</body>
+</html>
