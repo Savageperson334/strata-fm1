@@ -56,6 +56,7 @@ jobs:
           p=instruments/babblebeat
           mkdir -p "$RUNNER_TEMP/bb-preview/manual" "$RUNNER_TEMP/bb-preview/install"
           cp -r "$p/build/emu" "$RUNNER_TEMP/bb-preview/emu"
+          cp -r "$p/web/words" "$RUNNER_TEMP/bb-preview/words"
           python3 - <<'PY'
           import markdown,os
           from pathlib import Path

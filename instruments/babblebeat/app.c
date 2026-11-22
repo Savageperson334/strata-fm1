@@ -25,15 +25,15 @@ static const char *const NAMES[2][7]={
  {"PITCH","RATE","TONE","BREATH","LEVEL","STUTTER","INFLECT"},
  {"GRAMMAR","WANDER","RECALL","DAMAGE","WORLD","LENGTH","STYLE"}
 };
-static int32_t y0;
+static int32_t bb_yoff;
 static void line(int32_t x,int32_t y,int32_t xx,int32_t yy,uint16_t c){
- if((y<y0&&yy<y0)||(y>=y0+120&&yy>=y0+120))return;
- cv_line(x,y-y0,xx,yy-y0,c);
+ if((y<bb_yoff&&yy<bb_yoff)||(y>=bb_yoff+120&&yy>=bb_yoff+120))return;
+ cv_line(x,y-bb_yoff,xx,yy-bb_yoff,c);
 }
-static void rect(int x,int y,int w,int h,uint16_t c){cv_rect(x,y-y0,w,h,c);}
+static void rect(int x,int y,int w,int h,uint16_t c){cv_rect(x,y-bb_yoff,w,h,c);}
 static int label(int x,int y,const char*s,uint16_t c){
- if(y<y0||y+14>y0+120)return x+text_w(&FONT_XS,s);
- return cv_text(x,y-y0,&FONT_XS,s,c);
+ if(y<bb_yoff||y+14>bb_yoff+120)return x+text_w(&FONT_XS,s);
+ return cv_text(x,y-bb_yoff,&FONT_XS,s,c);
 }
 static void apply(void){
  bb_voice_controls(&mouth,params[0]);
@@ -164,7 +164,7 @@ static void scene(void){
  rect(119,201,2,37,C_DIM);
 }
 static void draw(void){
- for(int i=0;i<2;i++){y0=i*120;cv_begin(240,120,C_BLACK);scene();cv_blit(0,(uint32_t)y0);}
+ for(int i=0;i<2;i++){bb_yoff=i*120;cv_begin(240,120,C_BLACK);scene();cv_blit(0,(uint32_t)bb_yoff);}
 }
 void app_ui_init(void){lcd_fill(0,0,240,240,C_BLACK);draw();}
 void app_frame(void){app_input_only();if((++frames&3u)==0)draw();}
