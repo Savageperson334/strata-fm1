@@ -1,28 +1,10 @@
 # STRATA
 
-STRATA turns the M-VAVE FM-1 into a drone and texture synth with one mode and no menus. Tap a key and a voice fades
-in and keeps going; tap it again and it fades away. Every knob changes the sound while it plays.
+A six-voice FM drone and texture synth with a live arpeggiator, drum kit and four Euclidean rhythm lanes. Tap notes to latch them; turn the knobs to shape the sound.
 
-It's custom firmware, installed at your own risk. The installer can always put M-VAVE's own firmware back.
+[Play in the browser](../emu/) · [Install firmware](../install/)
 
 ![STRATA playing three voices: the wave on top, the notes F2 C3 E3 lit below, and the seven controls with their values](img/screen-playing.png "STRATA playing")
-
----
-
-## Installing
-
-It takes about a minute from a computer, with nothing to download.
-
-1. On a computer, open the [installer](../install/) in **Chrome or Edge**. Safari and Firefox can't talk to the FM-1.
-2. Plug the FM-1 in with a USB cable that carries data (some charging cables don't), and switch it on.
-3. Click **Connect** and allow MIDI access when the browser asks.
-4. Click **Install**. Keep the cable in and the FM-1 on until the page says it's done.
-5. The FM-1 restarts and the screen says **STRATA** at the top.
-
-**To go back to M-VAVE's firmware:** use the installer's "Back to the stock firmware" link, or M-VAVE's M-UPGRADE
-app from m-vave.com.
-
-You can also [try STRATA in the browser](../emu/) first, with sound. It's the same code, so you don't need an FM-1.
 
 ---
 
@@ -39,32 +21,11 @@ You'll have a drone going in under 30 seconds.
 
 ## Playing
 
-Keys start and stop voices, and you don't hold them down.
-
-- **Tap a key** to start a voice at that note. It fades in and keeps sounding after you let go.
-- **Tap the same key again** to let that voice fade out.
-- Up to **six voices** play at once. A seventh replaces the oldest one, with a short crossfade.
-- **PLAY** fades every voice out and remembers the chord. Press it again to bring that chord back.
-- **OCT− / OCT+** move the keys down or up an octave. Voices already playing stay where they are.
-- **MASTER** is the volume.
-
-The keys that are sounding light up. A key that's still fading out glows dimly, and PLAY glows green while anything
-is sounding.
-
----
+Tap a key to latch a note; tap again to release it. A seventh note replaces the oldest of six voices. PLAY fades out and recalls the chord; OCT− / OCT+ shifts the keyboard without retuning existing voices. MASTER is always volume.
 
 ## The screen
 
-The screen has three parts, top to bottom.
-
-- **Top:** STRATA and the keys' octave (OCT −1 to start). Messages show here for a moment, like "C3 IN" or "SAVED".
-  While SEL is held it says **MORE**.
-- **Middle:** the sound's wave, with a small dot sliding underneath that follows the slow LFO (MOTION). Below that
-  are six boxes, one per voice, showing the note. A box fills as loud as that voice is.
-- **Bottom:** eight boxes, placed the way the knobs sit on the FM-1. The left half is the four knobs to the left of
-  the screen: MASTER (the volume) and SELECT on top, PRESETS and ALGORITHM under them. The right half is KNOB1 to
-  KNOB4, two on top and two below. Each box shows what the knob sets, its value, the knob's name as printed on the
-  panel (ALGORITHM is shortened to ALGO), and a bar. The box you're turning lights up.
+The header shows mode, octave and status. The waveform and six voice boxes indicate activity; the moving dot follows MOTION. The bottom eight cells mirror the physical knob layout, with the active control highlighted.
 
 ![The layer under SEL: DEPTH, SHIMMER, FADE, DECAY, RESO, AIR and SUB](img/screen-layer2.png "SEL held")
 
@@ -105,15 +66,7 @@ If you're not sure which physical knob is which, turn one and watch which box li
 
 ## The arpeggiator
 
-The arpeggiator plays the voices you've started one at a time, each swelling up while the others sink back. With
-the slow default it sounds like a ripple through the chord, not a fast pattern.
-
-- **Tap ARP** to switch it on or off. ARP lights up while it's on, and the screen says ARP at the top.
-- **Hold ARP and turn KNOB1 to KNOB4** to set it up. The screen shows ARP SETTINGS. Letting go of ARP after a turn doesn't
-  switch it off.
-- The voice on the step has a white frame around its box on the screen.
-- With only one voice playing, the arp pulses it on and off.
-- Tap keys in and out while it runs; the arp picks up the change on the next step.
+**Tap ARP** to toggle; **hold ARP** to adjust its four knobs. The active voice swells while the others fall to FLOOR; a white frame marks the current step. One voice pulses on and off. Changes in latched notes are picked up on the next step.
 
 ![ARP held: RATE, SHAPE, ORDER and FLOOR on KNOB1 to KNOB4, the C3 voice framed as the step](img/screen-arp.png "ARP settings")
 
@@ -130,15 +83,7 @@ SAVE keeps whether the arp is on and its settings.
 
 ## The beat
 
-The beat plays a drum groove under the drone: a synthesized kick, snare, hats, and a percussion voice tuned an octave
-above your lowest note. The drone can duck under the kick, so the whole sound pumps in time.
-
-- **Tap SEQ** to start or stop the beat. It always starts from the first step. SEQ flashes on the quarter notes
-  while it runs, and sixteen small steps across the screen show where it is.
-- **Hold SEQ and turn any of the seven knobs** to set it up. The screen shows BEAT SETTINGS. Letting go of SEQ after
-  a turn doesn't stop it.
-- While the beat or the lanes run, **the arp locks to the tempo**: RATE becomes a note length (1/1, 1/2, 1/4, 1/8, 1/16)
-  instead of steps a second.
+**Tap SEQ** to toggle; **hold SEQ** to adjust the beat. A synthesized kick, snare, hats and tuned percussion accompany the drone. The 16-step display shows the playhead; DUCK controls kick-driven pumping. With the beat or lanes running, ARP RATE follows musical divisions.
 
 ![SEQ held: TEMPO, GROOVE, SWING, LEVEL, KIT, ROOM and DUCK, the steps across the screen](img/screen-beat.png "Beat settings")
 
@@ -171,22 +116,9 @@ SAVE keeps whether the beat is on and its settings.
 
 ## The Euclidean lanes
 
-A Euclidean lane spreads a number of hits as evenly as it can over a number of steps, and repeats. Four hits over
-sixteen steps is a plain four-on-the-floor; five over twelve is a rolling pattern that never quite lines up with it.
-STRATA has four lanes. Each one plays a drum, or steps the arpeggiator, and each can be a different length, so the
-lanes drift against each other and the pattern keeps changing.
+Four lanes distribute pulses across independent cycle lengths. **Tap EDIT** to toggle; **hold EDIT** to select and edit a lane. Tall blocks = hits, short blocks = rests, white = current step.
 
-- **Tap EDIT** to switch the four lanes on or off. EDIT lights up while they're on, and the screen says EUC at the
-  top.
-- **Hold EDIT** to see and set them. The screen shows all four lanes as rows of blocks: a tall block is a hit, a low
-  one is a rest, and the step playing now is white. Letting go of EDIT after a turn doesn't switch them off.
-- A lane that plays a drum **takes over that drum from the beat's groove**. With the beat (SEQ) off, the lanes on
-  their own are the drums. With the beat on, the groove still plays the drums no lane has taken.
-- A lane set to **ARP** steps the arpeggiator once on each of its hits, instead of the arp's own RATE (which then
-  shows EUC and the lane's number). With one voice playing, each hit is a pulse.
-- The lanes share the beat's TEMPO and SWING. The clock starts from step one when the beat or the lanes start, and
-  whichever is switched on second joins in without restarting it.
-- The hit on a lane's first step is a little louder, so you can hear where each lane comes round.
+A drum lane replaces that drum in the preset groove; with SEQ off, lanes play alone. An ARP lane replaces RATE with its own triggers. All lanes share TEMPO/SWING; enabling a second clock consumer joins without resetting the first. The first hit of each lane is accented.
 
 ![EDIT held: the four lanes as rows of blocks, and the picked lane's settings](img/screen-euclid.png "Euclidean lanes")
 
@@ -279,5 +211,9 @@ STRATA takes MIDI in over USB and the TRS jack, on any channel.
 | The drone pumps or dips | That's DUCK: hold SEQ and turn PRESETS down. |
 | Want the original sound back | Hold HOME for a second. |
 | Want M-VAVE's firmware back | Use the installer's "Back to the stock firmware" link. |
+
+## Installation notes
+
+Use the [installer](../install/) in Chrome or Edge with a USB data cable. Connect, allow MIDI access, then install; leave the device connected until finished. Custom firmware is installed at your own risk. The installer can also restore M-VAVE firmware.
 
 M-VAVE and FM-1 are trademarks of their owners; STRATA isn't affiliated with M-VAVE.

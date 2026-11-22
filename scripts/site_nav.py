@@ -163,6 +163,52 @@ def apply(html, instrument, section):
     return re.sub(r"(<style\b)", lambda m: STYLE + m.group(1), html, count=1) if "<style" in html else STYLE + html
 
 
+
+# PALINDROME's manual is written as ordinary Markdown for GitHub. On Pages,
+# group its two independent modes into a responsive two-column quick reference.
+MANUAL_STYLE = """<style id="palindrome-manual-style">
+body:has(.palindrome-modes){font-size:16px;line-height:1.5}
+body:has(.palindrome-modes) main,body:has(.palindrome-modes) #fm1nav{max-width:72rem}
+.palindrome-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,3vw,36px);align-items:start;margin:1.6rem 0 2rem}
+.palindrome-mode{min-width:0;border-top:4px solid var(--mode);padding-top:12px}
+.palindrome-mode.morph{--mode:#226b91}
+.palindrome-mode.silt{--mode:#79549c}
+.palindrome-mode h2{color:var(--mode);border:0;padding:0;margin:0 0 .35rem;font-size:1.55rem;letter-spacing:.07em}
+.palindrome-mode h3{margin:1.2rem 0 .55rem}
+.palindrome-mode .figs{margin:.7rem 0 1rem}
+.palindrome-mode figure.shot img{width:min(100%,240px)}
+.palindrome-mode figure.shot figcaption{font-size:.83rem}
+.palindrome-mode .table{margin-bottom:1rem}
+body:has(.palindrome-modes) table{font-size:.91rem}
+body:has(.palindrome-modes) td,body:has(.palindrome-modes) th{padding:.32rem .45rem .32rem 0}
+body:has(.palindrome-modes) main>h2{margin-top:2rem}
+body:has(.palindrome-modes) main>.figs figure.shot img{width:220px}
+@media(max-width:850px){.palindrome-modes{grid-template-columns:1fr;gap:24px}.palindrome-mode figure.shot img{width:min(100%,240px)}}
+</style>"""
+
+
+def palindrome_manual(html):
+    """Group the rendered MORPH and SILT sections without duplicating the Markdown.
+    A missing heading leaves the original manual intact and readable."""
+    html = re.sub(r'<style id="palindrome-manual-style">.*?</style>\s*', "", html, flags=re.S)
+    # Idempotent: undo our own wrappers before grouping again.
+    html = re.sub(r'<div class="palindrome-modes">\s*<section class="palindrome-mode morph"[^>]*>', "", html)
+    html = re.sub(r'</section>\s*<section class="palindrome-mode silt"[^>]*>', "", html)
+    html = re.sub(r'</section>\s*</div>(?=\s*<h2\b)', "", html)
+    morph = re.search(r'<h2 id="morph">', html)
+    silt = re.search(r'<h2 id="silt">', html)
+    if not morph or not silt or morph.start() >= silt.start():
+        return html
+    end = re.search(r'<h2\b', html[silt.end():])
+    if not end:
+        return html
+    a, b, c = morph.start(), silt.start(), silt.end() + end.start()
+    html = (html[:a] + '<div class="palindrome-modes">' +
+            '<section class="palindrome-mode morph" aria-labelledby="morph">' + html[a:b] + '</section>' +
+            '<section class="palindrome-mode silt" aria-labelledby="silt">' + html[b:c] + '</section></div>' + html[c:])
+    return html.replace("</head>", MANUAL_STYLE + "\n</head>", 1)
+
+
 def main(site, instrument):
     if instrument not in SOURCE:
         raise SystemExit("site_nav: strata or palindrome")
@@ -173,6 +219,8 @@ def main(site, instrument):
             html = apply(f.read_text(encoding="utf-8"), instrument, section)
             if section == "emu":
                 html = emu_labels(html, instrument)
+            if section == "manual" and instrument == "palindrome":
+                html = palindrome_manual(html)
             f.write_text(html, encoding="utf-8")
             done.append(rel)
     print(f"site_nav: {instrument}: {', '.join(done) or 'no pages'}")

@@ -1,32 +1,19 @@
 # PALINDROME
 
-PALINDROME is an experimental instrument for the M-VAVE FM-1 in two halves. MORPH makes sound from four methods you
-blend with two knobs; SILT records that sound into a loop and plays it back in grains, forward and backward, at the pitches of the keys you hold.
+Two instruments, one audio memory. **MORPH** blends four synthesis methods; **SILT** records, fragments and repitches the result. Switch between them without stopping either.
 
-![PALINDROME's screen: MORPH's square in the middle of SILT's memory ring, the buttons named in the corners, the knobs named at the foot](manual/img/silt.png "PALINDROME on the FM-1's screen")
+![MORPH vector synthesis and SILT's recording ring](manual/img/silt.png "PALINDROME")
 
-## Start in a minute
+## Play
 
-1. Turn MASTER up and tap a few keys. Up to four notes latch; KNOB1 and KNOB2 move the sound around the square.
-2. Wait two seconds for the ring to fill, then tap EDIT. The knobs are now SILT's.
-3. Tap REC to freeze the loop and PLAY to start the grains.
-4. Tap two or three keys: the grains play those pitches in turn. Hold EDIT and turn ALGORITHM up for a chord.
-5. Turn KNOB1 to choose where the grains start, KNOB2 for their length, KNOB3 for how many.
-6. Hold REC and turn KNOB1 to record hiss into the loop, KNOB3 to crush it, KNOB4 to gate quiet sound out.
+- **FX — MORPH:** latch notes, then turn KNOB1/2 to blend timbres.
+- **EDIT — SILT:** tap REC to freeze the recording, then PLAY to start grains. Tap keys for pitch; hold EDIT for variation controls.
+- **REC:** live, freeze, overdub or resample. Hold REC for recording texture.
 
-## Get it
+[Play in the browser](emu/) · [Control reference](manual/) · [Install on FM-1](install/)
 
-- **[Install PALINDROME](install/)** from Chrome or Edge on a computer, with the FM-1 plugged in by USB. It takes
-  about a minute.
-- [Play it in the browser](emu/) first if you like. It's the same code, with sound, so you don't need an FM-1. Its switch over the panel
-  (Names / What they do) writes on each button what it does.
-- The [manual](manual/) is one page: the screen, the knobs and the buttons.
-- [Download {{PKG}}](firmware/{{PKG}}) for the command-line installer.
-- The [source](https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome) is under MPL-2.0.
+Version {{VERSION}} · Experimental · [Download {{PKG}}](firmware/{{PKG}})
 
-Version {{VERSION}}, experimental. It's custom firmware, installed at your own risk; it has been tested in a simulator,
-not yet on a real FM-1. The installer can put M-VAVE's own firmware back. PALINDROME's sibling is [STRATA](../), a drone
-and texture synth; installing one leaves the other's saved sound alone.
+Simulator-tested; physical hardware validation pending. Custom firmware is installed at your own risk. The installer can restore stock firmware. Switch to [STRATA](../) for FM drones, drums and Euclidean rhythms.
 
-Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). M-VAVE and
-FM-1 are trademarks of their owners; PALINDROME is not affiliated with M-VAVE.
+[Source (MPL-2.0)](https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome). Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). Not affiliated with M-VAVE.
