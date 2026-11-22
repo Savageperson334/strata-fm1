@@ -17,7 +17,8 @@ static Grain grain[PM_GRAINS];
 static volatile int requested[PM_VOICES];
 static volatile int capture, grains_on;
 static volatile uint32_t burst_request;
-static uint32_t burst_seen, wr, filled, half, rng, scope_wr;
+static uint32_t burst_seen, half, rng;
+static volatile uint32_t wr, filled, scope_wr;
 static float half_sample, clock_phase, scan_phase, launch, dry_gain, wet_gain;
 static float capture_lp, dc_l, dc_r, prev_l, prev_r, scope[64];
 static volatile float target[PM_PARAMS];
@@ -35,7 +36,7 @@ void pm_set(int id,float v){if(id>=0&&id<PM_PARAMS&&v>=0&&v<=1)target[id]=v;}
 float pm_get(int id){return id>=0&&id<PM_PARAMS?target[id]:0;}
 void pm_note(int slot,int note){if(slot>=0&&slot<PM_VOICES)requested[slot]=note>=0&&note<=127?note:-1;}
 void pm_record(int mode){if(mode>=0&&mode<=3)capture=mode;}
-void pm_grains(int on){grains_on=on!=0;}
+void pm_grains(int on){if(on&&!grains_on)burst_request++;grains_on=on!=0;}
 void pm_burst(void){burst_request++;}
 void pm_panic(void){
     for(int i=0;i<PM_VOICES;i++){requested[i]=-1;voice[i].env=0;voice[i].note=-1;}
@@ -59,6 +60,21 @@ int pm_active_grains(void){int n=0;for(int i=0;i<PM_GRAINS;i++)n+=grain[i].activ
 void pm_scope(float *out,uint32_t n){
     if(n>64)n=64;uint32_t end=scope_wr;
     for(uint32_t i=0;i<n;i++)out[i]=scope[(end-n+i)&63u];
+}
+/* Lightweight preview of audio history, newest at left. Reading aligned
+ * 16-bit samples from the UI never blocks the audio writer. */
+void pm_memory(float *lo,float *hi,uint32_t n){
+    uint32_t end=wr,count=filled;
+    if(!n)return;
+    for(uint32_t i=0;i<n;i++){
+        float a=0,b=0;
+        for(uint32_t j=0;j<16;j++){
+            uint32_t off=(i*16u+j)*count/(n*16u);
+            if(count){float v=(float)memory[(end-1u-off)&MASK]*(1.f/32768.f);
+                if(v<a)a=v;if(v>b)b=v;}
+        }
+        lo[i]=a;hi[i]=b;
+    }
 }
 static void spawn(float position,float amp){
     if(filled<128)return;

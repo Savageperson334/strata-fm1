@@ -92,7 +92,7 @@ void app_input_only(void){
     plat_lights(lit,kl,(1u<<B_FX)|(1u<<B_EDIT)|(1u<<B_REC)|(1u<<B_PLAY)|(1u<<B_HOME)|(1u<<B_SEL),0,1);
 }
 static void draw(void){
-    char t[12];float s[64];
+    char t[12];float lo[64],hi[64];
     cv_begin(240,120,C_BLACK);
     cv_text(4,3,&FONT_B,mode?"SILT":"MORPH",C_HI);
     cv_text(142,8,&FONT_XS,rec_names[recording],C_AMB);
@@ -109,10 +109,12 @@ static void draw(void){
         cv_rect(x-3,y-3,7,7,C_WHITE);
         number(voices(),t);cv_text(4,107,&FONT_XS,t,C_HI);cv_text(20,107,&FONT_XS,"VOICES",C_GRAY);
     }else{
-        pm_scope(s,64);
+        pm_memory(lo,hi,64);
         cv_line(4,73,235,73,C_LINE);
-        for(int j=1;j<64;j++)cv_line(4+(j-1)*231/63,73-(int)(s[j-1]*65),
-            4+j*231/63,73-(int)(s[j]*65),C_HI);
+        for(int j=0;j<64;j++){
+            int x=4+j*231/63;
+            cv_line(x,73-(int)(hi[j]*30),x,73-(int)(lo[j]*30),C_HI);
+        }
         int x=4+(int)(pm_get(S_POS)*231);
         cv_rect(x,43,1,55,C_WHITE);
         cv_rect(4,100,232,3,C_LINE);cv_rect(4,100,(int)(232*pm_fill()),3,C_AMB);

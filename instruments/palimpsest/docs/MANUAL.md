@@ -47,7 +47,7 @@ MIX, FADE, SCAN (automatic buffer movement), WINDOW (grain envelope), STEREO (gr
 
 ## Prototype limits
 
-RAM-only audio and patch state; SAVE is intentionally not writing settings, avoiding overwriting STRATA's patch data. MIDI integration, persistent patches, richer modulation, longer buffers and more sophisticated physical modeling are future work. The screen shows the output waveform and selected position, not a literal full memory waveform. Hardware timing and package installation require validation on a physical FM-1. Use the browser first.
+RAM-only audio and patch state; SAVE is intentionally not writing settings, avoiding overwriting STRATA's patch data. MIDI integration, persistent patches, richer modulation, longer buffers and more sophisticated physical modeling are future work. The SILT screen shows a sampled overview of the captured audio memory and the selected position; the position runs from newest to oldest. Hardware timing and package installation require validation on a physical FM-1. Use the browser first.
 
 ![MORPH screen](img/morph.png)
 

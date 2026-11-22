@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      released: ${{ steps.version.outputs.released }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,6 +23,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Check independent release tag
+        id: version
+        run: |
+          set -euo pipefail
+          version=$(tr -d ' \r\n' < instruments/palimpsest/VERSION)
+          if git ls-remote --exit-code --tags origin "refs/tags/palimpsest-v$version" >/dev/null 2>&1; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Dependencies
         run: |
           sudo apt-get install -y -qq libfribidi0 rsync
@@ -71,6 +83,7 @@ jobs:
             instruments/palimpsest/docs/img/
   firmware:
     needs: preview
+    if: needs.preview.outputs.released == 'false'
     uses: zvenson/fm1-build/.github/workflows/build.yml@v1
     permissions:
       contents: write

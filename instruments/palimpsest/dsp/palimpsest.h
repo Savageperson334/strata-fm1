@@ -19,6 +19,7 @@ void pm_grains(int on);
 void pm_burst(void);
 void pm_render(float *left, float *right, uint32_t n);
 void pm_scope(float *out, uint32_t n);
+void pm_memory(float *lo, float *hi, uint32_t n);
 float pm_fill(void);
 float pm_morph_x(void);
 float pm_morph_y(void);
