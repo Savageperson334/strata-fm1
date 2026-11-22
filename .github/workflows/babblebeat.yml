@@ -1,20 +1,21 @@
-# Development preview only: no hardware firmware release or installer.
-name: BabbleBeat preview
+name: BabbleBeat
 on:
   push:
     branches: [main]
-    paths: ['instruments/babblebeat/**', '.github/workflows/babblebeat.yml', 'scripts/site_nav.py', 'scripts/publish-instrument-site.sh', 'scripts/tutorial/**']
+    paths: ['instruments/babblebeat/**', '.github/workflows/babblebeat.yml']
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: babblebeat-preview
+  group: babblebeat-build
   cancel-in-progress: false
 jobs:
-  emulator:
+  preview:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      released: ${{ steps.version.outputs.released }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,24 +23,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Dependencies, language and DSP tests
+      - name: Check independent release tag
+        id: version
         run: |
           set -euo pipefail
+          version=$(tr -d ' \r\n' < instruments/babblebeat/VERSION)
+          if git ls-remote --exit-code --tags origin "refs/tags/babblebeat-v$version" >/dev/null 2>&1; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Dependencies
+        run: |
           sudo apt-get install -y -qq libfribidi0 rsync
-          python3 -m pip install -q Pillow markdown
+          python3 -m pip install -q Pillow
+      - name: DSP tests and panel simulator
+        run: |
+          set -euo pipefail
           p=instruments/babblebeat
           cc -O2 -I"$p/lang" "$p/tests/lang.c" "$p/lang/babble_lang.c" -o /tmp/bb-lang
           /tmp/bb-lang
           cc -O2 -Ibase/include -I"$p/lang" -I"$p/dsp" "$p/tests/voice.c" "$p/lang/babble_lang.c" "$p/dsp/babble_voice.c" -lm -o /tmp/bb-voice
           /tmp/bb-voice
-      - name: Build host simulator and screenshots
-        run: |
-          set -euo pipefail
-          p=instruments/babblebeat
           python3 base/tools/build.py "$p" --host
-          mkdir -p "$p/build/shots"
-          "$p/build/host/babblebeat_host" "$p/tests/basic.txt" "$p/build/shots"
-      - name: Emscripten
+          mkdir -p "$p/docs/img"
+          "$p/build/host/babblebeat_host" "$p/tests/basic.txt" "$p/docs/img"
+      - name: Build browser emulator
         run: |
           set -euo pipefail
           git clone -q https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
@@ -48,28 +57,121 @@ jobs:
           "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.10
           set +u; source "$RUNNER_TEMP/emsdk/emsdk_env.sh"; set -u
           python3 base/tools/build.py instruments/babblebeat --web
-      - name: Publish preview (no firmware binary)
+      - name: Publish playable development preview
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           p=instruments/babblebeat
-          mkdir -p "$RUNNER_TEMP/bb-preview/manual" "$RUNNER_TEMP/bb-preview/install"
-          cp -r "$p/build/emu" "$RUNNER_TEMP/bb-preview/emu"
-          cp -r "$p/web/words" "$RUNNER_TEMP/bb-preview/words"
-          cp -r base/web/fonts "$RUNNER_TEMP/bb-preview/fonts"
-          python3 - <<'PY'
-          import markdown,os
-          from pathlib import Path
-          body=markdown.markdown(Path('instruments/babblebeat/docs/MANUAL.md').read_text(),extensions=['tables'])
-          (Path(os.environ['RUNNER_TEMP'])/'bb-preview/manual/index.html').write_text('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>BabbleBeat manual</title></head><body style="background:#111b1b;color:#e6f1df;font:16px/1.5 system-ui;max-width:760px;margin:1rem auto;padding:1rem"><main>'+body+'</main></body></html>')
-          PY
-          cp "$p/site/index.html" "$RUNNER_TEMP/bb-preview/index.html"
-          cp "$p/site/install.html" "$RUNNER_TEMP/bb-preview/install/index.html"
-          bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/bb-preview" babblebeat
+          mkdir -p "$RUNNER_TEMP/preview"
+          cp -r "$p/build/emu" "$RUNNER_TEMP/preview/emu"
+          cp "$p/docs/MANUAL.md" "$RUNNER_TEMP/preview/manual.md"
+          cp -r "$p/docs/img" "$RUNNER_TEMP/preview/img"
+          cp -r base/web/fonts "$RUNNER_TEMP/preview/fonts"
+          cat > "$RUNNER_TEMP/preview/index.html" <<'HTML'
+          <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BabbleBeat — experimental FM-1 instrument</title><main><h1>BabbleBeat</h1><p>A word on every key, and a tiny robotic voice.</p><p><a href="emu/">Play the BabbleBeat emulator</a> · <a href="manual.md">Controls</a></p><small>Development preview. The firmware release is built separately.</small></main></html>
+          HTML
+          # Do not replace a published installer, manual and emulator with a preview: once any BabbleBeat release
+          # exists, the site changes only when the release job below publishes the next one whole.
+          version=$(tr -d ' \r\n' < "$p/VERSION")
+          if [ "${{ steps.version.outputs.released }}" = true ]; then
+            # This version is already released (a change to the manual, the site or the scripts): the whole site
+            # again, with the released package.
+            mkdir -p "$RUNNER_TEMP/bb-release"
+            gh release download "babblebeat-v$version" --pattern 'babblebeat-*.fwsc' --dir "$RUNNER_TEMP/bb-release"
+            python3 base/tools/make_site.py "$p" "$RUNNER_TEMP/bb-release/babblebeat-$version.fwsc" "$version" "$RUNNER_TEMP/bb-site"
+            bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/bb-site" babblebeat
+          elif [ -n "$(git ls-remote --tags origin 'refs/tags/babblebeat-v*')" ]; then
+            echo "A BabbleBeat release exists; leave its site intact until the next release is published."
+          else
+            bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/preview" babblebeat
+          fi
       - uses: actions/upload-artifact@v4
         with:
-          name: babblebeat-emulator-preview
+          name: babblebeat-preview
           path: |
             instruments/babblebeat/build/emu/
-            instruments/babblebeat/build/shots/
+            instruments/babblebeat/docs/img/
+  firmware:
+    needs: preview
+    if: needs.preview.outputs.released == 'false'
+    uses: zvenson/fm1-build/.github/workflows/build.yml@v1
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    with:
+      sdk: true
+      tests-block: true
+      build: |
+        set -euo pipefail
+        git submodule update --init --recursive
+        sudo apt-get install -y -qq libfribidi0
+        p=instruments/babblebeat
+        python3 base/tools/build.py "$p" --host
+        mkdir -p "$p/docs/img" build/release-assets
+        "$p/build/host/babblebeat_host" "$p/tests/basic.txt" "$p/docs/img"
+        version=$(tr -d ' \r\n' < "$p/VERSION")
+        python3 base/tools/build.py "$p" --release "$version"
+        cp "$p/build/babblebeat-$version.fwsc" build/release-assets/
+        cp "$p/build/babblebeat.bin" "build/release-assets/babblebeat-$version-app.bin"
+        cp "$p/build/firmware.json" build/release-assets/
+      test: |
+        set -euo pipefail
+        p=instruments/babblebeat
+        cc -O2 -I"$p/lang" "$p/tests/lang.c" "$p/lang/babble_lang.c" -o /tmp/bb-lang
+        /tmp/bb-lang
+        cc -O2 -Ibase/include -I"$p/lang" -I"$p/dsp" "$p/tests/voice.c" "$p/lang/babble_lang.c" "$p/dsp/babble_voice.c" -lm -o /tmp/bb-voice
+        /tmp/bb-voice
+        "$p/build/host/babblebeat_host" "$p/tests/basic.txt" "$p/docs/img"
+      packages: build/release-assets/*
+  release:
+    needs: [preview, firmware]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      attestations: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: build/attested
+      - uses: actions/download-artifact@v4
+        with:
+          name: babblebeat-preview
+          path: instruments/babblebeat
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify and publish independent prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd build/attested
+          sha256sum --check SHA256SUMS
+          for f in build/release-assets/*; do
+            gh attestation verify "$f" --repo "$GITHUB_REPOSITORY" --signer-workflow zvenson/fm1-build/.github/workflows/build.yml --source-ref "$GITHUB_REF" --source-digest "$GITHUB_SHA"
+          done
+          version=$(tr -d ' \r\n' < ../../instruments/babblebeat/VERSION)
+          if ! gh release view "babblebeat-v$version" >/dev/null 2>&1; then
+            gh release create "babblebeat-v$version" --target "$GITHUB_SHA" --title "BabbleBeat $version (experimental)" --prerelease --latest=false --notes "Experimental alternative FM-1 instrument. Hardware validation pending; try the emulator first." build/release-assets/* SHA256SUMS
+          fi
+      - name: Generate full installer and emulator website
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          p=instruments/babblebeat
+          version=$(tr -d ' \r\n' < "$p/VERSION")
+          mkdir -p "$RUNNER_TEMP/bb-release"
+          # Download the actual tagged package, including on reruns.
+          gh release download "babblebeat-v$version" --pattern 'babblebeat-*.fwsc' --dir "$RUNNER_TEMP/bb-release"
+          pkg="$RUNNER_TEMP/bb-release/babblebeat-$version.fwsc"
+          sudo apt-get install -y -qq rsync
+          python3 -m pip install -q Pillow
+          python3 base/tools/make_site.py "$p" "$pkg" "$version" "$RUNNER_TEMP/bb-site"
+          bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/bb-site" babblebeat

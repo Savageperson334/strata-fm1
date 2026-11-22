@@ -24,29 +24,44 @@ int main(void){
   bb_generate(&a);assert(a.count>=2&&a.count<=BB_MAX_TOKENS);
   bb_mutate(&a);assert(a.text[0]);
  }
- /* Every structural template: exact bounded generation, no empty pronunciations,
-  * appropriate grammatical markers. */
- const char *markers[]={"", " is ","inside ",0," does not "," will ",
-  "why does ","is ","if "," because "," but "," that ","when "," did not ",
-  " was "," may "," and "," used to "};
- a.grammar=1.f;a.damage=0.f;a.length=0.f;a.recall=0.f;
- for(int p=0;p<18;p++){
-  bb_generate_pattern(&a,p);
-  assert(a.pattern==(unsigned)p);
-  assert(a.count>3&&a.count<BB_MAX_TOKENS);
-  assert(strlen(a.text)<BB_TEXT_SIZE);
-  assert(bb_words(&a)>=2);
-  int end=(int)strlen(a.text)-1;
-  assert(a.text[end]==(p==6||p==7?'?':'.'));
-  assert(bb_pattern_label(&a)[0]);
-  if(markers[p]&&p!=0)assert(strstr(a.text,markers[p])!=0);
-  /* Structural rewrites carry the old first noun into the new sentence. */
-  const char* first=0;
-  for(unsigned k=0;k<a.count;k++)if(a.tok[k].role==BB_NOUN){first=a.tok[k].text;break;}
-  assert(first);
-  bb_rewrite(&a,(p+1)%18);
-  assert(strstr(a.text,first)!=0);
- }
+ /* GRAMMAR: every kind of phrase at every one of its five levels. Bounded, said (no empty pronunciation), ended
+  * as its kind ends, marked as its kind from SIMPLE up; and the levels differ in what they are: longer upward,
+  * a clause joined from JOINED, one nested ("that") at NESTED and nowhere below. */
+ {const char *markers[BB_KINDS_N]={0,"why "," not "," was ","if "," will ",0," did not "," used to ","because "," may ","when "};
+  long words[BB_LEVELS_N]={0};
+  a.damage=0.f;a.length=0.f;a.recall=0.f;
+  for(int l=0;l<BB_LEVELS_N;l++){
+   a.grammar=(l+.5f)/BB_LEVELS_N;
+   assert(bb_level(&a)==l&&bb_level_label(l)[0]);
+   for(int p=0;p<BB_KINDS_N;p++)for(int i=0;i<60;i++){
+    int end,that=0,commas=0;
+    bb_generate_pattern(&a,p);
+    assert(a.pattern==(unsigned)p&&a.level==(unsigned)l);
+    assert(a.count>=2&&a.count<BB_MAX_TOKENS);
+    assert(strlen(a.text)<BB_TEXT_SIZE);
+    assert(bb_words(&a)>=(l?3:2));
+    for(unsigned k=0;k<a.count;k++){
+     assert(a.tok[k].text&&a.tok[k].phones);
+     if(a.tok[k].role!=BB_PUNCT)assert(a.tok[k].phones[0]);
+     that+=!strcmp(a.tok[k].text,"that");commas+=!strcmp(a.tok[k].text,",");
+    }
+    end=(int)strlen(a.text)-1;
+    assert(a.text[end]==(p==BB_WHY||p==BB_ISIT?'?':'.'));
+    assert(bb_pattern_label(&a)[0]);
+    if(l&&markers[p])assert(strstr(a.text,markers[p])!=0);
+    if(l<4)assert(!that);else assert(that);
+    if(l==1&&p!=BB_IF&&p!=BB_WHEN)assert(!commas);
+    words[l]+=bb_words(&a);
+    /* A rewrite into another kind carries the first noun with it. */
+    {const char *first=0;
+     for(unsigned k=0;k<a.count;k++)if(a.tok[k].role==BB_NOUN){first=a.tok[k].text;break;}
+     assert(first);
+     bb_rewrite(&a,(p+1)%BB_KINDS_N);
+     assert(strstr(a.text,first)!=0);}
+   }
+   if(l)assert(words[l]>words[l-1]);
+  }
+  a.grammar=1.f;}
  /* Coherence-preserving mutations and intentionally destructive mutations */
  a.grammar=1.f;a.length=.8f;
  for(int i=0;i<200;i++){
@@ -54,7 +69,7 @@ int main(void){
   assert(a.count>0&&a.count<=BB_MAX_TOKENS);
   assert(strlen(a.text)<BB_TEXT_SIZE);
  }
- a.grammar=0.f;a.damage=1.f;
+ a.grammar=0.f;a.damage=1.f;                /* (bare forms, and the mutations that break them) */
  for(int i=0;i<200;i++){
   bb_generate(&a);bb_mutate(&a);
   assert(a.count>0&&a.count<=BB_MAX_TOKENS);
@@ -87,7 +102,7 @@ int main(void){
   for(int w=0;w<48;w++){
    bb_token word=bb_noun_of(w/12,w),nearby;
    assert(word.text&&word.role==BB_NOUN);
-   for(int pattern=0;pattern<18;pattern++){bb_phrase(&k,&word,pattern);assert(strstr(k.text,word.text)!=0);}
+   for(int pattern=0;pattern<BB_KINDS_N;pattern++){bb_phrase(&k,&word,pattern);assert(strstr(k.text,word.text)!=0);}
    bb_phrase(&k,&word,bb_statement(&k));assert(k.text[strlen(k.text)-1]=='.');
    nearby=bb_noun_near(&k,&word);assert(nearby.text&&nearby.text!=word.text);
   }

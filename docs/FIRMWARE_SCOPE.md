@@ -129,6 +129,7 @@ The mutation engine can replace/swap word-role slots, change an adjective, or **
 - **PLAY:** toggle automatic, sequential babbling.
 - **White keys:** sixteen **words**, one a key (the WORLD's nouns in order); a key says a phrase about its word and keeps it, lower keys in a lower voice. The word can move, one step at a time (WANDER), never erratically; the phrase is made again now and then (DAMAGE).
 - **Black keys:** the word of the white key on their left, in another **kind of phrase**, a kind a key (why?, not, was, if, will, is it?, did not, used to, because, may, when). OCT shifts the voice's register.
+- **GRAMMAR** sets how every phrase on the unit is built: each kind of phrase (the white keys' statement and the eleven black-key kinds) has a form at five levels, BARE, SIMPLE, PLAIN, JOINED, NESTED. Breaking a phrase (doubled, dropped words) belongs to DAMAGE.
 - **SEL** steps through the knob sets (VOICE, MOUTH, WORDS); **RECALL** past 70 fixes on the remembered word and loops the phrases back on themselves.
 - **HOME:** stop speech/autoplay; **SAVE** currently shows unavailable.
 
@@ -146,7 +147,7 @@ The near-term design priority is **better grammar and musical mutation**, not an
 
 **Out of scope for the initial stages:** Porting CHIMERA's full physical vocal tract/FDTD engine, a general English TTS system, neural voices, downloading arbitrary dictionaries at runtime, loading all of Dracula into device memory, recording and editing full spoken audio as SILT rings, or treating a simple word-stutter control as a complete glitch language model. These ideas can be reconsidered explicitly later, but should not block work on grammar.
 
-**Current limitations:** Small fixed lexicon and pronunciation table; no arbitrary user text input, recording, saved patches or app MIDI; no hardware-ready BabbleBeat package. The website intentionally offers the **browser emulator** and documents that hardware installation is unavailable.
+**Current limitations:** Small fixed lexicon and pronunciation table; no arbitrary user text input, recording, saved patches or app MIDI; the BabbleBeat package (0.4 on) has not run on hardware. The website intentionally offers the **browser emulator** and documents that hardware installation is unavailable.
 
 ## 5. Shared design principles
 
@@ -200,7 +201,7 @@ Share where appropriate:
 | --- | --- | --- | --- |
 | Core implementation | Drone + ARP + beat + Euclidean lanes | MORPH source + generational SILT rings | Grammar + mutation + small formant-synthesis voice |
 | Browser / host | Available; simulator-tested | Available; simulator-tested | Available; simulator-tested |
-| Device release status | Firmware releases exist | Experimental prerelease exists | **Browser-first only; no firmware installer** |
+| Device release status | Firmware releases exist | Experimental prerelease exists | Experimental prerelease exists (0.4 on) |
 | Real FM-1 validation | **Not established** in repo docs | **Not established** in repo docs | **Not established** |
 | Persistence | Saved patch/chord/settings | Rings/settings are RAM-only | No patch save; a remembered noun is volatile |
 | Main next design frontier | Deep generative modulation while keeping live simplicity | Better expressive recording lineage and safe manipulation | Better grammar, memories and performance sequencing |

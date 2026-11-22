@@ -1,6 +1,6 @@
 # Independent third FM-1 firmware, no shared patch state.
 name = "BABBLEBEAT"
-id_prefix = "FM-1_60"      # provisional until hardware/package identity validation
+id_prefix = "FM-1_60"      # package identity: dev FM-1_6000, releases FM-1_60XXYYZZ
 usb_manufacturer = "BabbleBeat"
 usb_product = "BabbleBeat FM-1"
 include = ["lang", "dsp"]
@@ -11,7 +11,8 @@ repo = "https://github.com/Savageperson334/strata-fm1"
 licence = "MPL-2.0"
 author = "Savageperson334"
 credits = "Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments)."
-description = "BabbleBeat speaks. Every white key has a word from one of four vocabulary worlds and says a grammatical phrase about it; the black key beside it says the same word in another kind of phrase (a question, a not, a was). Words move a step at a time, phrases are made again now and then, and a remembered word can take over until the phrases loop. A tiny robotic formant voice. Experimental prototype: browser preview only."
+description = "BabbleBeat speaks. Every white key has a word from one of four vocabulary worlds and says a phrase about it; the black key beside it says the same word in another kind of phrase (a question, a not, a was). GRAMMAR sets how every phrase is built, from bare to nested. Words move a step at a time, and a remembered word can take over until the phrases loop. A tiny robotic formant voice. One press per page; hold GLO for a guide on the screen."
 tags = ["synth", "generative", "experimental"]
 site = "https://savageperson334.github.io/strata-fm1/babblebeat/"
 install = "https://savageperson334.github.io/strata-fm1/babblebeat/install/"
+screenshot = "docs/img/sharp.png"

@@ -1,8 +1,8 @@
-# BabbleBeat — grammar-driven robotic speech
+# BabbleBeat
 
-A third independent FM-1 firmware, alongside STRATA and PALINDROME. A sentence
-is assembled by grammar rules first, then optionally rewritten or damaged.
-The voice is a simple formant robot, not general text-to-speech.
+**A word on every key, and a tiny robotic voice.** A third FM-1 firmware beside STRATA and PALINDROME. Sentences are built by grammar rules; the voice is a formant robot that says only the words it knows.
+
+Custom firmware, installed at your own risk. It has not run on a real FM-1 yet. [Install](../install/) · [Try it in the browser](../emu/).
 
 ## Quick start
 
@@ -11,7 +11,10 @@ The voice is a simple formant robot, not general text-to-speech.
 3. Keep playing keys. A word stays on its key; now and then it moves to the next word of its world.
 4. **SEQ** puts a new word on the key. **REC** remembers the key's word; RECALL brings it back into other phrases.
 5. **PLAY** babbles about the key's word; **HOME** stops.
-6. **SEL** steps through the three sets of knobs: VOICE, MOUTH, WORDS. Lost? Hold **GLO**.
+6. **EDIT**, then **GRAMMAR** (KNOB1): every phrase is built another way, bare to nested.
+7. **SEL** steps through the three sets of knobs: VOICE, MOUTH, WORDS. Lost? Hold **GLO**.
+
+![GLO held: the guide](img/guide.png "The guide · hold GLO")
 
 ## Buttons
 
@@ -33,29 +36,44 @@ The voice is a simple formant robot, not general text-to-speech.
 
 **A white key is a word.** The sixteen take the nouns of the WORLD in order, so neighbouring keys are neighbouring words. A key says a plain statement about its word and keeps it, so you can come back to it. Lower keys speak in a lower voice. The screen shows `WORD:` and a row of sixteen marks, the tall one the key in use.
 
+![A black key: WILL, about the word of the white key on its left](img/sharp.png "A black key")
+
 **A black key is a kind of phrase.** It uses the word of the white key on its left:
 
-| Black key, left to right | Kind | Example with *mirror* |
+| Black key, left to right | Kind | Example with *mirror* (GRAMMAR at PLAIN) |
 | --- | --- | --- |
-| 1 | **WHY?** | why does the mirror remember the static? |
-| 2 | **NOT** | the mirror does not corrupt the filter. |
-| 3 | **WAS** | the mirror was ancient. |
-| 4 | **IF** | if the mirror shivers, the antenna haunts the signal. |
-| 5 | **WILL** | the mirror will return. |
-| 6 | **IS IT?** | is the mirror crooked? |
-| 7 | **DID NOT** | the mirror did not forget the engine. |
-| 8 | **USED TO** | the mirror used to vanish. |
-| 9 | **BECAUSE** | the mirror opens the static because the robot waits. |
-| 10 | **MAY** | the mirror may swallow the engine. |
-| 11 | **WHEN** | when the mirror dreams, the signal will return. |
+| 1 | **WHY?** | why does the mirror haunt the static? |
+| 2 | **NOT** | the mirror does not follow the machine. |
+| 3 | **WAS** | the mirror was silver inside the signal. |
+| 4 | **IF** | if the mirror dreams, the filter watches the voltage. |
+| 5 | **WILL** | the mirror will forget the circuit. |
+| 6 | **IS IT?** | does the mirror haunt the engine? |
+| 7 | **DID NOT** | the mirror did not corrupt the voltage. |
+| 8 | **USED TO** | the mirror used to corrupt the static. |
+| 9 | **BECAUSE** | the mirror watches the signal because the terminal sings. |
+| 10 | **MAY** | the mirror may follow the voltage. |
+| 11 | **WHEN** | when the mirror vanishes, the antenna will forget the engine. |
+
+## GRAMMAR
+
+GRAMMAR (EDIT, KNOB1) sets how **every phrase on the unit** is built: white keys, black keys and PLAY's babble. There are five levels. Turn across one and the phrase on the screen is built again that way and said; each other key follows when it is next played. The screen names the kind and the level under the phrase, for example `WHY?  NESTED`.
+
+![GRAMMAR at NESTED](img/nested.png "GRAMMAR · NESTED")
+
+| GRAMMAR | Level | A white key | The WHY? key | The NOT key |
+| --- | --- | --- | --- | --- |
+| 0–19 | **BARE** | the strange mirror. | why the mirror? | not the mirror. |
+| 20–39 | **SIMPLE** | the mirror vanishes. | why is the mirror silver? | the mirror is not synthetic. |
+| 40–59 | **PLAIN** | the mirror watches the static. | why does the mirror haunt the static? | the mirror does not follow the machine. |
+| 60–79 | **JOINED** | the mirror waits, but the filter forgets the engine. | why does the mirror watch the signal, and why does the circuit sleep? | the mirror does not swallow the engine, and the engine does not whisper. |
+| 80–100 | **NESTED** | the mirror that opens the robot returns. | why does the mirror that waits watch the speaker when the terminal sleeps? | the mirror that waits does not haunt the robot because the robot is not pale. |
 
 **What changes, and how fast**
 
 | Knob (WORDS) | Sets |
 | --- | --- |
 | **WANDER** | How often a key's word moves when you play it. It moves one step, to the next word of its world, never a jump. At 0 it never moves |
-| **DAMAGE** | How often a key's phrase is made again when you play it. At 0 a phrase stays until you change it |
-| **GRAMMAR** | Low: a changed phrase may be broken instead (a word doubled, dropped, an "again") |
+| **DAMAGE** | How often a key's phrase is made again when you play it. At 0 a phrase stays until you change it. Past 60 it may be broken instead (a word doubled, dropped, an "again") |
 
 When a white key's word moves, the black key beside it follows the next time it is played.
 
@@ -63,12 +81,12 @@ When a white key's word moves, the black key beside it follows the next time it 
 
 | Knob | Control | Function |
 | --- | --- | --- |
-| KNOB1 | **GRAMMAR** | High: valid structures retained; low: duplicates and omissions permitted |
+| KNOB1 | **GRAMMAR** | How every phrase on the unit is built: BARE, SIMPLE, PLAIN, JOINED, NESTED |
 | KNOB2 | **WANDER** | How often a key's word moves a step; also, other nouns borrowed from outside the world |
 | KNOB3 | **RECALL** | How often the remembered word returns. Past 70 the phrases fix on it and loop back on themselves: "the mirror was, the mirror was pale." |
-| KNOB4 | **DAMAGE** | How often a key's phrase is made again as it is played (GRAMMAR decides how gently) |
+| KNOB4 | **DAMAGE** | How often a key's phrase is made again as it is played; past 60 it may be broken instead |
 | SELECT | **WORLD** | Machine, Dream, Body or Gothic/Dracula vocabulary, for keys that have no word yet |
-| ALGORITHM | **LENGTH** | High values can append a coordinated clause |
+| ALGORITHM | **LENGTH** | High values can append a further clause (from PLAIN up) |
 | PRESETS | **STYLE** | Statements at low values; mixed in middle; questions at high values |
 
 ## VOICE — FX
@@ -98,49 +116,11 @@ MASTER always controls volume.
 
 ## How the sentence engine works
 
-A compact lexicon tags parts of speech. Seven classes of grammatical pattern
-use third-person verbs for statements and base verbs after "does" or "do".
-Intransitive verbs are only used without objects; other templates use
-transitive verbs. Thus the generator can make:
+A compact lexicon tags parts of speech. There are twelve kinds of phrase (the statement and the eleven black-key kinds), and each has a form at each of GRAMMAR's five levels. Statements use third-person verbs, and base verbs follow "does", "did", "will" and "may". Verbs that take no object are never given one.
 
-> the silent machine remembers the ghost.
+REC keeps a word in a small memory slot; RECALL governs whether a later phrase uses it. WORLD decides the nouns; WANDER can cross worlds. LENGTH can add a further clause. DAMAGE past 60 lets tokens repeat, disappear or be interrupted by "again".
 
-> inside the coffin the silver shadow whispers.
-
-> why does the mirror follow the moon?
-
-At high GRAMMAR, mutation prefers role-preserving substitutions and swaps.
-At low GRAMMAR, tokens can repeat, disappear or be interrupted by "again".
-REC keeps a noun in a small memory slot; RECALL governs whether a later
-sentence uses it. WORLD determines the noun pool; WANDER can cross worlds.
-
-### More grammar in the second prototype
-
-The generator now includes 18 grammatical templates, including compound
-sentences, *if/then* and *when* clauses, *because* and *but* connectors,
-relative clauses with *that*, negative past tense and future constructions.
-At high GRAMMAR, some mutations **rebuild** a sentence in a different
-structure while retaining its original first noun. The LENGTH parameter
-can append another coordinated clause, sometimes two at very high settings.
-
-Examples of supported structures (the vocabulary and verb are random):
-
-> if the ghost whispers, the circuit remembers the moon.
-
-> the machine that watches the ghost shivers.
-
-> the castle did not remember the robot.
-
-> when the shadow vanishes, the machine will return.
-
-WANDER retains a drifting thematic pool between sentences, with remembered
-words attracting that drift toward their own world. Lowering GRAMMAR permits
-token repeats, deletions and intrusive words, while the underlying templates
-remain valid before mutation.
-
-The four themed banks loosely echo the previous Python WordNet/Dracula
-experiment. BabbleBeat does not yet include WordNet, a full novel, the
-desktop program's advanced oracle, or live dictionary downloads.
+The four themed banks loosely echo an earlier Python WordNet/Dracula experiment. BabbleBeat does not include WordNet, a full novel or live dictionary downloads.
 
 ## Voice limitations
 
@@ -148,6 +128,6 @@ The voice is a small formant synthesizer with a hand-phonemized word list:
 a glottal pulse and breath noise through four gliding formants, with shaped
 noise for hisses and stops. It is robotic on purpose, and it is
 not a general English TTS engine or CHIMERA's modeled vocal tract.
-There is no text input, no recording, no save/load of patches, no MIDI
-support in the app yet, and no tested hardware release. The browser
-emulator and first real-device trials must establish intelligibility.
+There is no text input, no recording, no save/load of patches and no MIDI
+support in the app yet. The firmware has not run on a real FM-1: the first
+trials must establish intelligibility.

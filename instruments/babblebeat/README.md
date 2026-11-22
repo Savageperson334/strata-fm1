@@ -12,7 +12,8 @@ The language engine is deterministic, heap-free C: templates assemble
 sentences from nouns, inflected verbs, adjectives, and function words.
 Tokens carry their grammatical role so mutations can operate on nouns
 and adjectives without destroying the pattern, or can repeat/delete
-tokens when GRAMMAR is turned down. REC remembers one noun and RECALL
+tokens when DAMAGE is turned up. GRAMMAR chooses, for every kind of phrase,
+one of five forms from bare to nested. REC remembers one noun and RECALL
 controls its future appearance.
 
 The voice plays compact hand-written phoneme codes through a small formant
@@ -42,12 +43,13 @@ instruments/babblebeat/build/host/babblebeat_host \
 python3 base/tools/build.py instruments/babblebeat --web
 ~~~
 
-The hardware build also needs the JieLi SDK/toolchain. Firmware package ID 60
-is provisional; the hardware has not been validated and this prototype
-should not be published as an installable firmware yet.
+The hardware build also needs the JieLi SDK/toolchain. The package identity is `FM-1_60`.
 
 [Manual](docs/MANUAL.md) · [Tests](tests/)
 
-## Preview
+## Release
 
-When merged to `main`, the BabbleBeat GitHub Pages job publishes an independent browser preview under `/babblebeat/` (no firmware package). The navigation switches among STRATA (teal), PALINDROME (violet), and BabbleBeat (copper/charcoal), preserving Emulator/Manual/Install context.
+A change under `instruments/babblebeat/` on `main` runs `.github/workflows/babblebeat.yml`: the tests, the browser
+emulator, and, when `VERSION` names a version with no `babblebeat-vX.Y` tag yet, the firmware built with the shared
+FM-1 builder, a signed prerelease, and the installer, manual and emulator published under `/babblebeat/`. The
+hardware has not been validated: the firmware is experimental.

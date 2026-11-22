@@ -26,14 +26,14 @@
 static const uint8_t WHITE_K[NPHRASE]={0,2,4,6,7,9,11,12,14,16,18,19,21,23,24,26};
 static const uint8_t BLACK_K[NMUTE]={1,3,5,8,10,13,15,17,20,22,25};
 #define NSLOT 27
-typedef struct {bb_token tok[BB_MAX_TOKENS];uint8_t count,pattern,used;const char *word;} phrase;
+typedef struct {bb_token tok[BB_MAX_TOKENS];uint8_t count,pattern,level,used;const char *word;} phrase;
 static phrase phrases[NSLOT];            /* each key's phrase, as it was left, and the word it was made about */
 static bb_token words[NPHRASE];          /* each white key's word (text 0: not given yet) */
 static int cur;                          /* the key (0..26) whose phrase is the one on the screen (mind's) */
 static uint8_t word_at;                  /* where in the world's list this session's words start */
 /* the black keys' kinds of phrase, left to right (the language's patterns), and what the screen calls them */
-static const uint8_t SHARP[NMUTE]={6,4,14,8,5,7,13,17,9,15,12};
-static const char *const SHARP_NAME[NMUTE]={"WHY?","NOT","WAS","IF","WILL","IS IT?","DID NOT","USED TO","BECAUSE","MAY","WHEN"};
+static const uint8_t SHARP[NMUTE]={BB_WHY,BB_NOT,BB_WAS,BB_IF,BB_WILL,BB_ISIT,BB_DIDNOT,BB_USEDTO,BB_BECAUSE,BB_MAY,BB_WHEN};
+static int grammar_level;                /* GRAMMAR's level as last seen (a turn across a level: every phrase again) */
 static bb_mind mind;
 static bb_voice mouth;
 static uint8_t page,autoplay;
@@ -50,7 +50,7 @@ static const int ENC[7]={EN_K1,EN_K2,EN_K3,EN_K4,EN_SELECT,EN_ALGO,EN_PRESET};
 #define NPAGE 3                          /* the knobs' sets: 0 VOICE (FX), 1 WORDS (EDIT), 2 MOUTH; SEL: the next */
 static const float DEFAULTS[NPAGE][7]={
  {.32f,.52f,.50f,.18f,.78f,0.f,.30f}, /* Voice */
- {.85f,.25f,.35f,.15f,0.f,.40f,.50f}, /* Words */
+ {.50f,.25f,.35f,.15f,0.f,.40f,.50f}, /* Words */
  {.50f,.50f,.50f,0.f,0.f,0.f,0.f}     /* Mouth */
 };
 static float params[NPAGE][7];
@@ -96,12 +96,12 @@ static bb_token *word_of(int k){
 static void keep(void){
  phrase*p=&phrases[cur];
  for(unsigned i=0;i<mind.count&&i<BB_MAX_TOKENS;i++)p->tok[i]=mind.tok[i];
- p->count=(uint8_t)mind.count;p->pattern=(uint8_t)mind.pattern;p->used=1;p->word=word_of(cur)->text;
+ p->count=(uint8_t)mind.count;p->pattern=(uint8_t)mind.pattern;p->level=(uint8_t)mind.level;p->used=1;p->word=word_of(cur)->text;
 }
 static void bring(int k){
  const phrase*p=&phrases[k];
  for(unsigned i=0;i<p->count;i++)mind.tok[i]=p->tok[i];
- mind.count=p->count;mind.pattern=p->pattern;
+ mind.count=p->count;mind.pattern=p->pattern;mind.level=p->level;
  bb_rebuild(&mind);
 }
 /* said in the register of its key (the middle keys: the PITCH knob's own), an octave either way with OCT */
@@ -114,9 +114,9 @@ static void compose(int k){
  int b=black_of(k);
  bb_phrase(&mind,word_of(k),b>=0?SHARP[b]:bb_statement(&mind));
 }
-/* the phrase made again: with GRAMMAR low, as often broken instead (a word doubled, dropped, an "again") */
+/* the phrase made again: with DAMAGE past 60, as often broken instead (a word doubled, dropped, an "again") */
 static void change(int k){
- if(mind.grammar<.6f&&bb_chance(&mind,.5f))bb_mutate_op(&mind,BB_OP_STUTTER+(bb_chance(&mind,.34f)?0:bb_chance(&mind,.5f)?1:2));
+ if(mind.damage>.6f&&bb_chance(&mind,.5f))bb_mutate_op(&mind,BB_OP_STUTTER+(bb_chance(&mind,.34f)?0:bb_chance(&mind,.5f)?1:2));
  else compose(k);
 }
 /* a key: its phrase, said. The word moves now and then to the next word of its world (a white key's press;
@@ -127,14 +127,14 @@ static void play_key(int k){
  int b=black_of(k),moved=0;
  if(p->used&&b<0&&bb_chance(&mind,mind.wander*.25f)){*w=bb_noun_near(&mind,w);moved=1;}
  cur=k;
- if(!p->used||p->word!=w->text)compose(k);
+ if(!p->used||p->word!=w->text||p->level!=bb_level(&mind))compose(k);   /* (none yet; its word moved; GRAMMAR turned) */
  else{
   bring(k);
   if(bb_chance(&mind,mind.damage))change(k);
  }
  keep();speak();
  if(moved)app_say("ITS WORD IS NOW",w->text);
- else if(b>=0)app_say(SHARP_NAME[b],w->text);
+ else if(b>=0)app_say(bb_pattern_label(&mind),w->text);
 }
 /* PLAY: one phrase after another about the key's word, of any kind; the word moving as it does under the key */
 static void babble(void){
@@ -150,6 +150,7 @@ void app_init(void){
  page=1;autoplay=0;octave=0;old_keys=old_buttons=frames=last_spoken=0;stirred=0;guide=0;word_at=0;
  for(int k=0;k<NSLOT;k++){phrases[k].used=phrases[k].count=phrases[k].pattern=0;phrases[k].word=0;}
  for(int k=0;k<NPHRASE;k++)words[k]=(bb_token){0,0,BB_NOUN};
+ grammar_level=bb_level(&mind);
  cur=11;compose(cur);keep();             /* (the first phrase: on a middle key, the C) */
  gain_now=0;message_until=0;touched=-1;
 }
@@ -202,12 +203,21 @@ void app_input_only(void){
  if((nb&(1u<<B_OCTUP))&&octave<2)octave++;
  /* a key: its word's phrase, said (a white key: a statement; a black key: its own kind, of the word to its left) */
  for(int k=0;k<NSLOT;k++)if(nk&(1u<<k))play_key(k);
+ int turned=0;
  for(int k=0;k<7;k++){
   int delta=plat_enc(ENC[k]);
   if(!delta||!NAMES[page][k][0])continue;
+  turned=1;
   float v=params[page][k]+(float)delta/64.f;
   params[page][k]=v<0?0:v>1?1:v;
   touched=k;touched_at=now;apply();
+ }
+ /* GRAMMAR turned across a level: the phrase on the screen is built again that way at once, and said; every
+  * other key's follows when it is next played */
+ if(turned&&bb_level(&mind)!=grammar_level){
+  grammar_level=bb_level(&mind);
+  compose(cur);keep();speak();
+  app_say("GRAMMAR:",bb_level_label(grammar_level));
  }
  old_buttons=btn;old_keys=keys;
  if(autoplay&&!bb_voice_active(&mouth)&&now-last_spoken>350u)babble();
@@ -268,7 +278,7 @@ static void scene(void){
   label(4,122,"BLACK KEYS: THE WORD ON THEIR LEFT, AS",C_WHITE);
   label(4,136,"WHY? NOT WAS IF WILL  IS IT? DID NOT",C_AMB);
   label(4,150,"USED TO  BECAUSE  MAY  WHEN",C_AMB);
-  label(4,166,"OCT- OCT+: THE VOICE DOWN / UP",C_GRAY);
+  label(4,166,"GRAMMAR (EDIT): BARE TO NESTED",C_GRAY);
   label(4,180,"KNOBS: NAMED BELOW (MASTER = VOLUME)",C_GRAY);
   knob(0,0,"VOLUME",(float)plat_master()/4096.f,0);
   for(int k=0;k<7;k++)knob(COL[k],ROW[k],NAMES[page][k],params[page][k],0);
@@ -284,7 +294,7 @@ static void scene(void){
  /* what was just done; else the kind of phrase, and what is remembered (y 104: whole in the upper strip) */
  if(note)label(8,104,note,C_AMB);
  else{
-  label(8,104,bb_pattern_label(&mind),C_GRAY);
+  label(label(8,104,bb_pattern_label(&mind),C_GRAY)+8,104,bb_level_label((int)mind.level),C_AMB);
   if(mind.has_memory)label(234-text_w(&FONT_XS,mind.remembered.text),104,mind.remembered.text,C_HI);
  }
  /* the key's word; the sixteen keys' words as a row of marks: this one's, those given, those not yet */
@@ -342,6 +352,8 @@ int app_expect(const char*name,int*got){
  else if(!strcmp(name,"size"))*got=(int)(params[2][0]*100.f+.5f);
  else if(!strcmp(name,"guide"))*got=guide;
  else if(!strcmp(name,"pattern"))*got=(int)mind.pattern;
+ else if(!strcmp(name,"level"))*got=(int)mind.level;
+ else if(!strcmp(name,"tokens"))*got=(int)mind.count;
  else if(!strcmp(name,"note"))*got=message_until&&(int32_t)(message_until-plat_ms())>0;   /* a message is showing */
  else return 0;
  return 1;

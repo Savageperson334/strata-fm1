@@ -32,26 +32,55 @@ static const verb trans[]={
  {"opens","open","5pUnz","5pUn"},{"swallows","swallow","swal5z","swal5"},
  {"corrupts","corrupt","kUrUpts","kUrUpt"}
 };
-static const bb_token THE={"the","DU",BB_OTHER},IS={"is","Iz",BB_OTHER},
- NOT={"not","nat",BB_OTHER},INSIDE={"inside","Ins2d",BB_OTHER},
- DO={"do","du",BB_OTHER},AND={"and","And",BB_OTHER},
- WHY={"why","w2",BB_OTHER},DOES={"does","dUz",BB_OTHER},
- AGAIN={"again","Ugen",BB_OTHER},DOT={".","",BB_PUNCT},
- QUERY={"?","",BB_PUNCT},COMMA={",","",BB_PUNCT},
- IF={"if","If",BB_OTHER},WHEN={"when","wen",BB_OTHER},
- BECAUSE={"because","bIkUz",BB_OTHER},BUT={"but","bUt",BB_OTHER},
- THAT={"that","DAt",BB_OTHER},WILL={"will","wIl",BB_OTHER},
- DID={"did","dId",BB_OTHER},WAS={"was","wUz",BB_OTHER},
- MAY={"may","m1",BB_OTHER},USED={"used","yuzd",BB_OTHER},
- TO={"to","tu",BB_OTHER};
-static const char *const BB_PATTERNS[]={
- "TRANSITIVE", "IS / ADJECTIVE", "INSIDE / CLAUSE", "INTRANSITIVE",
- "NEGATION", "FUTURE", "WHY / QUESTION", "IS / QUESTION",
- "IF / THEN", "BECAUSE", "BUT / CONTRAST", "RELATIVE / THAT",
- "WHEN / FUTURE", "PAST NEGATION", "WAS / PAST", "MAY / MODAL",
- "TWO CLAUSES", "USED TO / PAST"
+static const bb_token THE={"the","DU",BB_OTHER},AND={"and","And",BB_OTHER},AGAIN={"again","Ugen",BB_OTHER},
+ DOT={".","",BB_PUNCT},QUERY={"?","",BB_PUNCT},COMMA={",","",BB_PUNCT};
+/* the kinds of phrase (BB_STATE..BB_WHEN) and GRAMMAR's five ways of building one, as the screen names them */
+static const char *const BB_PATTERNS[BB_KINDS_N]={
+ "STATEMENT","WHY?","NOT","WAS","IF","WILL","IS IT?","DID NOT","USED TO","BECAUSE","MAY","WHEN"
 };
-#define BB_PATTERNS_N ((int)(sizeof(BB_PATTERNS)/sizeof(BB_PATTERNS[0])))
+static const char *const BB_LEVELS[BB_LEVELS_N]={"BARE","SIMPLE","PLAIN","JOINED","NESTED"};
+#define BB_PATTERNS_N BB_KINDS_N
+/* the small words the forms are written with (the voice's spelling beside each) */
+static const word FW[]={
+ {"the","DU"},{"is","Iz"},{"not","nat"},{"inside","Ins2d"},{"and","And"},{"why","w2"},{"does","dUz"},
+ {"if","If"},{"when","wen"},{"because","bIkUz"},{"but","bUt"},{"that","DAt"},{"will","wIl"},{"did","dId"},
+ {"was","wUz"},{"may","m1"},{"used","yuzd"},{"to","tu"},{"no","n5"},{"once","wUns"},{"never","nevEr"},
+ {"still","stIl"},{"then","Den"},{"only","5nli"},{"so","s5"},{"or","or"},{"soon","sun"},{"maybe","m1bi"},
+ {"until","UntIl"},{"after","AftEr"},{"more","mor"},{"here","hir"}
+};
+/* GRAMMAR. Every kind of phrase has a form at each of five levels of structure, bare to nested (alternatives
+ * after a |). In a form: N the word's noun phrase ("the mirror"), aN the same with an adjective, n a bare noun,
+ * O another noun phrase, V v a verb that takes an object (as said of it; plain), I i one that takes none,
+ * A an adjective; anything else is itself. The first noun in a form is the key's word. */
+static const char *const FORM[BB_KINDS_N][BB_LEVELS_N]={
+ /* STATEMENT */{"N .|aN .|only N .|n , n .|here , N .",
+                 "N I .|N is A .|aN I .",
+                 "aN V O .|N V O .|N I inside O .|N is A and A .",
+                 "N I , but O V O .|N V O , and O I .|N is A , so O I .|N I and O I .",
+                 "N that V O I .|N V O that V O .|N that I V O when O I .|N V O because O that I is A ."},
+ /* WHY? */     {"why N ?","why does N i ?|why is N A ?","why does N v O ?","why does N v O , and why does O i ?",
+                 "why does N that I v O when O I ?"},
+ /* NOT */      {"no n .|not N .","N does not i .|N is not A .","N does not v O .","N does not v O , and O does not i .",
+                 "N that I does not v O because O is not A ."},
+ /* WAS */      {"once , aN .","N was A .","N was A inside O .","N was A , but O was A .",
+                 "N that was A used to v O when O was A ."},
+ /* IF */       {"if N , O .","if N I , O I .","if N I , O V O .","if N I and O I , O V O .",
+                 "if N that I V O , then O will i because O is A ."},
+ /* WILL */     {"soon , N .","N will i .","N will v O .","N will i , and then O will v O .",
+                 "N that I will v O after O I ."},
+ /* IS IT? */   {"N ?|A n ?","is N A ?","is N A inside O ?|does N v O ?","is N A , or is O A ?",
+                 "is N that V O A when O I ?"},
+ /* DID NOT */  {"never N .","N did not i .","N did not v O .","N did not v O , but O did not i .",
+                 "N that I did not v O until O was A ."},
+ /* USED TO */  {"no more n .","N used to i .","N used to v O .","N used to i , and O used to v O .",
+                 "N that used to i still V O when O I ."},
+ /* BECAUSE */  {"because N .","because N I .","N V O because O I .","N V O because O I , and O I because O is A .",
+                 "N that I V O because O that I is A ."},
+ /* MAY */      {"maybe N .","N may i .","N may v O .","N may v O , or O may i .",
+                 "N that I may v O if O that is A will i ."},
+ /* WHEN */     {"when N , O .","when N I , O I .","when N I , O will v O .","when N I and O I , O will i .",
+                 "when N that I V O , O that is A will i ."}
+};
 static unsigned next(bb_mind*m){
  unsigned x=m->rng;x^=x<<13;x^=x>>17;x^=x<<5;
  return m->rng=x?x:0x9E3779B9u;
@@ -100,7 +129,7 @@ void bb_init(bb_mind*m,uint32_t seed){
  m->pattern=m->drift_theme=m->memory_theme=m->force_once=m->change=0;
  m->remembered=(bb_token){0,0,BB_NOUN};
  m->forced=(bb_token){0,0,BB_NOUN};
- m->grammar=.85f;m->wander=.25f;m->recall=.35f;m->damage=.15f;
+ m->grammar=.5f;m->level=2;m->wander=.25f;m->recall=.35f;m->damage=.15f;
  m->length=.4f;m->style=.5f;m->text[0]=0;
 }
 static void extra_clause(bb_mind*m){
@@ -124,30 +153,42 @@ static void loop_back(bb_mind*m){
  for(int i=0;i<k;i++)m->tok[i]=t[i];
  m->count=(unsigned)k;
 }
+static int same(const char *a,const char *b){while(*a&&*a==*b){a++;b++;}return *a==*b;}
+/* one of a form's alternatives (by chance), built word by word */
+static void build(bb_mind*m,const char *t){
+ int alts=1,pick;
+ for(const char *c=t;*c;c++)if(*c=='|')alts++;
+ for(pick=roll(m,alts);pick;t++)if(*t=='|')pick--;
+ while(*t&&*t!='|'){
+  char w[12];int n=0;
+  while(*t==' ')t++;
+  while(*t&&*t!=' '&&*t!='|'&&n<11)w[n++]=*t++;
+  w[n]=0;
+  if(!n)break;
+  if(same(w,"N"))subj(m,0);
+  else if(same(w,"aN"))subj(m,1);
+  else if(same(w,"O"))obj(m);
+  else if(same(w,"n"))N(m);
+  else if(same(w,"V"))V(m,0);
+  else if(same(w,"v"))V(m,1);
+  else if(same(w,"I"))I(m,0);
+  else if(same(w,"i"))I(m,1);
+  else if(same(w,"A"))A(m);
+  else if(same(w,"."))lit(m,&DOT);
+  else if(same(w,"?"))lit(m,&QUERY);
+  else if(same(w,","))lit(m,&COMMA);
+  else for(int i=0;i<SZ(FW);i++)if(same(w,FW[i].text)){add(m,make(FW[i],BB_OTHER));break;}
+ }
+}
+int bb_level(const bb_mind*m){int l=(int)(m->grammar*(float)BB_LEVELS_N);return l<0?0:l>=BB_LEVELS_N?BB_LEVELS_N-1:l;}
+const char *bb_level_label(int level){return BB_LEVELS[level<0?0:level>=BB_LEVELS_N?BB_LEVELS_N-1:level];}
+/* a phrase of a kind (BB_STATE..), in the form GRAMMAR's level gives it */
 void bb_generate_pattern(bb_mind*m,int pattern){
  m->count=0;
  m->pattern=(unsigned)(pattern<0?0:pattern%BB_PATTERNS_N);
- switch(m->pattern){
- case 0:subj(m,1);V(m,0);obj(m);lit(m,&DOT);break;
- case 1:subj(m,0);lit(m,&IS);A(m);lit(m,&DOT);break;
- case 2:lit(m,&INSIDE);obj(m);lit(m,&COMMA);subj(m,1);I(m,0);lit(m,&DOT);break;
- case 3:subj(m,0);I(m,0);lit(m,&DOT);break;
- case 4:subj(m,0);lit(m,&DOES);lit(m,&NOT);V(m,1);obj(m);lit(m,&DOT);break;
- case 5:subj(m,0);lit(m,&WILL);I(m,1);lit(m,&DOT);break;
- case 6:lit(m,&WHY);lit(m,&DOES);subj(m,0);V(m,1);obj(m);lit(m,&QUERY);break;
- case 7:lit(m,&IS);subj(m,0);A(m);lit(m,&QUERY);break;
- case 8:lit(m,&IF);subj(m,0);I(m,0);lit(m,&COMMA);subj(m,0);V(m,0);obj(m);lit(m,&DOT);break;
- case 9:subj(m,0);V(m,0);obj(m);lit(m,&BECAUSE);subj(m,0);I(m,0);lit(m,&DOT);break;
- case 10:subj(m,0);I(m,0);lit(m,&COMMA);lit(m,&BUT);subj(m,0);V(m,0);obj(m);lit(m,&DOT);break;
- case 11:subj(m,0);lit(m,&THAT);V(m,0);obj(m);I(m,0);lit(m,&DOT);break;
- case 12:lit(m,&WHEN);subj(m,0);I(m,0);lit(m,&COMMA);subj(m,0);lit(m,&WILL);I(m,1);lit(m,&DOT);break;
- case 13:subj(m,0);lit(m,&DID);lit(m,&NOT);V(m,1);obj(m);lit(m,&DOT);break;
- case 14:subj(m,0);lit(m,&WAS);A(m);lit(m,&DOT);break;
- case 15:subj(m,0);lit(m,&MAY);V(m,1);obj(m);lit(m,&DOT);break;
- case 16:subj(m,0);I(m,0);lit(m,&AND);subj(m,0);I(m,0);lit(m,&DOT);break;
- default:subj(m,0);lit(m,&USED);lit(m,&TO);I(m,1);lit(m,&DOT);break;
- }
- if(m->length>.65f&&m->pattern!=6&&m->pattern!=7&&
+ m->level=(unsigned)bb_level(m);
+ build(m,FORM[m->pattern][m->level]);
+ if(m->length>.65f&&m->level>=2&&m->pattern!=BB_WHY&&m->pattern!=BB_ISIT&&
     roll(m,100)<(int)((m->length-.55f)*140.f)){
   extra_clause(m);
   if(m->length>.94f&&roll(m,100)<50)extra_clause(m);
@@ -171,16 +212,17 @@ void bb_generate(bb_mind*m){
   m->drift_theme=(m->has_memory&&roll(m,100)<(int)(m->recall*100.f))
    ?m->memory_theme:(unsigned)roll(m,4);
  }
- int pattern=roll(m,BB_PATTERNS_N);
- if(m->style<.26f)pattern=roll(m,6);
- else if(m->style>.74f)pattern=6+roll(m,2);
+ /* STYLE: statements only .. any kind (half of them plain statements) .. questions only */
+ static const uint8_t SAYS[]={BB_STATE,BB_STATE,BB_STATE,BB_NOT,BB_WAS,BB_WILL,BB_DIDNOT,BB_USEDTO,BB_MAY};
+ int pattern=roll(m,2)?BB_STATE:roll(m,BB_PATTERNS_N);
+ if(m->style<.26f)pattern=SAYS[roll(m,SZ(SAYS))];
+ else if(m->style>.74f)pattern=roll(m,2)?BB_WHY:BB_ISIT;
  bb_generate_pattern(m,pattern);
  m->change=0;
- /* DAMAGE: how often a new sentence is mutated as it is made. GRAMMAR (bb_mutate) decides whether a mutation
-  * keeps the grammar or breaks it; low GRAMMAR may also mutate twice. */
+ /* DAMAGE: how often a new sentence is mutated as it is made; past 60 the mutation may break it, and twice */
  if(roll(m,100)<(int)(m->damage*100.f)){
   bb_mutate(m);
-  if(m->grammar<.3f&&roll(m,100)<40)bb_mutate(m);
+  if(m->damage>.6f&&roll(m,100)<40)bb_mutate(m);
  }
 }
 void bb_rewrite(bb_mind*m,int pattern){
@@ -219,7 +261,7 @@ void bb_phrase(bb_mind*m,const bb_token *w,int pattern){
  bb_generate_pattern(m,pattern);
  m->change=0;
 }
-int bb_statement(bb_mind*m){static const uint8_t S[]={0,1,3,2,11,16,10,0,1,3};return S[roll(m,SZ(S))];}
+int bb_statement(bb_mind*m){(void)m;return BB_STATE;}
 int bb_chance(bb_mind*m,float p){return roll(m,1000)<(int)(p*1000.f);}
 static const char *const BB_OPS[BB_OPS_N]={
  "NEW NOUN","SWAP NOUNS","NEW ADJECTIVE","REBUILD","NEGATE","TENSE","ASK","ADD CLAUSE","RECALL","STUTTER","DROP","AGAIN"
@@ -243,27 +285,27 @@ void bb_mutate_op(bb_mind*m,int op){
    int ai=roll(m,nn),bi=(ai+1+roll(m,nn-1))%nn;
    int a=nouns[ai],b=nouns[bi];
    bb_token t=m->tok[a];m->tok[a]=m->tok[b];m->tok[b]=t;
-  }else{bb_rewrite(m,roll(m,2)?0:9);m->change=(unsigned)op+1u;return;}   /* (one noun: a shape with two) */
+  }else{bb_rewrite(m,BB_BECAUSE);m->change=(unsigned)op+1u;return;}       /* (one noun: a kind with more) */
   break;
  case BB_OP_ADJ:
   if(na)m->tok[adjs[roll(m,na)]]=make(adj[roll(m,SZ(adj))],BB_ADJ);
-  else{bb_rewrite(m,roll(m,2)?1:0);m->change=(unsigned)op+1u;return;}    /* (none: a shape with one) */
+  else{bb_rewrite(m,BB_WAS);m->change=(unsigned)op+1u;return;}           /* (none: a kind that has one) */
   break;
  case BB_OP_REBUILD:{
   int to=roll(m,BB_PATTERNS_N);
   if(to==(int)m->pattern)to=(to+1)%BB_PATTERNS_N;
   bb_rewrite(m,to);m->change=(unsigned)op+1u;return;}
- case BB_OP_NEGATE:bb_rewrite(m,m->pattern==4?13:m->pattern==13?4:roll(m,2)?4:13);m->change=(unsigned)op+1u;return;
+ case BB_OP_NEGATE:bb_rewrite(m,m->pattern==BB_NOT?BB_DIDNOT:m->pattern==BB_DIDNOT?BB_NOT:roll(m,2)?BB_NOT:BB_DIDNOT);m->change=(unsigned)op+1u;return;
  case BB_OP_TENSE:{
-  static const int modes[]={5,14,17};
+  static const int modes[]={BB_WILL,BB_WAS,BB_USEDTO};
   int k=roll(m,3);
   if(modes[k]==(int)m->pattern)k=(k+1)%3;
   bb_rewrite(m,modes[k]);m->change=(unsigned)op+1u;return;}
- case BB_OP_ASK:bb_rewrite(m,m->pattern==6?7:m->pattern==7?6:6+roll(m,2));m->change=(unsigned)op+1u;return;
+ case BB_OP_ASK:bb_rewrite(m,m->pattern==BB_WHY?BB_ISIT:m->pattern==BB_ISIT?BB_WHY:roll(m,2)?BB_WHY:BB_ISIT);m->change=(unsigned)op+1u;return;
  case BB_OP_CLAUSE:{
   unsigned before=m->count;
   extra_clause(m);
-  if(m->count==before){bb_rewrite(m,roll(m,2)?16:10);m->change=(unsigned)op+1u;return;}   /* (no room, or a question) */
+  if(m->count==before){bb_rewrite(m,BB_BECAUSE);m->change=(unsigned)op+1u;return;}       /* (no room, or a question) */
   break;}
  case BB_OP_RECALL:
   if(!m->has_memory)bb_remember(m);      /* (nothing remembered yet: this sentence's noun is) */
@@ -292,11 +334,11 @@ void bb_mutate_op(bb_mind*m,int op){
  }
  bb_rebuild(m);
 }
-/* A mutation by chance: with GRAMMAR up, one that keeps the grammar; down, the ones that break it too. */
+/* A mutation by chance: one that keeps the phrase whole; with DAMAGE past 60, the ones that break it too. */
 void bb_mutate(bb_mind*m){
  static const uint8_t KIND[]={BB_OP_NOUN,BB_OP_SWAP,BB_OP_ADJ,BB_OP_REBUILD,BB_OP_NEGATE,BB_OP_TENSE,
                               BB_OP_STUTTER,BB_OP_DROP,BB_OP_AGAIN,BB_OP_CLAUSE};
- bb_mutate_op(m,KIND[roll(m,m->grammar>.6f?6:10)]);
+ bb_mutate_op(m,KIND[roll(m,m->damage>.6f?10:6)]);
 }
 int bb_words(const bb_mind*m){
  int n=0;

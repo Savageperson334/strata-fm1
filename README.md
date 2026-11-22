@@ -4,14 +4,14 @@
 
 Three custom firmwares for the M-VAVE FM-1 live in this repository. They are separate instruments with separate
 source trees and independent versioning; the FM-1 holds one at a time.
-STRATA and PALINDROME provide firmware installers. BabbleBeat is a browser-first prototype; no hardware
-installer is available yet.
+All three provide firmware installers. PALINDROME and BabbleBeat are experimental prereleases; none of the three
+has been validated on hardware yet.
 
 | Firmware | What it is | Status | Site | Manual | Install |
 | --- | --- | --- | --- | --- | --- |
 | **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/) | [manual](https://savageperson334.github.io/strata-fm1/manual/) | [install](https://savageperson334.github.io/strata-fm1/install/) |
 | **PALINDROME** | A sound, looped, and made again from itself: a key strikes MORPH (a four-corner synth), the note is caught as a ring, SILT's grains loop it, and DRIFT makes each new generation from the last | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
-| **BABBLEBEAT** | A word on every white key and a phrase about it, the black keys the same word in other kinds of phrase; a small formant-synthesis voice | Browser prototype (`0.3`) | [site](https://savageperson334.github.io/strata-fm1/babblebeat/) | [manual](https://savageperson334.github.io/strata-fm1/babblebeat/manual/) | [emulator](https://savageperson334.github.io/strata-fm1/babblebeat/emu/) (no hardware installer) |
+| **BABBLEBEAT** | A word on every white key and a phrase about it, the black keys the same word in other kinds of phrase, GRAMMAR setting how all of them are built; a small formant-synthesis voice | Experimental prerelease (`babblebeat-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/babblebeat/) | [manual](https://savageperson334.github.io/strata-fm1/babblebeat/manual/) | [install](https://savageperson334.github.io/strata-fm1/babblebeat/install/) |
 
 
 PALINDROME's source, manual and build notes are in [instruments/palindrome](instruments/palindrome) (it was
@@ -65,8 +65,8 @@ You don't need to build it yourself. Changing `VERSION` on `main` makes GitHub b
 FM-1 builder, run the tests, publish a signed release, and put the installer site on GitHub Pages
 (`.github/workflows/release.yml`). Every push to `main` runs the tests (`.github/workflows/tests.yml`).
 PALINDROME builds, releases and publishes on its own when `instruments/palindrome/` changes
-(`.github/workflows/palindrome.yml`), from `instruments/palindrome/VERSION`. BabbleBeat has no firmware release:
-`.github/workflows/babblebeat.yml` publishes its browser emulator and manual. A change to the shared navigation,
+(`.github/workflows/palindrome.yml`), from `instruments/palindrome/VERSION`. BabbleBeat does the same from
+`instruments/babblebeat/VERSION` (`.github/workflows/babblebeat.yml`). A change to the shared navigation,
 colours or tutorial text is applied to the published pages by `.github/workflows/refresh-pages.yml`, with no
 firmware rebuilt. `tests.yml` also builds all three for the FM-1 itself, releasing nothing, and reports each
 one's image and memory use.

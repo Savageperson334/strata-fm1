@@ -64,6 +64,17 @@ This is the one that matters most: it loads the chip as hard as STRATA can.
       16 grains playing and a capture running, and does the screen keep moving?
 - [ ] Install STRATA again and press PLAY. **Note:** did STRATA's saved sound survive?
 
+## 6. BabbleBeat (optional, 3 minutes)
+
+- [ ] Install it from <https://savageperson334.github.io/strata-fm1/babblebeat/install/>.
+- [ ] Press a white key, then the black key to its right. **Note:** does it speak, can you make out the words on
+      the screen, and is it loud enough?
+- [ ] Press EDIT and turn KNOB1 (GRAMMAR) slowly from one end to the other. **Note:** does the phrase change and get
+      said at five places along the way, and does the screen name BARE up to NESTED?
+- [ ] Press PLAY and leave it a minute. **Note:** any crackle, stutter or freeze while it babbles?
+- [ ] Press SEL three times and hold GLO. **Note:** do the knob names change each time, and does the guide show?
+- [ ] Install STRATA again. **Note:** did STRATA's saved sound survive?
+
 ## What to send back
 
 The version number, a line per section, and if anything went wrong, roughly what you were doing at the time. A

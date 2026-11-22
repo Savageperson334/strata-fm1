@@ -3,7 +3,8 @@ wait 600
 expect page 1
 expect play 0
 expect remember 0
-expect grammar 85
+expect grammar 50
+expect level 2
 expect theme 0
 shot words.png
 wait 2400
@@ -57,6 +58,7 @@ expect key 10
 expect sharp 4
 expect white 5
 expect pattern 5
+expect level 2
 expect words 2
 expect phrases 3
 expect has 1
@@ -69,7 +71,7 @@ key 8 up
 wait 60
 expect sharp 3
 expect white 4
-expect pattern 8
+expect pattern 4
 expect words 3
 expect has 1
 # back to the white key: still about its word
@@ -113,9 +115,35 @@ expect page 0
 tap EDIT
 wait 60
 expect page 1
+# GRAMMAR: the way every phrase on the unit is built, five levels from bare to nested. Turned across a level, the
+# phrase on the screen is built again that way and said; another key follows when it is played
 turn K1 -16
 wait 60
-expect grammar 60
+expect grammar 25
+expect level 1
+expect voice 1
+shot simple.png
+turn K1 44
+wait 60
+expect grammar 94
+expect level 4
+shot nested.png
+key 12 down
+wait 50
+key 12 up
+wait 60
+expect key 12
+expect level 4
+expect has 1
+turn K1 -60
+wait 60
+expect grammar 0
+expect level 0
+shot bare.png
+turn K1 32
+wait 60
+expect grammar 50
+expect level 2
 tap PLAY
 wait 100
 expect play 1
