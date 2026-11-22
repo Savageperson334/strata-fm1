@@ -63,7 +63,9 @@ release REC
 wait 100
 expect recording 1
 expect noise 13
-# (every hint done: the picture for the manual)
+# (every hint done: the picture for the manual, with plenty of grains)
+turn K3 24
+turn K2 24
 wait 1000
 shot silt.png
 # a tap still steps it
