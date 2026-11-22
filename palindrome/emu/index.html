@@ -131,6 +131,17 @@ background-size:16px 16px}
 #fm1tut .on .outline,#fm1tut .on .box,#fm1tut .on .leader{stroke:#ffd166;stroke-opacity:1;stroke-width:2}
 #fm1tut .on .dot{fill:#ffd166}
 #fm1tut .on text.name{fill:#ffd166}
+/* the guide: the card's buttons, a step done, and the rings round the controls to use (over the live panel) */
+#fm1tut-card .row{display:flex;flex-wrap:wrap;gap:.5rem;margin:.55rem 0 0}
+#fm1tut-card .row button{font:600 14px/1.2 inherit;letter-spacing:.05em;color:#0e3a73;background:#e6f1ff;border:0;border-radius:999px;
+padding:.42rem 1rem;cursor:pointer}
+#fm1tut-card .row button.quiet{background:transparent;color:#e6f1ff;border:1.5px solid #9cc4f2}
+#fm1tut-card .row button:focus-visible{outline:2px solid #ffd166;outline-offset:2px}
+#fm1tut-card.done{border-color:#ffd166;box-shadow:0 0 0 2px #ffd166}
+#fm1guide{pointer-events:none;z-index:3}
+#fm1guide .use{fill:none;stroke:#ffd166;stroke-width:5;animation:fm1use 1.1s ease-in-out infinite}
+@keyframes fm1use{0%,100%{stroke-opacity:1}50%{stroke-opacity:.25}}
+@media (prefers-reduced-motion:reduce){#fm1guide .use{animation:none}}
 </style>
 </head>
 <body>
@@ -141,7 +152,7 @@ background-size:16px 16px}
 <main>
 <h2 class="sr">The FM-1</h2>
 <p class="turn">Turn your phone sideways for bigger controls.</p>
-<div id="fm1mode" role="group" aria-label="Play the panel, or read what each control does"><button type="button" data-mode="play" aria-pressed="true">Play</button><button type="button" data-mode="tutorial" aria-pressed="false">Tutorial</button></div>
+<div id="fm1mode" role="group" aria-label="Play the panel, be guided on it, or read what each control does"><button type="button" data-mode="play" aria-pressed="true">Play</button><button type="button" data-mode="guide" aria-pressed="false">Guide</button><button type="button" data-mode="tutorial" aria-pressed="false">Reference</button></div>
 <div id="fm1tut-card" aria-live="polite" hidden></div>
 <div class="devicebox">
 <div class="device" id="device">
@@ -859,15 +870,19 @@ $("reset").addEventListener("click", () => {
 // tutorial JSON into the emulator's page).
 //
 //   Play      the panel as it is: buttons, knobs and keys play the instrument.
-//   Tutorial  a blueprint drawn over the panel: every control outlined, a line from each one to a box that says
-//             what it does in this firmware. Tapping a control here does not play it: it shows what it does in the
-//             card over the panel. A button that changes what the knobs or keys do (a mode, or a layer held)
-//             changes the boxes too: tap it once for "held", again to let go.
+//   Guide     (a firmware whose JSON has "guide") the panel still plays; a card says what to do next and the control
+//             to use is ringed. A step is done when the instrument itself says so: its lights (the page's frames:
+//             window.emuLast) and, for PALINDROME, its rings (window.palState, from its web/emu/app.js). Back, Next
+//             and Exit are always there: nothing depends on a step being noticed.
+//   Tutorial  ("Reference" where the JSON says so) a blueprint drawn over the panel: every control outlined, a line
+//             from each one to a box that says what it does in this firmware. Tapping a control here does not play
+//             it: it shows what it does in the card over the panel. A button that changes what the knobs or keys do
+//             (a page; in STRATA a layer held: one tap for held, another to let go) changes the boxes too.
 //
 // The drawing takes its geometry from the panel fm1-base drew (svg#panel, viewBox 0 0 1000 640), so the two agree.
 (function () {
   "use strict";
-  var T = {"start": "morph", "intro": "Tutorial: tap any button, knob or key to read what it does. FX, EDIT, REC and SEL change what the knobs do, so tapping them changes the labels here too. Switch back to Play to use the panel.", "master": ["VOLUME", "Output volume. MASTER is always the volume, whatever the other knobs are doing."], "screen": "The screen is a picture of the engine: MORPH's square in the middle, SILT's memory as a ring around it, grains as moving dots. Its corners name the buttons and the boxes at the foot name what each knob sets right now.", "pages": {"morph": {"title": "MORPH", "how": "tap FX", "keys": ["NOTES", "Each key latches a MORPH note, up to four. Tap a lit key again to release it."], "knobs": {"KNOB1": ["X", "Moves the sound left and right across the square, between its corners' ways of making sound."], "KNOB2": ["Y", "Moves the sound up and down the square."], "KNOB3": ["COMPLEX", "Harmonic richness of each corner's sound."], "KNOB4": ["TONE", "Low-pass filter: dark to bright."], "SELECT": ["SPREAD", "How far apart the four voices sit in stereo."], "ALGORITHM": ["MOVE", "Carries the sound round a circle in the square by itself."], "PRESETS": ["EXCITE", "How long the struck MODAL corner rings."]}}, "silt": {"title": "SILT", "how": "tap EDIT", "keys": ["GRAIN PITCH", "Each key latches a pitch for the grains, up to four; the grains take them in turn. C (the fifth white key) is the recorded pitch. A new key also plays its grains at once, even with PLAY off."], "knobs": {"KNOB1": ["POSITION", "Where grains start in the recording: newest to oldest audio."], "KNOB2": ["SIZE", "Grain length, 20 to 500 ms."], "KNOB3": ["DENSITY", "1 to 40 grain starts a second."], "KNOB4": ["SPRAY", "Random scatter of each grain's start around POSITION."], "SELECT": ["PITCH", "Shifts every grain, 24 semitones down to 24 up, on top of the held keys."], "ALGORITHM": ["REVERSE", "The chance a grain plays backward."], "PRESETS": ["SHAPE", "Each grain's envelope: 0 struck (fast attack), 50 a bell, 100 a slow swell."]}}, "more": {"title": "SILT MORE", "how": "EDIT held", "knobs": {"KNOB1": ["TIMING", "When grains start: an even pulse at 0, irregular at 100."], "KNOB2": ["VARY", "Random grain length, up to a quarter to four times SIZE."], "KNOB3": ["SCATTER", "The chance a grain jumps an octave; higher adds fifths and two octaves."], "KNOB4": ["DETUNE", "Each grain slightly off pitch, up to 50 cents either way."], "SELECT": ["STEREO", "How wide the grains are scattered left to right."], "ALGORITHM": ["CLUSTER", "1 to 4 grains started together, each on the next held key: low values play the keys in turn, high values as a chord."], "PRESETS": ["SCAN", "Moves POSITION back and forth by itself."]}}, "rec": {"title": "RECORDING", "how": "REC held", "knobs": {"KNOB1": ["NOISE", "Hiss recorded along with the sound. With no notes held it records noise alone."], "KNOB2": ["COLOR", "The hiss's tone: low rumble to bright hiss."], "KNOB3": ["CRUSH", "Reduces the recording's resolution: grit, then a few hard steps."], "KNOB4": ["GATE", "Only records sound louder than this; below it the memory is left as it was."], "SELECT": ["DROP", "Random gaps in the recording, where the old sound shows through."], "ALGORITHM": ["DAMP", "Darkens what is recorded."], "PRESETS": ["FEEDBACK", "How much of the old sound survives in OVERDUB and RESAMPLE."]}}, "mix": {"title": "SHARED", "how": "SEL held", "knobs": {"KNOB1": ["MIX", "Balance between MORPH and SILT's grains."], "KNOB2": ["FADE", "How slowly MORPH's notes come and go."], "PRESETS": ["LEVEL", "Overall output level."]}}}, "buttons": {"FX": {"label": "MORPH", "sub": "knobs + keys", "base": "morph", "text": "Gives the knobs and keys to MORPH, the half that makes the sound. SILT keeps running."}, "EDIT": {"label": "SILT", "sub": "hold: more", "base": "silt", "hold": "more", "text": "Gives the knobs and keys to SILT, the half that records MORPH and plays it back as grains. Held down, the knobs become SILT's second set."}, "REC": {"label": "REC MODE", "sub": "hold: noise", "hold": "rec", "text": "A tap steps how the memory is written: LIVE, FREEZE, OVERDUB, RESAMPLE. Held down, the knobs shape what gets recorded: noise, crush, gate and dropouts."}, "SEL": {"label": "SHARED", "sub": "hold", "hold": "mix", "text": "Held down, three knobs are shared by both halves: MIX, FADE and LEVEL."}, "PLAY": {"label": "GRAINS", "sub": "start / stop", "text": "Starts and stops the continuous stream of grains. Keys still play grains by hand while it is stopped."}, "HOME": {"label": "CLEAR", "sub": "hold 1 s", "text": "Held for a second: releases every note and grain pitch and stops the grains. A tap only shows the version."}, "OCT-": {"label": "KEYS DOWN", "text": "Shifts the keys down an octave. Notes and pitches already held stay where they are."}, "OCT+": {"label": "KEYS UP", "text": "Shifts the keys up an octave. Notes and pitches already held stay where they are."}, "SAVE": {"unused": "SAVE does nothing yet: the sound and the memory are lost at power-off."}}};
+  var T = {"start": "silt", "tutorial_label": "Reference", "intro": "Reference: tap any button, knob or key to read what it does. A button that opens a page changes the knob labels here to that page's. Nothing is ever held. Switch to Play or Guide to use the panel.", "master": ["VOLUME", "Output volume. MASTER is always the volume, whatever the other knobs are doing."], "screen": "The screen shows the rings as concentric circles, the oldest innermost, each one its own recording; the selected ring is the bright one, and grains ride the ring they play. MORPH is the small square in the middle. The top line names the page, the keys' job and the selected ring; under the rings are the SOURCE that REC would capture and REC's state; the boxes at the foot name what each knob sets now.", "keys": ["GRAIN PITCH", "Each key latches a pitch for the grains, up to four; the grains take them in turn. C (the fifth white key) is the recorded pitch. A new key also plays its grains at once, even with PLAY off."], "select": ["RING", "Selects the ring that SILT plays and the knobs edit, on every page. Each ring keeps its own settings; selecting never changes a recording."], "pages": {"silt": {"title": "SILT", "how": "EDIT or HOME", "knobs": {"KNOB1": ["POSITION", "Where grains start, round the selected ring."], "KNOB2": ["SIZE", "Grain length, 20 to 500 ms."], "KNOB3": ["DENSITY", "1 to 40 grain starts a second."], "KNOB4": ["SPRAY", "Random scatter of each grain's start around POSITION."], "ALGORITHM": ["REVERSE", "The chance a grain plays backward."], "PRESETS": ["PITCH", "Shifts every grain, 24 semitones down to 24 up, on top of the held keys."]}}, "morph": {"title": "MORPH SOURCE", "how": "FX", "keys": ["NOTES", "On MORPH's page each key latches a synth note, up to four. Tap a lit key again to release it."], "knobs": {"KNOB1": ["X", "Moves the sound left and right across the square, between its corners' ways of making sound."], "KNOB2": ["Y", "Moves the sound up and down the square."], "KNOB3": ["COMPLEX", "Harmonic richness of each corner's sound."], "KNOB4": ["TONE", "Low-pass filter: dark to bright."], "ALGORITHM": ["MOVE", "Carries the sound round a circle in the square by itself."], "PRESETS": ["EXCITE", "How long the struck MODAL corner rings."]}}, "rings": {"title": "RINGS", "how": "SEL", "knobs": {"KNOB1": ["CARRY", "How much of the selected ring is copied under the next capture. At 0 a capture is the source alone."], "KNOB4": ["DELETE", "Turn right once to arm deleting the selected ring, twice to arm clearing everything. SEL confirms; any other button calls it off."]}}, "shape": {"title": "SILT SHAPE", "how": "ENV", "knobs": {"KNOB1": ["SHAPE", "Each grain's envelope: 0 struck (fast attack), 50 a bell, 100 a slow swell."], "KNOB2": ["VARY", "Random grain length, up to a quarter to four times SIZE."], "KNOB3": ["SCATTER", "The chance a grain jumps an octave; higher adds fifths and two octaves."], "KNOB4": ["DETUNE", "Each grain slightly off pitch, up to 50 cents either way."], "ALGORITHM": ["CLUSTER", "1 to 4 grains started together, each on the next held key: low values play the keys in turn, high values as a chord."]}}, "motion": {"title": "SILT MOTION", "how": "LFO", "knobs": {"KNOB1": ["SCAN", "Moves POSITION back and forth by itself."], "KNOB2": ["TIMING", "When grains start: an even pulse at 0, irregular at 100."]}}, "mix": {"title": "MIX", "how": "GLO", "knobs": {"KNOB1": ["MIX", "Balance between MORPH and SILT's grains."], "KNOB2": ["FADE", "How slowly MORPH's notes come and go."], "KNOB3": ["SPREAD", "How far apart MORPH's four voices sit in stereo."], "KNOB4": ["STEREO", "How wide the grains are scattered left to right."], "PRESETS": ["LEVEL", "Overall output level."]}}, "recfx": {"title": "REC FX", "how": "GLO, twice", "knobs": {"KNOB1": ["NOISE", "Hiss recorded into the next capture. With no notes held it captures noise alone."], "KNOB2": ["COLOR", "The hiss's tone: low rumble to bright hiss."], "KNOB3": ["CRUSH", "Reduces the next capture's resolution: grit, then a few hard steps."], "KNOB4": ["GATE", "Only sound louder than this is captured; quieter stretches become silence."], "ALGORITHM": ["DROP", "Random gaps in the next capture."], "PRESETS": ["DAMP", "Darkens what is captured."]}}}, "buttons": {"EDIT": {"label": "SILT", "sub": "the grains", "base": "silt", "text": "Opens SILT, the instrument: the grains of the selected ring. REC here captures SILT's own grains into a new ring."}, "HOME": {"label": "SILT HOME", "sub": "back to SILT", "base": "silt", "text": "Returns to SILT from anywhere. It clears nothing."}, "FX": {"label": "MORPH", "sub": "the source", "base": "morph", "text": "Opens MORPH, the four-corner synth that makes the sound to capture. The keys are its notes here. REC here captures MORPH into a new ring."}, "SEL": {"label": "RINGS", "sub": "list, delete", "base": "rings", "text": "Opens the list of rings: which there are and what each was made from. KNOB4 arms a delete there and SEL confirms it."}, "ENV": {"label": "SHAPE", "sub": "grain shape", "base": "shape", "text": "Opens SILT SHAPE: each grain's envelope and how the grains differ from one another."}, "LFO": {"label": "MOTION", "sub": "scan, timing", "base": "motion", "text": "Opens SILT MOTION: POSITION moving by itself, and regular or irregular grain timing."}, "GLO": {"label": "MIX / REC FX", "sub": "press again", "pages": ["mix", "recfx"], "text": "Opens MIX. Pressed again it opens REC FX, what a capture does to the sound it records; again, MIX. The screen names both and lights the one that is open."}, "REC": {"label": "NEW RING", "sub": "one press", "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. It runs for one ring's length and finishes by itself. It never overwrites a ring: with no room left it says RINGS FULL."}, "PLAY": {"label": "GRAINS", "sub": "start / stop", "text": "Starts and stops the continuous stream of grains. Keys still play grains by hand while it is stopped."}, "OCT-": {"label": "KEYS DOWN", "text": "Shifts the keys down an octave. Notes and pitches already held stay where they are."}, "OCT+": {"label": "KEYS UP", "text": "Shifts the keys up an octave. Notes and pitches already held stay where they are."}, "SAVE": {"unused": "SAVE is not available: there is no saving yet, and the rings are lost at power-off."}, "ARP": {"unused": "ARP is not used."}, "SEQ": {"unused": "SEQ is not used."}}, "guide": {"label": "Guide", "done": "That's the whole loop: MORPH makes a sound, REC captures it as a ring, SILT plays the ring, and REC makes the next ring from what you hear. HOME always brings you back to SILT. Reference says what every control does.", "steps": [{"title": "Switch on", "text": "Press Switch on, on the panel. Sound starts and the screen shows SILT with no rings yet.", "done": {"on": true}}, {"title": "SILT home", "text": "Nothing is captured yet. Press FX to open MORPH, the sound source.", "show": ["FX"], "done": {"lit": "FX"}}, {"title": "MORPH", "text": "Tap two or three keys: each one latches a note. Turn KNOB1 and KNOB2 to move between the four ways of making sound.", "show": ["keys", "KNOB1", "KNOB2"], "done": {"keys": true}}, {"title": "Capture", "text": "Press REC once. Watch RING 01 fill on the screen; it finishes by itself.", "show": ["REC"], "done": {"rings": 1}}, {"title": "Play SILT", "text": "The new ring is selected and you are back on SILT. Press PLAY, then turn KNOB1 (POSITION) and KNOB2 (SIZE).", "show": ["PLAY", "KNOB1", "KNOB2"], "done": {"lit": "PLAY"}}, {"title": "Second generation", "text": "Change the grains (PRESETS is PITCH), then press REC again. RING 02 appears around RING 01, which stays as it was.", "show": ["PRESETS", "REC"], "done": {"rings": 2}}, {"title": "Rings", "text": "Press SEL to see the rings, then turn SELECT one step left to go back to RING 01. Its sound and its settings are still there.", "show": ["SEL", "SELECT"], "done": {"lit": "SEL", "ring": 1}}]}};
   var NS = "http://www.w3.org/2000/svg";
   var device = document.getElementById("device"), panel = document.getElementById("panel");
   var pill = document.getElementById("fm1mode"), card = document.getElementById("fm1tut-card");
@@ -893,7 +908,8 @@ $("reset").addEventListener("click", () => {
     } catch (e) { /* (not drawn yet) */ }
   }
   function page() { return T.pages[hold || base]; }
-  function keysNow() { return page().keys || T.pages[base].keys; }
+  function keysNow() { return page().keys || T.pages[base].keys || T.keys; }
+  function knobNow(name) { return name === "MASTER" ? T.master : name === "SELECT" && T.select ? T.select : page().knobs[name]; }
 
   // --- the panel's geometry -----------------------------------------------------------------------------------
   function measure() {
@@ -1021,7 +1037,7 @@ $("reset").addEventListener("click", () => {
     KNOB_ORDER.forEach(function (name) {
       var t = parts["knob:" + name];
       if (!t) return;
-      var k = name === "MASTER" ? T.master : p.knobs[name];
+      var k = knobNow(name);
       t.textContent = k ? k[0] : "—";
       t.parentNode.classList.toggle("unused", !k);
       fit(t, 92);
@@ -1030,7 +1046,8 @@ $("reset").addEventListener("click", () => {
     svg.querySelectorAll(".part").forEach(function (g) {
       var id = g.getAttribute("data-part"), name = id.split(":")[1], d = T.buttons[name];
       g.classList.toggle("on", id === picked);
-      g.classList.toggle("held", id.indexOf("button:") === 0 && !!d && ((hold && d.hold === hold) || (!hold && d.base === base)));
+      g.classList.toggle("held", id.indexOf("button:") === 0 && !!d &&
+                         ((hold && d.hold === hold) || (!hold && (d.base === base || (d.pages && d.pages.indexOf(base) >= 0)))));
     });
     later.forEach(function (x) { fit(x[0], x[1]); });
   }
@@ -1053,50 +1070,146 @@ $("reset").addEventListener("click", () => {
       if (!d || d.unused) say(name, "", (d && d.unused) || "Does nothing in this firmware.");
       else {
         var before = hold || base;
-        if (d.base && base !== d.base) { base = d.base; hold = null; }
+        if (d.pages) { base = d.pages[(d.pages.indexOf(base) + 1) % d.pages.length]; hold = null; }   // (a button with two pages: the next)
+        else if (d.base && base !== d.base) { base = d.base; hold = null; }
         else if (d.hold) hold = hold === d.hold ? null : d.hold;
         else if (d.base) hold = null;
         p = page();
-        if ((hold || base) !== before || d.base || d.hold) {
+        if ((hold || base) !== before || d.base || d.hold || d.pages) {
           note = "The knobs here now show " + p.title + " (" + p.how + ").";
           if (hold && d.hold === hold) note += " Tap " + name + " again to let go.";
           else if (d.hold && d.base === base && !hold) note += " Tap " + name + " again for its held set.";
+          else if (d.pages) note += " Tap " + name + " again for " + T.pages[d.pages[(d.pages.indexOf(base) + 1) % d.pages.length]].title + ".";
         }
         say(name + " · " + d.label, d.sub || "", d.text, note);
       }
     } else if (kind === "knob") {
       p = page();
-      k = name === "MASTER" ? T.master : p.knobs[name];
-      if (k) say(name + " · " + k[0], name === "MASTER" ? "always" : p.title + " (" + p.how + ")", k[1]);
+      k = knobNow(name);
+      if (k) say(name + " · " + k[0], name === "MASTER" || (name === "SELECT" && T.select) ? "on every page" : p.title + " (" + p.how + ")", k[1]);
       else say(name, p.title + " (" + p.how + ")", "Sets nothing on this page.");
     } else if (kind === "keys") {
       k = keysNow();
-      say("KEYS · " + k[0], T.pages[base].title + " (" + T.pages[base].how + ")", k[1]);
+      say("KEYS · " + k[0], page().keys || T.pages[base].keys ? T.pages[base].title + " (" + T.pages[base].how + ")" : "", k[1]);
     } else say("SCREEN", "", T.screen);
     refresh();
   }
 
+  // --- the guide: the panel plays; a card says what to do next, and the control to use is ringed ---------------
+  var BIT = { FX: 0, SEL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7, ARP: 8, SEQ: 9, PLAY: 10, REC: 11 };
+  var G = T.guide, gi = 0, gtimer = null, gwait = 0, rings = null;
+  function met(c) {                                  // a step's "done", against what the instrument says of itself
+    var f = window.emuLast, st = window.palState;
+    if (!c) return false;
+    if (c.on && !f) return false;
+    if (c.lit) {
+      if (!f) return false;
+      var m = f.buttons >>> 0;
+      if (!(m & (1 << BIT[c.lit])) && !(c.lit === "PLAY" && (m & (1 << 14)))) return false;   // (PLAY's green: bit 14)
+    }
+    if (c.keys && !(f && (f.keys >>> 0))) return false;
+    if (c.rings !== undefined && !(st && st.rings >= c.rings)) return false;
+    if (c.ring !== undefined && !(st && st.ring === c.ring)) return false;
+    return true;
+  }
+  function ring(show) {                              // the controls a step uses, ringed on the live panel
+    if (!rings) {
+      rings = document.createElementNS(NS, "svg");
+      rings.setAttribute("id", "fm1guide");
+      rings.setAttribute("viewBox", "0 0 1000 640");
+      rings.setAttribute("aria-hidden", "true");
+      device.appendChild(rings);
+    }
+    rings.textContent = "";
+    (show || []).forEach(function (name) {
+      var b = buttons[name], k = knobs[name];
+      if (name === "keys") el("rect", { x: 40, y: 344, width: 920, height: 262, rx: 16, class: "use" }, rings);
+      else if (b) el("rect", { x: b.x - 5, y: b.y - 5, width: b.w + 10, height: b.h + 10, rx: 12, class: "use" }, rings);
+      else if (k) el("circle", { cx: k.x, cy: k.y, r: k.r + 12, class: "use" }, rings);
+    });
+  }
+  function gbutton(text, fn, cls) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = text;
+    if (cls) b.className = cls;
+    b.addEventListener("click", fn);
+    return b;
+  }
+  function gshow() {
+    var st = G.steps[gi], row = document.createElement("div"), h = document.createElement("strong"),
+        s = document.createElement("span"), p = document.createElement("p");
+    card.textContent = "";
+    gwait = 0;
+    row.className = "row";
+    if (!st) {                                       // through
+      p.textContent = G.done;
+      card.appendChild(p);
+      row.appendChild(gbutton("Start again", function () { gi = 0; gshow(); }));
+      row.appendChild(gbutton("Play", function () { mode("play"); }));
+      if (svg) row.appendChild(gbutton(T.tutorial_label || "Tutorial", function () { mode("tutorial"); }));
+      card.appendChild(row);
+      ring([]);
+      return;
+    }
+    h.textContent = st.title;
+    s.textContent = "Step " + (gi + 1) + " of " + G.steps.length;
+    p.textContent = st.text;
+    card.appendChild(h); card.appendChild(s); card.appendChild(p);
+    if (gi > 0) row.appendChild(gbutton("Back", function () { gi--; gshow(); }));
+    row.appendChild(gbutton(gi === G.steps.length - 1 ? "Finish" : "Next", function () { gi++; gshow(); }));
+    row.appendChild(gbutton("Exit", function () { mode("play"); }, "quiet"));
+    card.appendChild(row);
+    ring(st.show);
+  }
+  function gtick() {                                 // the step done on the instrument itself: a moment, then on
+    var st = G.steps[gi];
+    if (!st) return;
+    if (gwait) { if (Date.now() >= gwait) { gi++; gshow(); } return; }
+    if (met(st.done)) {
+      gwait = Date.now() + 900;
+      card.classList.add("done");
+      setTimeout(function () { card.classList.remove("done"); }, 900);
+    }
+  }
+
   // --- the switch ---------------------------------------------------------------------------------------------
-  var controls = document.getElementById("controls"), wasInert = false;
-  function mode(tutorial) {
-    if (!svg) return;
-    pill.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String((b.dataset.mode === "tutorial") === tutorial)); });
-    if (tutorial) {
+  var controls = document.getElementById("controls"), wasInert = null, now = "play";
+  function mode(m) {
+    if (m === "guide" && !G) m = "play";
+    if (m === "tutorial" && !svg) return;
+    pill.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.mode === m)); });
+    // out of the mode that was
+    if (now === "tutorial" && m !== "tutorial") {
+      svg.setAttribute("hidden", "");
+      if (controls && wasInert !== null) controls.inert = wasInert;
+      wasInert = null;
+    }
+    if (now === "guide" && m !== "guide") {
+      if (gtimer) { clearInterval(gtimer); gtimer = null; }
+      if (rings) rings.textContent = "";
+    }
+    now = m;
+    card.hidden = m === "play";
+    card.classList.toggle("guide", m === "guide");
+    device.classList.toggle("fm1tut-on", m === "tutorial");
+    if (m === "tutorial") {
       svg.removeAttribute("hidden");
-      card.hidden = false;
-      if (!picked) { card.textContent = ""; var p = document.createElement("p"); p.textContent = T.intro; card.appendChild(p); }
+      card.textContent = "";
+      var p = document.createElement("p");
+      p.textContent = T.intro;
+      card.appendChild(p);
+      picked = null;
       if (controls) { wasInert = controls.inert; controls.inert = true; }      // (the real controls: out of reach)
       refresh();
-    } else {
-      svg.setAttribute("hidden", "");
-      card.hidden = true;
-      if (controls) controls.inert = wasInert;
+    } else if (m === "guide") {
+      gshow();
+      gtimer = setInterval(gtick, 150);
     }
-    device.classList.toggle("fm1tut-on", tutorial);
   }
   pill.addEventListener("click", function (e) {
     var b = e.target.closest("button");
-    if (b) mode(b.dataset.mode === "tutorial");
+    if (b) mode(b.dataset.mode);
   });
   build();
 })();
