@@ -50,14 +50,16 @@ This is the one that matters most: it loads the chip as hard as STRATA can.
 ## 5. PALINDROME (optional, 3 minutes)
 
 - [ ] Install it from <https://savageperson334.github.io/strata-fm1/palindrome/install/>.
-- [ ] Tap three keys, wait two seconds, tap EDIT, tap REC, tap PLAY. **Note:** do you hear grains, and does the ring
-      on the screen move smoothly or in jerks?
-- [ ] Hold SEL and turn KNOB1 (MIX) up, then tap FX and EDIT a few times. **Note:** any clicks when switching?
-- [ ] Tap REC until the corner says LIVE, then hold REC and turn KNOB1 (NOISE) up. **Note:** do the grains turn to
-      hiss, and did letting go of REC leave the mode on LIVE?
-- [ ] The heavy test: tap EDIT, tap three keys, then hold EDIT and turn ALGORITHM (CLUSTER) all the way up; let go
-      and turn KNOB3 (DENSITY) and KNOB2 (SIZE) all the way up. **Note:** any crackle or stutter with 16 grains
-      playing, and does the screen keep moving?
+- [ ] Press FX, tap three keys, press REC once. **Note:** does a ring fill on the screen and finish in about a
+      second and a half, and does the screen go back to SILT with RING 01?
+- [ ] Press PLAY. **Note:** do you hear grains, and do the ring and its dots move smoothly or in jerks?
+- [ ] Press REC again, and once more when it has finished. **Note:** are there three rings, and does a fourth REC
+      say RINGS FULL without losing any?
+- [ ] Turn SELECT back and forth while the grains play. **Note:** any clicks, and does each ring sound like itself?
+- [ ] Press FX, EDIT, SEL, ENV, LFO and GLO in turn. **Note:** does each open its page with one press?
+- [ ] The heavy test: on SILT tap three keys, press ENV and turn ALGORITHM (CLUSTER) all the way up; press EDIT and
+      turn KNOB3 (DENSITY) and KNOB2 (SIZE) all the way up, then press REC. **Note:** any crackle or stutter with
+      16 grains playing and a capture running, and does the screen keep moving?
 - [ ] Install STRATA again and press PLAY. **Note:** did STRATA's saved sound survive?
 
 ## What to send back

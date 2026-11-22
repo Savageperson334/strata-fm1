@@ -342,3 +342,50 @@ Do not block progress on ambitious multitrack mixing, SD storage, four-or-more r
 Implement the **smallest complete vertical slice** first: SILT home → one-click MORPH → one-click REC → new ring → granular playback → one-click REC → second preserved ring → SELECT back to first ring. Then expand controls and the tutorial around it.
 
 When reporting completion, include the actual commit, native and host/WebAssembly build outcomes, RAM usage, ring capacity, render-load observation, screenshots of SILT with 0/1/2 rings, emulator link, changed controls, tests and remaining hardware limitations. Do not claim a feature is complete because the manual says it exists.
+
+## 10. Implementation status (branch `feature/silt-first`)
+
+Stages A to D are implemented on the branch and playable at `/palindrome/next/`; nothing is released and
+PALINDROME's `VERSION` is unchanged (stage E waits for a deliberate release and for hardware).
+
+**Measured** (the device build, `.github/workflows/palindrome-next.yml`, job `memory`):
+
+| | 0.5 (one ring) | this branch (three rings) | of |
+| --- | ---: | ---: | ---: |
+| Pool | 134,660 B | 265,732 B | 344,064 B |
+| `.data` + `.bss` | 30,380 B | 33,052 B | 98,304 B |
+| Image | 93,144 B | 97,868 B | app slot |
+
+Three rings leave 78,332 B of the pool (the build insists on 8,192). A fourth would leave 12,796 B: it fits, but
+not comfortably, so `PM_RINGS` is 3. Render time on the FM-1 is **not measured**: no hardware. The grain loop is
+0.5's (16 grains); a capture adds one write every second sample and, for 16 blocks at its end, 2,048 samples of
+level-evening a block.
+
+**Decisions** (section 8):
+
+- **Ring count:** three full-length rings (above).
+- **Subpage under GLO:** GLO opens MIX; pressed again, REC FX; again, MIX. The top line names both and lights the
+  open one. One press each, nothing held.
+- **SELECT on MORPH:** the ring selector there too. SPREAD moved to MIX, DROP to ALGORITHM on REC FX, and CARRY
+  (below) to RINGS, so SELECT is never anything else.
+- **Key state:** the four grain pitches are global, not per ring: selecting a ring changes the sound under the
+  same held keys. MORPH's notes are separate and survive page changes.
+- **Recording while playing:** SILT's source is the grains alone (wet only); MORPH's is MORPH alone. With the
+  grains stopped, a SILT capture has nothing to record and is dropped.
+- **An aborted or empty capture** is discarded and the rings are untouched. A capture is finite, so there is no
+  cancel: REC pressed meanwhile says it ends by itself.
+- **FEEDBACK became CARRY:** with no overdub there is nothing to feed back. CARRY copies the selected ring under
+  the next capture (0: the source alone), read from the parent, never from the ring being written.
+- **A new ring's level is evened** (peak to about 0.7, never more than four times up), so generations do not fade;
+  its two ends are eased over 256 samples so the loop closes without a click.
+- **A new ring's settings** are the ones in use; made from SILT, its PITCH, REVERSE, SCATTER and DETUNE start at
+  rest, so what the grains already did to it is not done twice.
+- **Ring numbers** are ids that are never reused (`RING 04` after a delete), so `FROM RING 01` stays true.
+- **Deleting:** on RINGS, KNOB4 arms (one step: the selected ring; two: everything, notes included) and SEL
+  confirms; any other button calls it off. HOME is one tap to SILT and clears nothing.
+- **Guide telemetry:** the panel's lights (the emulator's own frames) and `pm_web_state` (WebAssembly build only),
+  sent by `web/emu/app_worklet.js`. The guide reads no button text.
+
+**Not done:** ARP (pitch order) and SEQ (rhythm) are inactive and say so; no ring mixing (the selected ring is
+solo); no persistence; no test on an FM-1.
+

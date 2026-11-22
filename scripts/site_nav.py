@@ -137,20 +137,21 @@ def palindrome_manual(html):
     A missing heading leaves the original manual intact and readable."""
     html = re.sub(r'<style id="palindrome-manual-style">.*?</style>\s*', "", html, flags=re.S)
     # Idempotent: undo our own wrappers before grouping again.
-    html = re.sub(r'<div class="palindrome-modes">\s*<section class="palindrome-mode morph"[^>]*>', "", html)
-    html = re.sub(r'</section>\s*<section class="palindrome-mode silt"[^>]*>', "", html)
+    html = re.sub(r'<div class="palindrome-modes">\s*<section class="palindrome-mode (?:morph|silt)"[^>]*>', "", html)
+    html = re.sub(r'</section>\s*<section class="palindrome-mode (?:morph|silt)"[^>]*>', "", html)
     html = re.sub(r'</section>\s*</div>(?=\s*<h2\b)', "", html)
-    morph = re.search(r'<h2 id="morph">', html)
-    silt = re.search(r'<h2 id="silt">', html)
-    if not morph or not silt or morph.start() >= silt.start():
+    found = sorted((m.start(), name, m) for name in ("morph", "silt")
+                   for m in [re.search(rf'<h2 id="{name}">', html)] if m)
+    if len(found) != 2:
         return html
-    end = re.search(r'<h2\b', html[silt.end():])
+    (a, first, _), (b, second, m2) = found           # (whichever comes first in the manual: SILT, since the redesign)
+    end = re.search(r'<h2\b', html[m2.end():])
     if not end:
         return html
-    a, b, c = morph.start(), silt.start(), silt.end() + end.start()
+    c = m2.end() + end.start()
     html = (html[:a] + '<div class="palindrome-modes">' +
-            '<section class="palindrome-mode morph" aria-labelledby="morph">' + html[a:b] + '</section>' +
-            '<section class="palindrome-mode silt" aria-labelledby="silt">' + html[b:c] + '</section></div>' + html[c:])
+            f'<section class="palindrome-mode {first}" aria-labelledby="{first}">' + html[a:b] + '</section>' +
+            f'<section class="palindrome-mode {second}" aria-labelledby="{second}">' + html[b:c] + '</section></div>' + html[c:])
     return html.replace("</head>", MANUAL_STYLE + "\n</head>", 1)
 
 

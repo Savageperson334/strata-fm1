@@ -1,14 +1,15 @@
 # PALINDROME
 
-Two instruments, one audio memory. **MORPH** blends four synthesis methods; **SILT** records, fragments and repitches the result. Switch between them without stopping either.
+**SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.** One press does everything: nothing is held.
 
-![MORPH vector synthesis and SILT's recording ring](manual/img/silt.png "PALINDROME")
+![SILT playing the selected ring, an older ring inside it](manual/img/silt.png "PALINDROME")
 
 ## Play
 
-- **FX — MORPH:** latch notes, then turn KNOB1/2 to blend timbres.
-- **EDIT — SILT:** tap REC to freeze the recording, then PLAY to start grains. Tap keys for pitch; hold EDIT for variation controls.
-- **REC:** live, freeze, overdub or resample. Hold REC for recording texture.
+- **FX — MORPH:** latch notes and blend four synthesis methods with KNOB1/2.
+- **REC:** one press captures a new ring. It ends by itself and never overwrites another.
+- **EDIT — SILT:** PLAY starts grains from the selected ring; keys are their pitches.
+- **REC again:** what SILT plays becomes the next ring. **SELECT** moves between rings; each keeps its settings.
 
 [Play in the browser](emu/) · [Control reference](manual/) · [Install on FM-1](install/)
 

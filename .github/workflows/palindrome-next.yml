@@ -60,6 +60,7 @@ jobs:
           cp -r "$p/build/emu" "$out/emu"
           cp -r "$p/docs/img" "$out/img"
           cp "$p/docs/MANUAL.md" "$out/manual.md"
+          cp -r base/web/fonts "$out/fonts"
           python3 scripts/palindrome_next.py "$out" "$GITHUB_SHA"
           remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           for attempt in 1 2 3 4 5; do

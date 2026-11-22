@@ -530,7 +530,7 @@ static void pd_scene(void){
                 if(at>=0){two(ring_id(sel),t);pd_knob(COL[i],ROW[i],"RING",(float)(at+1)/(float)norder,lit==i,C_WHITE,t);}
                 else pd_knob(COL[i],ROW[i],"RING",0,lit==i,C_WHITE,"--");
             }else if(page==PG_RINGS&&i==3)
-                pd_knob(COL[i],ROW[i],"DELETE",(float)arm*.5f,lit==i,C_WHITE,arm==2?"ALL":arm?"ONE":"NO");
+                pd_knob(COL[i],ROW[i],"DEL",(float)arm*.5f,lit==i,C_WHITE,arm==2?"ALL":arm?"ONE":"NO");
             else if(id>=0)pd_knob(COL[i],ROW[i],labels[id],pm_get(id),lit==i,fill,0);
         }
         pd_box(119,201,2,38,C_DIM);                                                  /* left knobs | right knobs */

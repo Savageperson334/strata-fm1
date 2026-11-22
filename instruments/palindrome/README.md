@@ -1,6 +1,7 @@
 # PALINDROME
 
-A separate firmware from STRATA. See [manual](docs/MANUAL.md). Site, emulator and installer:
+A separate firmware from STRATA: SILT (grains of the selected ring) is the instrument, MORPH the injector, and
+each capture a new ring. See the [manual](docs/MANUAL.md) and the [redesign](../../docs/PALINDROME_SILT_FIRST_REDESIGN.md). Site, emulator and installer:
 <https://savageperson334.github.io/strata-fm1/palindrome/>.
 
 The FM-1's toolchain has no C library headers: keep `<string.h>` and friends out of `app.c` and `dsp/` (the
