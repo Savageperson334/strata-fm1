@@ -5,8 +5,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PALIMPSEST in the browser</title>
-<meta name="description" content="PALIMPSEST for the M-VAVE FM-1, in the browser: the same code the FM-1 runs.">
+<title>PALINDROME in the browser</title>
+<meta name="description" content="PALINDROME for the M-VAVE FM-1, in the browser: the same code the FM-1 runs.">
 <link rel="stylesheet" href="../fonts/fonts.css">
 <style>
 /* light: --muted, --accent and --teal darkened just enough for 4.5:1 on the cream */
@@ -78,7 +78,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 </head>
 <body>
 <header>
-  <h1>PALIMPSEST</h1>
+  <h1>PALINDROME</h1>
 </header>
 <main>
 <h2 class="sr">The FM-1</h2>
@@ -266,7 +266,7 @@ function fm1Panel(svg) {
 }
 
 const BTN = PANEL_BTN, ENC = PANEL_ENC, WHITE_K = PANEL_WHITE_K, BLACK_K = PANEL_BLACK_K, ROW1 = PANEL_ROW1, ROW2 = PANEL_ROW2;
-const STORE_KEY = "palimpsest-emu-store", PREFS_KEY = "palimpsest-emu-prefs";
+const STORE_KEY = "palindrome-emu-store", PREFS_KEY = "palindrome-emu-prefs";
 const $ = (id) => document.getElementById(id);
 const prefs = (() => { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || "{}"); } catch { return {}; } })();
 const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* private window */ } };
@@ -326,7 +326,7 @@ function send(m) { if (node) node.port.postMessage(m); }
 function sessionScript(m) {
   const BTN = ["FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC", "OCT-", "OCT+"];
   const ENC = ["SELECT", "ALGO", "PRESET", "K1", "K2", "K3", "K4"];
-  const out = ["# PALIMPSEST emulator session, " + new Date().toISOString() + ", " + navigator.userAgent];
+  const out = ["# PALINDROME emulator session, " + new Date().toISOString() + ", " + navigator.userAgent];
   let t = 0, keys = 0, btn = 0;
   for (const [at, kind, v] of m.log) {
     if (at > t) { out.push(`wait ${at - t}`); t = at; }
@@ -748,7 +748,7 @@ async function switchOn() {
           if (m.dimOp !== undefined) document.documentElement.style.setProperty("--dimop", m.dimOp);   // APP_DIM_LEVELS
           if (m.said) onSaid(m.said);
           window.emuLast = m;
-          if (m.load !== undefined) cpu.textContent = `PALIMPSEST uses ${m.load}% of this computer's time`;
+          if (m.load !== undefined) cpu.textContent = `PALINDROME uses ${m.load}% of this computer's time`;
           if (m.store) saveStore(m.store);
         } else if (m.type === "log") {
           sessionScript(m);
