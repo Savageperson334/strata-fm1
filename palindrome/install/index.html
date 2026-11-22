@@ -57,8 +57,24 @@
   button.plain { background: none; color: var(--fg); border: 1px solid var(--dim); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
+<style id="fm1nav-style">
+#fm1nav{max-width:46rem;margin:0 auto 1.4rem;padding:12px 0 10px;display:flex;flex-direction:column;align-items:flex-end;
+gap:8px;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+border-bottom:2px solid currentColor;box-sizing:border-box}
+#fm1nav a{color:inherit;text-decoration:none;background:none}
+#fm1nav .fm1nav-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 18px}
+#fm1nav .fm1nav-links a{opacity:.72;padding:2px 0;border-bottom:2px solid transparent}
+#fm1nav .fm1nav-links a:hover,#fm1nav .fm1nav-links a[aria-current]{opacity:1;border-bottom-color:currentColor}
+#fm1nav .fm1nav-swap{display:inline-flex;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font-size:12px;letter-spacing:.07em}
+#fm1nav .fm1nav-swap a{padding:5px 14px;opacity:.72}
+#fm1nav .fm1nav-swap a:hover{opacity:1}
+#fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+@media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
+</style>
 </head>
 <body>
+<nav id="fm1nav" aria-label="PALINDROME"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="../manual/">Manual</a><a href="../install/" aria-current="page">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../install/">STRATA</a><a href="../" aria-current="true">PALINDROME</a></div></nav>
 <main>
   <button type="button" class="lang" id="lang" lang="ja">日本語</button>
   <h1>Install PALINDROME</h1>
@@ -1118,7 +1134,7 @@ const log = (t) => {
   if (atEnd) el.scrollTop = el.scrollHeight;
 };
 let image = null, boot = null, res = null;
-const meta = {"version": "0.2", "product": "FM-1_59000200", "pkg": "../firmware/palindrome-0.2.fwsc", "backup": false, "res": null, "boot": {"pkg": "../firmware/m-bootloader-2.4.fwsc", "version": "2.4", "sha256": "28fb1336dbff22882f545169d57afbb5a732eeb6268331aaa444f1c657b286d3"}};
+const meta = {"version": "0.3", "product": "FM-1_59000300", "pkg": "../firmware/palindrome-0.3.fwsc", "backup": false, "res": null, "boot": {"pkg": "../firmware/m-bootloader-2.4.fwsc", "version": "2.4", "sha256": "28fb1336dbff22882f545169d57afbb5a732eeb6268331aaa444f1c657b286d3"}};
 /* the firmware's own steps around an install (its site's install_app script, or none): before(midi, ui) runs before
    anything is written, may ask (ui.ask) and returns its state, or false to stop there; after(midi, ui, state) once
    the new firmware has started (it waits for it itself). A failure in after is said, the install stays done */
