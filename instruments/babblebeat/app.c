@@ -135,6 +135,7 @@ static void scene(void){
  label(234-text_w(&FONT_XS,page?"WORDS":"VOICE"),6,page?"WORDS":"VOICE",C_GRAY);
  line(8,25,232,25,C_LINE);
  sentence();
+ label(9,130,bb_pattern_label(&mind),C_GRAY);
  int y=144;line(9,y+16,231,y+16,C_LINE);
  uint32_t s=mind.rng;
  for(int x=10;x<230;x+=5){
