@@ -32,14 +32,16 @@ HTML
   if [ -f palindrome/index.html ] && [ -f index.html ]; then
     python3 - <<'PY'
 from pathlib import Path
+import re
 p = Path("index.html")
 s = p.read_text()
+s = re.sub(r'<p id="palimpsest-link">.*?</p>', '', s, flags=re.S)   # (the line under the old name)
 if 'id="palindrome-link"' not in s:
     banner = '<p id="palindrome-link"><strong>Alternate instrument:</strong> <a href="palindrome/">PALINDROME — vector synthesis &amp; granular manipulation</a> · <a href="palindrome/emu/">Play emulator</a></p>'
     pos = s.find("</h1>")
     if pos != -1:
         s = s[:pos+5] + banner + s[pos+5:]
-        p.write_text(s)
+p.write_text(s)
 PY
   fi
   touch .nojekyll
