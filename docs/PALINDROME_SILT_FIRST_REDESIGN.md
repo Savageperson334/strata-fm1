@@ -343,10 +343,11 @@ Implement the **smallest complete vertical slice** first: SILT home → one-clic
 
 When reporting completion, include the actual commit, native and host/WebAssembly build outcomes, RAM usage, ring capacity, render-load observation, screenshots of SILT with 0/1/2 rings, emulator link, changed controls, tests and remaining hardware limitations. Do not claim a feature is complete because the manual says it exists.
 
-## 10. Implementation status (branch `feature/silt-first`)
+## 10. Implementation status (released as PALINDROME 0.6)
 
-Stages A to D are implemented on the branch and playable at `/palindrome/next/`; nothing is released and
-PALINDROME's `VERSION` is unchanged (stage E waits for a deliberate release and for hardware).
+Stages A to D are implemented and released as PALINDROME 0.6 on request (developed on `feature/silt-first`,
+previewed at `/palindrome/next/` until the release replaced it). Of stage E, the hardware test is still open:
+0.6 has not run on an FM-1.
 
 **Measured** (the device build, `.github/workflows/palindrome-next.yml`, job `memory`):
 
