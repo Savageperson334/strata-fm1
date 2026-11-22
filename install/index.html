@@ -57,8 +57,24 @@
   button.plain { background: none; color: var(--fg); border: 1px solid var(--dim); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
+<style id="fm1nav-style">
+#fm1nav{max-width:46rem;margin:0 auto 1.4rem;padding:12px 0 10px;display:flex;flex-direction:column;align-items:flex-end;
+gap:8px;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+border-bottom:2px solid currentColor;box-sizing:border-box}
+#fm1nav a{color:inherit;text-decoration:none;background:none}
+#fm1nav .fm1nav-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 18px}
+#fm1nav .fm1nav-links a{opacity:.72;padding:2px 0;border-bottom:2px solid transparent}
+#fm1nav .fm1nav-links a:hover,#fm1nav .fm1nav-links a[aria-current]{opacity:1;border-bottom-color:currentColor}
+#fm1nav .fm1nav-swap{display:inline-flex;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font-size:12px;letter-spacing:.07em}
+#fm1nav .fm1nav-swap a{padding:5px 14px;opacity:.72}
+#fm1nav .fm1nav-swap a:hover{opacity:1}
+#fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+@media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
+</style>
 </head>
 <body>
+<nav id="fm1nav" aria-label="STRATA"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="../manual/">Manual</a><a href="../install/" aria-current="page">Install</a><a href="https://github.com/Savageperson334/strata-fm1">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../" aria-current="true">STRATA</a><a href="../palindrome/install/">PALINDROME</a></div></nav>
 <main>
   <button type="button" class="lang" id="lang" lang="ja">日本語</button>
   <h1>Install STRATA</h1>
