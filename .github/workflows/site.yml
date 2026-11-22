@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: MPL-2.0
+# STRATA's site again, when its manual or front page changes on main: the latest release's package, the manual with
+# screenshots from the simulator, the browser version and the installer, pushed to gh-pages. (A new release
+# publishes the site too: release.yml.)
+name: Site
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/docs/**', 'app/site/**', '.github/workflows/site.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: strata-release
+  cancel-in-progress: false
+
+jobs:
+  site:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pillow (with raqm, for the fonts)
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq libfribidi0
+          python3 -m pip install -q Pillow
+          python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+      - name: Emscripten (the browser version), a fixed version from emsdk
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          git -C "$RUNNER_TEMP/emsdk" checkout -q a2b92777574c2feda07994cd4f1079a3dfc151f8   # emsdk 6.0.10
+          "$RUNNER_TEMP/emsdk/emsdk" install 6.0.10
+          "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.10
+      - name: The latest release's package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag=$(gh release view --json tagName --jq .tagName)
+          mkdir -p build/rel
+          gh release download "$tag" --pattern 'strata-*.fwsc' --dir build/rel
+          echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
+      - name: Build the site
+        run: |
+          set -euo pipefail
+          set +u; source "$RUNNER_TEMP/emsdk/emsdk_env.sh"; set -u
+          pkg=$(ls build/rel/strata-*.fwsc | grep -v -- '-app' | head -1)
+          ./build.sh --host
+          app/build/host/strata_host app/tests/screens.txt app/docs/img
+          ./build.sh --web
+          python3 base/tools/make_site.py app "$pkg" "$VERSION" "$RUNNER_TEMP/site"
+          touch "$RUNNER_TEMP/site/.nojekyll"
+      - name: Publish to gh-pages
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/site"
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Site for v$VERSION (manual update)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages

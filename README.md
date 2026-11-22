@@ -3,7 +3,8 @@
 A drone and texture synth firmware for the M-VAVE FM-1. One mode, no menus, every knob live.
 
 **Install:** open <https://savageperson334.github.io/strata-fm1/install/> in Chrome or Edge, plug in the FM-1 by
-USB, click Connect, then Install. **Manual:** [app/docs/MANUAL.md](app/docs/MANUAL.md).
+USB, click Connect, then Install. **Manual:** <https://savageperson334.github.io/strata-fm1/manual/>
+(source: [app/docs/MANUAL.md](app/docs/MANUAL.md)).
 
 - Tap keys to start up to six long voices; tap again to let them fade. PLAY fades all out and brings the chord back.
 - K1–K4, SELECT, ALGO, PRESET: TONE, RATIO, MOTION, SPACE, FILTER, DRIFT, GRIT. Hold SEL for DEPTH, BEAT, FADE,
