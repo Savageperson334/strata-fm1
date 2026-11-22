@@ -1,48 +1,48 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Tiny deterministic grammar compiler. A hand-curated lexicon with compact
  * approximated phoneme spellings, not the full WordNet / CMUdict dataset.
- * Pronunciation: a=ah A=ae e=eh i=ee I=ih o=oh O=aw u=oo U=uh E=er.
- * S=sh T=unvoiced th D=voiced th C=ch J=j N=ng; others ~ as written. */
+ * Pronunciation (the voice's table, dsp/babble_voice.c): i=ee I=ih e=eh A=a(t) a=ah O=aw U=uh V=oo(k) u=oo E=er
+ * o=o(r); the diphthongs 1=ay 2=eye 3=ow 4=oy 5=oh; S=sh T=th(in) D=th(e) C=ch J=j N=ng; others as written. */
 #include "babble_lang.h"
 typedef struct {const char *text,*phones;} word;
 typedef struct {const char *third,*base,*phones,*base_phones;} verb;
 #define SZ(a) ((int)(sizeof(a)/sizeof((a)[0])))
 static const word nouns[4][12]={
- {{"machine","mUSin"},{"signal","sIgnUl"},{"circuit","sErkIt"},{"engine","enJIn"},{"robot","robOt"},{"speaker","spikEr"},{"voltage","voltIJ"},{"static","stAtIk"},{"terminal","tErmInUl"},{"mirror","mIrEr"},{"antenna","AntenU"},{"filter","fIltEr"}},
- {{"ghost","gost"},{"shadow","SAdO"},{"moon","mun"},{"window","wIndO"},{"planet","plAnIt"},{"garden","gardUn"},{"ritual","rICUUl"},{"memory","memUri"},{"door","dor"},{"fog","fog"},{"language","lANgwIJ"},{"dream","drim"}},
- {{"mouth","mowT"},{"throat","Trot"},{"tongue","tuN"},{"bone","bon"},{"skin","skIn"},{"nerve","nErv"},{"lung","luN"},{"insect","Insekt"},{"vowel","vowUl"},{"breath","breT"},{"spine","spIn"},{"voice","vois"}},
- {{"castle","kAsUl"},{"coffin","kOfIn"},{"vampire","vAmpIr"},{"crypt","krIpt"},{"blood","blUd"},{"wolf","wUlf"},{"night","nIt"},{"diary","dIEri"},{"chapel","CApUl"},{"letter","letEr"},{"count","kownt"},{"grave","grav"}}
+ {{"machine","mUSin"},{"signal","sIgnUl"},{"circuit","sErkIt"},{"engine","enJIn"},{"robot","r5bat"},{"speaker","spikEr"},{"voltage","v5ltIJ"},{"static","stAtIk"},{"terminal","tErmInUl"},{"mirror","mIrEr"},{"antenna","AntenU"},{"filter","fIltEr"}},
+ {{"ghost","g5st"},{"shadow","SAd5"},{"moon","mun"},{"window","wInd5"},{"planet","plAnIt"},{"garden","gardUn"},{"ritual","rICuUl"},{"memory","memEri"},{"door","dor"},{"fog","fag"},{"language","lANgwIJ"},{"dream","drim"}},
+ {{"mouth","m3T"},{"throat","Tr5t"},{"tongue","tUN"},{"bone","b5n"},{"skin","skIn"},{"nerve","nErv"},{"lung","lUN"},{"insect","Insekt"},{"vowel","v3Ul"},{"breath","breT"},{"spine","sp2n"},{"voice","v4s"}},
+ {{"castle","kAsUl"},{"coffin","kOfIn"},{"vampire","vAmp2r"},{"crypt","krIpt"},{"blood","blUd"},{"wolf","wVlf"},{"night","n2t"},{"diary","d2Uri"},{"chapel","CApUl"},{"letter","letEr"},{"count","k3nt"},{"grave","gr1v"}}
 };
 static const word adj[]={
- {"pale","pal"},{"electric","IlektrIk"},{"ancient","anSInt"},{"silent","sIlInt"},
- {"hidden","hIdUn"},{"crooked","krUkId"},{"synthetic","sInTetIk"},
- {"hollow","hOlO"},{"broken","brokUn"},{"restless","restlIs"},
- {"silver","sIlvEr"},{"strange","stranJ"}
+ {"pale","p1l"},{"electric","IlektrIk"},{"ancient","1nSUnt"},{"silent","s2lUnt"},
+ {"hidden","hIdUn"},{"crooked","krVkId"},{"synthetic","sInTetIk"},
+ {"hollow","hal5"},{"broken","br5kUn"},{"restless","restlIs"},
+ {"silver","sIlvEr"},{"strange","str1nJ"}
 };
 static const verb intr[]={
- {"waits","wait","wats","wat"},{"sleeps","sleep","slips","slip"},
+ {"waits","wait","w1ts","w1t"},{"sleeps","sleep","slips","slip"},
  {"whispers","whisper","wIspErz","wIspEr"},{"dreams","dream","drimz","drim"},
  {"shivers","shiver","SIvErz","SIvEr"},{"sings","sing","sINz","sIN"},
  {"returns","return","rItErnz","rItErn"},{"vanishes","vanish","vAnISIz","vAnIS"}
 };
 static const verb trans[]={
  {"remembers","remember","rImembErz","rImembEr"},
- {"follows","follow","fOlOz","fOlO"},{"haunts","haunt","hOnts","hOnt"},
- {"watches","watch","wOCIz","wOC"},{"forgets","forget","fOrgEts","fOrgEt"},
- {"opens","open","opUnz","opUn"},{"swallows","swallow","swOlOz","swOlO"},
- {"corrupts","corrupt","kOrUpts","kOrUpt"}
+ {"follows","follow","fal5z","fal5"},{"haunts","haunt","hOnts","hOnt"},
+ {"watches","watch","waCIz","waC"},{"forgets","forget","fErgets","fErget"},
+ {"opens","open","5pUnz","5pUn"},{"swallows","swallow","swal5z","swal5"},
+ {"corrupts","corrupt","kUrUpts","kUrUpt"}
 };
 static const bb_token THE={"the","DU",BB_OTHER},IS={"is","Iz",BB_OTHER},
- NOT={"not","nOt",BB_OTHER},INSIDE={"inside","InsId",BB_OTHER},
+ NOT={"not","nat",BB_OTHER},INSIDE={"inside","Ins2d",BB_OTHER},
  DO={"do","du",BB_OTHER},AND={"and","And",BB_OTHER},
- WHY={"why","wI",BB_OTHER},DOES={"does","dUz",BB_OTHER},
+ WHY={"why","w2",BB_OTHER},DOES={"does","dUz",BB_OTHER},
  AGAIN={"again","Ugen",BB_OTHER},DOT={".","",BB_PUNCT},
  QUERY={"?","",BB_PUNCT},COMMA={",","",BB_PUNCT},
  IF={"if","If",BB_OTHER},WHEN={"when","wen",BB_OTHER},
- BECAUSE={"because","bIkOz",BB_OTHER},BUT={"but","bUt",BB_OTHER},
+ BECAUSE={"because","bIkUz",BB_OTHER},BUT={"but","bUt",BB_OTHER},
  THAT={"that","DAt",BB_OTHER},WILL={"will","wIl",BB_OTHER},
  DID={"did","dId",BB_OTHER},WAS={"was","wUz",BB_OTHER},
- MAY={"may","ma",BB_OTHER},USED={"used","uzd",BB_OTHER},
+ MAY={"may","m1",BB_OTHER},USED={"used","yuzd",BB_OTHER},
  TO={"to","tu",BB_OTHER};
 static const char *const BB_PATTERNS[]={
  "TRANSITIVE", "IS / ADJECTIVE", "INSIDE / CLAUSE", "INTRANSITIVE",
@@ -152,7 +152,9 @@ void bb_generate(bb_mind*m){
  else if(m->style>.74f)pattern=6+roll(m,2);
  bb_generate_pattern(m,pattern);
  m->change=0;
- if(roll(m,100)<(int)((1.f-m->grammar)*m->damage*100.f)){
+ /* DAMAGE: how often a new sentence is mutated as it is made. GRAMMAR (bb_mutate) decides whether a mutation
+  * keeps the grammar or breaks it; low GRAMMAR may also mutate twice. */
+ if(roll(m,100)<(int)(m->damage*100.f)){
   bb_mutate(m);
   if(m->grammar<.3f&&roll(m,100)<40)bb_mutate(m);
  }

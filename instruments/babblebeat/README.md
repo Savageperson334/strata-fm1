@@ -3,7 +3,7 @@
 Third standalone M-VAVE FM-1 firmware in the STRATA / PALINDROME repository.
 
 The first version is deliberately focused on a **sentence grammar generator
-and mutator**, with a primitive synthetic voice. It is a new instrument,
+and mutator**, with a small formant-synthesis voice. It is a new instrument,
 not a port of the old Python WordNet/Dracula program. The tiny thematic
 lexicons echo that program's imagery, while the grammar and interface are
 written for the FM-1. No source or DSP from CHIMERA has been copied.
@@ -15,9 +15,11 @@ and adjectives without destroying the pattern, or can repeat/delete
 tokens when GRAMMAR is turned down. REC remembers one noun and RECALL
 controls its future appearance.
 
-The rudimentary voice plays compact hand-written phoneme codes through
-a glottal pulse / noise source and three resonators. It will sound
-mechanical; it is not full general-purpose TTS.
+The voice plays compact hand-written phoneme codes through a small formant
+synthesizer in the manner of Klatt's: a glottal pulse and breath noise through
+four formant resonators in cascade, shaped noise for hisses and bursts, and
+formants that glide from one sound to the next. It is robotic on purpose; it
+is not general-purpose TTS and says only what the lexicon spells.
 
 ## Build / simulate
 

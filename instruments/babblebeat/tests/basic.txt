@@ -6,16 +6,27 @@ expect remember 0
 expect grammar 85
 expect theme 0
 shot words.png
+wait 2400
 tap REC
 wait 50
 expect remember 1
+# what REC did is said on the screen, and then what is remembered stays there
+expect note 1
+shot remembered.png
+wait 1600
+expect note 0
+shot memory.png
+tap SAVE
+wait 50
+expect note 1
+wait 1500
 tap SEQ
 wait 80
 expect voice 1
 wav phrase.wav
 wait 1800
 wavstop
-expect peak_db_min -55
+expect peak_db_min -40
 tap ARP
 wait 60
 expect voice 1

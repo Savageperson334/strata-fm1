@@ -1,7 +1,11 @@
 /* SPDX-License-Identifier: MPL-2.0
  * BabbleBeat / third FM-1 firmware. Single-press FX: voice; EDIT: words.
  * PLAY autonomous babbling; SEQ new phrase; ARP mutate; REC remember noun.
- * Note key: speak the next word at the key's pitch. */
+ * Note key: speak the next word at the key's pitch. HOME stops; the other buttons say they are not used.
+ *
+ * The screen, drawn as two strips of 240 x 120 (no line of text may cross y 120): the sentence (y 28..102), a
+ * line for what was just done or what is remembered (y 104), the sentence's pattern (y 122), the voice's own
+ * level over the last second with a mark where it is in the sentence (y 138..172), PLAY's state, the knobs. */
 #include "babble_lang.h"
 #include "babble_voice.h"
 static bb_mind mind;
@@ -9,6 +13,7 @@ static bb_voice mouth;
 static uint8_t page,autoplay;
 static int8_t octave;
 static uint32_t old_keys,old_buttons,frames,last_spoken;
+static uint8_t stirred;                  /* the first press has put its moment into the sentences' chance */
 static float gain_now;
 static int cursor;
 static char message[36];
@@ -48,7 +53,7 @@ void app_init(void){
  bb_init(&mind,0xBABB1E25u);bb_voice_init(&mouth);
  for(int p=0;p<2;p++)for(int k=0;k<7;k++)params[p][k]=DEFAULTS[p][k];
  apply();bb_generate(&mind);
- page=1;autoplay=0;octave=0;old_keys=old_buttons=frames=last_spoken=0;
+ page=1;autoplay=0;octave=0;old_keys=old_buttons=frames=last_spoken=0;stirred=0;
  gain_now=0;cursor=0;message_until=0;touched=-1;
 }
 void app_panic(void){bb_voice_stop(&mouth);autoplay=0;}
@@ -70,6 +75,9 @@ void app_say(const char*a,const char*b){
 void app_input_only(void){
  uint32_t btn=plat_buttons(),keys=plat_keys();
  uint32_t nb=btn&~old_buttons,nk=keys&~old_keys,now=plat_ms();
+ /* the same sentences after every power-on would be a recital: the moment of the first press makes them this
+  * session's own */
+ if((nb||nk)&&!stirred){stirred=1;mind.rng^=now*2654435761u;if(!mind.rng)mind.rng=0xBABB1E25u;}
  if(nb&(1u<<B_FX))page=0;
  if(nb&(1u<<B_EDIT))page=1;
  if(nb&(1u<<B_PLAY)){
@@ -83,7 +91,11 @@ void app_input_only(void){
   app_say("REMEMBERED",mind.has_memory?mind.remembered.text:"NONE");
  }
  if(nb&(1u<<B_HOME)){autoplay=0;bb_voice_stop(&mouth);app_say("STOPPED","");}
- if(nb&(1u<<B_SAVE))app_say("PATCH SAVE","NOT YET");
+ if(nb&(1u<<B_SAVE))app_say("SAVE: NOT AVAILABLE","");
+ if(nb&(1u<<B_SEL))app_say("SEL: NOT USED","");
+ if(nb&(1u<<B_ENV))app_say("ENV: NOT USED","");
+ if(nb&(1u<<B_LFO))app_say("LFO: NOT USED","");
+ if(nb&(1u<<B_GLO))app_say("GLO: NOT USED","");
  if((nb&(1u<<B_OCTDN))&&octave>-2)octave--;
  if((nb&(1u<<B_OCTUP))&&octave<2)octave++;
  for(int j=0;j<NKEYS;j++)if(nk&(1u<<j)){
@@ -105,7 +117,7 @@ void app_input_only(void){
  uint32_t leds=(1u<<(page?B_EDIT:B_FX))|(autoplay?LED_PLAY_GREEN:0)|
   (mind.has_memory?(1u<<B_REC):0);
  plat_lights(leds,0,(1u<<B_FX)|(1u<<B_EDIT)|(1u<<B_PLAY)|
-  (1u<<B_SEQ)|(1u<<B_ARP)|(1u<<B_REC),0,1);
+  (1u<<B_SEQ)|(1u<<B_ARP)|(1u<<B_REC)|(1u<<B_HOME),0,1);
 }
 static void knob(int col,int row,const char*name,float value,int lit){
  int x=col*60,y=200+row*20;
@@ -115,49 +127,52 @@ static void knob(int col,int row,const char*name,float value,int lit){
  rect(x+3,y+15,(int)(value*53.f+.5f),3,color);
 }
 static void sentence(void){
- int x=9,y=35,lines=0,used=0;char word[26],ln[33];
+ int x=9,y=28,lines=0,used=0;char word[26],ln[33];
  const char*p=mind.text;
- while(*p&&lines<6){
+ while(*p&&lines<5){
   int z=0;
   while(*p==' ')p++;
   while(*p&&*p!=' '&&z<24)word[z++]=*p++;
   word[z]=0;
   if(used&&used+1+z>29){
-   ln[used]=0;label(x,y,ln,C_WHITE);y+=17;used=0;lines++;
+   ln[used]=0;label(x,y,ln,C_WHITE);y+=15;used=0;lines++;
   }
   if(used&&used<30)ln[used++]=' ';
   for(int i=0;i<z&&used<31;i++)ln[used++]=word[i];
  }
- if(used&&lines<7){ln[used]=0;label(x,y,ln,C_WHITE);}
+ if(used&&lines<5){ln[used]=0;label(x,y,ln,C_WHITE);}
 }
 static void scene(void){
- label(8,6,"B A B B L E B E A T",C_HI);
- label(234-text_w(&FONT_XS,page?"WORDS":"VOICE"),6,page?"WORDS":"VOICE",C_GRAY);
- line(8,25,232,25,C_LINE);
+ static float lev[BB_LEVELS];
+ const char*note=message_until&&(int32_t)(message_until-plat_ms())>0?message:0;
+ int y=140,talking=bb_voice_active(&mouth);
+ label(8,4,"B A B B L E B E A T",C_HI);
+ label(234-text_w(&FONT_XS,page?"WORDS":"VOICE"),4,page?"WORDS":"VOICE",C_GRAY);
+ line(8,22,232,22,C_LINE);
  sentence();
- label(9,130,bb_pattern_label(&mind),C_GRAY);
- int y=144;line(9,y+16,231,y+16,C_LINE);
- uint32_t s=mind.rng;
- for(int x=10;x<230;x+=5){
-  s=s*1664525u+1013904223u;
-  int h=(int)((s>>27)&15u);
-  if(bb_voice_active(&mouth))h+=4;
-  line(x,y+16-h/2,x,y+16+h/2,page?C_AMB:C_HI);
+ /* what was just done; else what is remembered (y 104: whole in the upper strip) */
+ if(note)label(8,104,note,C_AMB);
+ else if(mind.has_memory){
+  label(8,104,"MEMORY:",C_GRAY);
+  label(64,104,mind.remembered.text,C_HI);
+ }else label(8,104,"REC REMEMBERS A WORD",C_GRAY);
+ label(9,122,bb_pattern_label(&mind),C_GRAY);
+ /* the voice's own level, the last second of it (not a decoration: silence is a flat line), and where it is in
+  * the sentence */
+ line(9,y+16,231,y+16,C_LINE);
+ bb_voice_levels(&mouth,lev,BB_LEVELS);
+ for(int i=0;i<BB_LEVELS;i++){
+  int x=12+i*5,h=(int)(lev[i]*30.f+.5f);
+  if(h>0)line(x,y+16-h/2,x,y+16+h/2,page?C_AMB:C_HI);
  }
- if(bb_voice_active(&mouth)){
-  int x=10+(int)(220u*(unsigned)mouth.pos/(mouth.used?mouth.used:1u));
+ if(talking){
+  int x=10+(int)(220.f*bb_voice_progress(&mouth));
   rect(x,y-2,2,36,C_WHITE);
  }
  label(8,178,autoplay?"PLAY: SPEAKING":"PLAY: STOPPED",
   autoplay?C_WHITE:C_GRAY);
  label(235-text_w(&FONT_XS,"SEQ NEW / ARP MUTATE"),178,
   "SEQ NEW / ARP MUTATE",C_GRAY);
- const char*note=message_until&&(int32_t)(message_until-plat_ms())>0?message:0;
- if(note)label(8,116,note,C_AMB);
- else if(mind.has_memory){
-  label(8,116,"MEMORY:",C_GRAY);
-  label(64,116,mind.remembered.text,C_HI);
- }else label(8,116,"REC REMEMBERS A WORD",C_GRAY);
  static const uint8_t COL[7]={2,3,2,3,1,1,0},ROW[7]={0,0,1,1,0,1,1};
  knob(0,0,"VOLUME",(float)plat_master()/4096.f,0);
  for(int k=0;k<7;k++)knob(COL[k],ROW[k],NAMES[page][k],
@@ -167,7 +182,11 @@ static void scene(void){
 static void draw(void){
  for(int i=0;i<2;i++){bb_yoff=i*120;cv_begin(240,120,C_BLACK);scene();cv_blit(0,(uint32_t)bb_yoff);}
 }
-void app_ui_init(void){lcd_fill(0,0,240,240,C_BLACK);draw();}
+void app_ui_init(void){
+ lcd_fill(0,0,240,240,C_BLACK);
+ app_say(APP_NAME,APP_VERSION);message_until=plat_ms()+2500u;      /* (its name and version, for a moment) */
+ draw();
+}
 void app_frame(void){app_input_only();if((++frames&3u)==0)draw();}
 #ifdef PLAT_HOST
 int app_expect(const char*name,int*got){
@@ -178,6 +197,7 @@ int app_expect(const char*name,int*got){
  else if(!strcmp(name,"grammar"))*got=(int)(params[1][0]*100.f+.5f);
  else if(!strcmp(name,"theme"))*got=(int)mind.theme;
  else if(!strcmp(name,"voice"))*got=bb_voice_active(&mouth);
+ else if(!strcmp(name,"note"))*got=message_until&&(int32_t)(message_until-plat_ms())>0;   /* a message is showing */
  else return 0;
  return 1;
 }

@@ -37,7 +37,7 @@ The voice is a simple formant robot, not general text-to-speech.
 | KNOB1 | **GRAMMAR** | High: valid structures retained; low: duplicates and omissions permitted |
 | KNOB2 | **WANDER** | Chance of borrowing nouns from outside the selected world |
 | KNOB3 | **RECALL** | Chance of using the remembered noun |
-| KNOB4 | **DAMAGE** | Probability of applying automatic structural mutation |
+| KNOB4 | **DAMAGE** | How often a new sentence is mutated as it is made (GRAMMAR decides how gently) |
 | SELECT | **WORLD** | Machine, Dream, Body or Gothic/Dracula vocabulary |
 | ALGORITHM | **LENGTH** | High values can append a coordinated clause |
 | PRESETS | **STYLE** | Statements at low values; mixed in middle; questions at high values |
@@ -48,11 +48,11 @@ The voice is a simple formant robot, not general text-to-speech.
 | --- | --- | --- |
 | KNOB1 | **PITCH** | Base pitch for automatic speech |
 | KNOB2 | **RATE** | Phoneme length / speaking speed |
-| KNOB3 | **TONE** | Formant brightness |
-| KNOB4 | **BREATH** | Noise mixed into consonants |
+| KNOB3 | **TONE** | A darker, larger voice to a brighter, smaller one |
+| KNOB4 | **BREATH** | Breath noise in the voiced sounds |
 | SELECT | **LEVEL** | Synthesizer voice volume |
 | ALGORITHM | **STUTTER** | Repeat individual pronunciation codes |
-| PRESETS | **INFLECT** | Pitch change between successive words |
+| PRESETS | **INFLECT** | How much the pitch moves: a lift on each word, a fall at the end, a rise for a question |
 
 MASTER always controls volume.
 
@@ -102,10 +102,11 @@ The four themed banks loosely echo the previous Python WordNet/Dracula
 experiment. BabbleBeat does not yet include WordNet, a full novel, the
 desktop program's advanced oracle, or live dictionary downloads.
 
-## Early voice limitations
+## Voice limitations
 
-This first voice uses a small hand-phonemized word list, a pulse/noise
-source and three resonators. It is an intentionally mechanical prototype,
+The voice is a small formant synthesizer with a hand-phonemized word list:
+a glottal pulse and breath noise through four gliding formants, with shaped
+noise for hisses and stops. It is robotic on purpose, and it is
 not a general English TTS engine or CHIMERA's modeled vocal tract.
 There is no text input, no recording, no save/load of patches, no MIDI
 support in the app yet, and no tested hardware release. The browser

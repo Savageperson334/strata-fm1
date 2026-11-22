@@ -111,14 +111,14 @@ The main controls are **GRAMMAR, WANDER, RECALL, DAMAGE, WORLD, LENGTH and STYLE
 - **GRAMMAR** favors intact structures or allows destructive token repetition/omission at low settings.
 - **WANDER** moves nouns across themed worlds and a drifting vocabulary context.
 - **RECALL** permits a remembered noun to return in later phrases; **REC** chooses that noun from the current sentence.
-- **DAMAGE** governs whether grammar-breaking mutations are introduced during generation.
+- **DAMAGE** sets how often a new sentence is mutated as it is generated; GRAMMAR decides whether those mutations keep the grammar or break it.
 - **WORLD** chooses the primary noun pool.
 - **LENGTH** can add a coordinated clause.
 - **STYLE** weights statements, mixed constructions or questions.
 
 The mutation engine can replace/swap word-role slots, change an adjective, or **rebuild the sentence using a different template while preserving the first noun**. Destructive operations can duplicate/delete tokens or interrupt a sentence with “again”. It is a **small deterministic sentence machine**, not full syntactic or semantic understanding. Some grammatically unusual combinations are acceptable as part of its character.
 
-**VOICE — FX page.** Hand-authored, approximate phoneme spellings drive a small pulse/noise plus **three-formant** robotic sound generator. **PITCH, RATE, TONE, BREATH, LEVEL, STUTTER and INFLECT** shape the voice. The spoken output is intentionally crude and should be judged first as an *instrument* rather than a voice assistant.
+**VOICE — FX page.** Hand-authored, approximate phoneme spellings drive a small **formant synthesizer** (a glottal pulse and noise through four cascaded formants that glide between sounds, shaped noise for hisses and bursts). **PITCH, RATE, TONE, BREATH, LEVEL, STUTTER and INFLECT** shape the voice. The spoken output is intentionally crude and should be judged first as an *instrument* rather than a voice assistant.
 
 **Performance:**
 - **SEQ:** generate and immediately speak a new sentence.
@@ -190,7 +190,7 @@ Share where appropriate:
 
 | Area | STRATA | PALINDROME | BabbleBeat |
 | --- | --- | --- | --- |
-| Core implementation | Drone + ARP + beat + Euclidean lanes | MORPH source + generational SILT rings | Grammar + mutation + primitive formant voice |
+| Core implementation | Drone + ARP + beat + Euclidean lanes | MORPH source + generational SILT rings | Grammar + mutation + small formant-synthesis voice |
 | Browser / host | Available; simulator-tested | Available; simulator-tested | Available; simulator-tested |
 | Device release status | Firmware releases exist | Experimental prerelease exists | **Browser-first only; no firmware installer** |
 | Real FM-1 validation | **Not established** in repo docs | **Not established** in repo docs | **Not established** |
