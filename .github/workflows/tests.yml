@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-# STRATA's tests on every push: the sound engine, the app logic and the whole firmware in fm1-base's simulator
+# STRATA's and PALINDROME's tests on every push: the sound engine, the app logic and the whole firmware in fm1-base's simulator
 # (no JieLi toolchain needed). The firmware itself is built by release.yml when VERSION changes.
 name: Tests
 
@@ -30,6 +30,17 @@ jobs:
           python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
       - name: Tests
         run: sh tests/run_tests.sh
+      - name: PALINDROME's tests (the engine alone, then the whole firmware in the simulator)
+        run: |
+          set -euo pipefail
+          p=instruments/palindrome
+          cc -O2 -DPLAT_HOST -Ibase/include -I"$p/dsp" "$p/tests/dsp.c" "$p/dsp/palindrome.c" -lm -o /tmp/pm-test
+          /tmp/pm-test
+          # the FM-1's toolchain has no C library headers: none may be included outside the simulator's part
+          if grep -nE '#include <(string|stdlib|stdio|math)\.h>' "$p/app.c" "$p/app.h" "$p"/dsp/*.[ch]; then exit 1; fi
+          python3 base/tools/build.py "$p" --host
+          mkdir -p shots/palindrome
+          "$p/build/host/palindrome_host" "$p/tests/basic.txt" shots/palindrome
       - name: Screenshots and the drone, for a look
         if: always()
         run: |
@@ -37,6 +48,7 @@ jobs:
           app/build/host/strata_host app/tests/screens.txt shots || true
           cp app/build/scenarios/basic/*.png app/build/scenarios/basic/*.wav shots/ 2>/dev/null || true
           cp app/build/tests/*.wav shots/ 2>/dev/null || true
+          for f in shots/palindrome/*.png; do [ -f "$f" ] && mv "$f" "shots/palindrome-$(basename "$f")"; done || true
       - name: The screenshots to the ci-shots branch
         if: always()
         run: |

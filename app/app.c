@@ -14,7 +14,7 @@
  *   REC             MUTATE: nudge the sound somewhere nearby
  *   HOME (hold 1 s) the sound back to its defaults
  *   SAVE            keep the sound, the octave and the chord (PLAY brings the chord back after a power-on)
- *   MIDI in         notes play voices while held (CC 64 holds them); CC 20..44 the twenty-five controls
+ *   MIDI in         notes play voices while held (CC 64 holds them); CC 20..31 and 102..114 the twenty-five controls
  *
  * Part of fm1-base's unity build (device/unity.c, host/plat_host.c), after the platform: gfx.c and announce.c are in
  * scope. The sound engine is dsp/strata_dsp.c, a unit of its own at -O2. */
@@ -76,7 +76,7 @@ static const float DEFAULTS[SD_NPARAM] = {
 };
 
 static const char *const P_NAME[SD_NPARAM] = {"TONE", "RATIO", "MOTION", "SPACE", "FILTER", "DRIFT", "GRIT",
-                                              "DEPTH", "BEAT", "FADE", "DECAY", "RESO", "AIR", "SUB",
+                                              "DEPTH", "SHIMMER", "FADE", "DECAY", "RESO", "AIR", "SUB",
                                               "RATE", "SHAPE", "ORDER", "FLOOR",
                                               "TEMPO", "GROOVE", "SWING", "LEVEL", "KIT", "ROOM", "DUCK"};
 static const char *const ORDER_NAME[4] = {"UP", "DOWN", "UP-DN", "RND"};
@@ -310,14 +310,27 @@ static volatile uint8_t cc_moved;        /* a controller changed a control: the 
 static uint8_t sustain;
 static uint32_t midi_held[4];            /* notes held on MIDI, a bit each */
 
+/* the control a controller sets, -1 none: the first twelve on CC 20..31, the rest on CC 102..114. Both runs are
+ * numbers MIDI leaves undefined; CC 32 (bank select) and CC 38 (data entry), which hosts send on their own, set
+ * nothing */
+static int cc_param(uint32_t cc)
+{
+    if (cc >= 20u && cc <= 31u)
+        return (int)(cc - 20u);
+    if (cc >= 102u && cc < 102u + (uint32_t)(SD_NPARAM - 12))
+        return (int)(cc - 102u) + 12;
+    return -1;
+}
+
 static void midi_in(void)                /* audio interrupt */
 {
     uint32_t pkt;
     int port;
     while (plat_midi_in(&pkt, &port)) {
         uint32_t st = (pkt >> 8) & 0xF0u, d1 = (pkt >> 16) & 0x7Fu, d2 = (pkt >> 24) & 0x7Fu;
-        if (st == 0xB0u && d1 >= 20u && d1 < 20u + SD_NPARAM) {   /* CC 20..37 */
-            sd_param((int)(d1 - 20u), (float)d2 * (1.0f / 127.0f));
+        int cp = cc_param(d1);
+        if (st == 0xB0u && cp >= 0) {
+            sd_param(cp, (float)d2 * (1.0f / 127.0f));
             cc_moved = 1;
         } else if (st == 0x90u || st == 0x80u || (st == 0xB0u && (d1 == 64u || d1 == 123u))) {
             if (mq_w - mq_r < MQ) {
@@ -875,7 +888,7 @@ static void input(void)
     if (ui.home_t) {                     /* HOME held a second: the sound back to its defaults */
         if (!(btn >> B_HOME & 1u)) {
             ui.home_t = 0;
-            app_say("HOLD HOME", "TO RESET");
+            app_say("V" APP_VERSION, "HOLD: RESET");   /* a tap: the version, and what a hold does */
         } else if (now - ui.home_t >= 1000u) {
             ui.home_t = 0;
             reset_sound();
@@ -1086,6 +1099,8 @@ void app_ui_init(void)
     lcd_fill(0, 0, 240, 240, C_BLACK);
     ui.touched = -1;
     ui.redraw_head = ui.redraw_params = 1;
+    app_say("VERSION", APP_VERSION);     /* which STRATA this is, for a moment at power-on */
+    ui.msg_until = plat_ms() + 2500u;
 }
 
 void app_frame(void)

@@ -2,11 +2,11 @@
 #pragma once
 #include <stdint.h>
 #include "plat.h"
-#define APP_NAME "PALIMPSEST"
+#define APP_NAME "PALINDROME"
 #define APP_SPLASH_RGB RGB(170, 130, 230)
 #define APP_BLOCK 256u
 #define APP_PALETTE 2u
-/* No patch writes in 0.1: retain the common panel calibration only. */
+/* No patch writes yet: retain the common panel calibration only. */
 enum { OBJ_PANEL, OBJ_NOBJ };
 #define APP_STORE_MAP {0xDC000u}
 void app_init(void);

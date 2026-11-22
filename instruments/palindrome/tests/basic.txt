@@ -29,7 +29,13 @@ wait 700
 wavstop
 expect peak_db_min -45
 shot silt.png
+# HOME: a tap clears nothing; held a second, every voice and the grains off
 tap HOME
+wait 100
+expect grains 1
+press HOME
+wait 1200
+release HOME
 wait 100
 expect voices 0
 expect grains 0

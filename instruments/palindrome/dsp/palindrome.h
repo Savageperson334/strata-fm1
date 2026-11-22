@@ -24,3 +24,10 @@ float pm_fill(void);
 float pm_morph_x(void);
 float pm_morph_y(void);
 int pm_active_grains(void);
+/* for the screen: the memory as the ring it is */
+float pm_head(void);                     /* the write head, 0..1 round the memory */
+void pm_ring(float *lo, float *hi, uint32_t n);   /* the memory by where it lies, in n arcs: each one's lowest and
+                                          * highest sample; an arc not yet written has lo > hi */
+float pm_position(void);                 /* where grains start, 0 newest .. 1 oldest (SCAN's motion in it) */
+int pm_grain(int i, float *at, float *env);   /* grain i: 0 silent, 1 forward, -1 reverse; where it reads (0..1 round
+                                          * the memory) and how loud its window is now (0..1) */

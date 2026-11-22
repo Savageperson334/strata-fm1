@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "app.h"
+#include "fm1b_config.h"                 /* APP_VERSION ("DEV" unless a release build names one) */
 
 /* ---- the stand-in platform ---- */
 typedef struct { uint8_t h; } felucca_font_t;
@@ -240,6 +241,24 @@ int main(void)
     midi(0xB0, 20, 127);                 /* CC 20: TONE */
     run_ms(50);
     expect("p0", 100);
+    {                                    /* CC 32 (bank select) and CC 38 (data entry) set nothing; CC 102 is AIR */
+        int air = (int)(set.param[P_AIR] * 100.0f + 0.5f), tempo = (int)(set.param[P_BTEMPO] * 100.0f + 0.5f);
+        midi(0xB0, 32, 127);
+        midi(0xB0, 38, 127);
+        run_ms(50);
+        expect("p12", air);
+        expect("p18", tempo);
+        midi(0xB0, 102, 0);
+        midi(0xB0, 114, 127);            /* the last one: DUCK */
+        midi(0xB0, 115, 0);              /* past the end: nothing */
+        run_ms(50);
+        expect("p12", 0);
+        expect("p24", 100);
+        set.param[P_AIR] = (float)air * 0.01f;       /* (as they were, for the checks after this) */
+        sd_param(P_AIR, set.param[P_AIR]);
+        set.param[P_BDUCK] = 0.35f;
+        sd_param(P_BDUCK, 0.35f);
+    }
 
     printf("ARP: a tap switches it, a hold and a turn sets it\n");
     int filter_before = (int)(set.param[P_FILTER] * 100.0f + 0.5f);

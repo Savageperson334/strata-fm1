@@ -1,13 +1,13 @@
-name: PALIMPSEST
+name: PALINDROME
 on:
   push:
     branches: [main]
-    paths: ['instruments/palimpsest/**', '.github/workflows/palimpsest.yml', 'scripts/publish-instrument-site.sh']
+    paths: ['instruments/palindrome/**', '.github/workflows/palindrome.yml', 'scripts/publish-instrument-site.sh']
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: palimpsest-build
+  group: palindrome-build
   cancel-in-progress: false
 jobs:
   preview:
@@ -27,8 +27,8 @@ jobs:
         id: version
         run: |
           set -euo pipefail
-          version=$(tr -d ' \r\n' < instruments/palimpsest/VERSION)
-          if git ls-remote --exit-code --tags origin "refs/tags/palimpsest-v$version" >/dev/null 2>&1; then
+          version=$(tr -d ' \r\n' < instruments/palindrome/VERSION)
+          if git ls-remote --exit-code --tags origin "refs/tags/palindrome-v$version" >/dev/null 2>&1; then
             echo "released=true" >> "$GITHUB_OUTPUT"
           else
             echo "released=false" >> "$GITHUB_OUTPUT"
@@ -40,12 +40,12 @@ jobs:
       - name: DSP tests and panel simulator
         run: |
           set -euo pipefail
-          p=instruments/palimpsest
-          cc -O2 -DPLAT_HOST -Ibase/include -I"$p/dsp" "$p/tests/dsp.c" "$p/dsp/palimpsest.c" -lm -o /tmp/pm-test
+          p=instruments/palindrome
+          cc -O2 -DPLAT_HOST -Ibase/include -I"$p/dsp" "$p/tests/dsp.c" "$p/dsp/palindrome.c" -lm -o /tmp/pm-test
           /tmp/pm-test
           python3 base/tools/build.py "$p" --host
           mkdir -p "$p/docs/img"
-          "$p/build/host/palimpsest_host" "$p/tests/basic.txt" "$p/docs/img"
+          "$p/build/host/palindrome_host" "$p/tests/basic.txt" "$p/docs/img"
       - name: Build browser emulator
         run: |
           set -euo pipefail
@@ -54,33 +54,33 @@ jobs:
           "$RUNNER_TEMP/emsdk/emsdk" install 6.0.10
           "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.10
           set +u; source "$RUNNER_TEMP/emsdk/emsdk_env.sh"; set -u
-          python3 base/tools/build.py instruments/palimpsest --web
+          python3 base/tools/build.py instruments/palindrome --web
       - name: Publish playable development preview
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          p=instruments/palimpsest
+          p=instruments/palindrome
           mkdir -p "$RUNNER_TEMP/preview"
           cp -r "$p/build/emu" "$RUNNER_TEMP/preview/emu"
           cp "$p/docs/MANUAL.md" "$RUNNER_TEMP/preview/manual.md"
           cp -r "$p/docs/img" "$RUNNER_TEMP/preview/img"
           cp -r base/web/fonts "$RUNNER_TEMP/preview/fonts"
           cat > "$RUNNER_TEMP/preview/index.html" <<'HTML'
-          <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PALIMPSEST — experimental FM-1 instrument</title><style>body{background:#151420;color:#eadff7;font:18px system-ui;max-width:650px;margin:5rem auto;padding:1.5rem}a{color:#c7a6fa}img{max-width:46%;margin:1%}h1{letter-spacing:.08em}small{color:#c4b6d0}</style><main><a href="../">← STRATA / instruments</a><h1>PALIMPSEST</h1><p>Make sound. Capture it. Scatter it. Write over it.</p><p><a href="emu/">Play the PALIMPSEST emulator</a> · <a href="manual.md">Controls</a></p><p><img src="img/morph.png" alt="MORPH vector synthesis"><img src="img/silt.png" alt="SILT grain controls"></p><p>FX: MORPH. EDIT: SILT. REC: capture mode. PLAY: grains. SEL: more. Start by playing notes and freezing the memory.</p><small>Development preview — browser audio uses the same C DSP as the FM-1. Hardware release is built separately.</small></main></html>
+          <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PALINDROME — experimental FM-1 instrument</title><style>body{background:#151420;color:#eadff7;font:18px system-ui;max-width:650px;margin:5rem auto;padding:1.5rem}a{color:#c7a6fa}img{max-width:46%;margin:1%}h1{letter-spacing:.08em}small{color:#c4b6d0}</style><main><a href="../">← STRATA / instruments</a><h1>PALINDROME</h1><p>Make sound. Capture it. Scatter it. Write over it.</p><p><a href="emu/">Play the PALINDROME emulator</a> · <a href="manual.md">Controls</a></p><p><img src="img/morph.png" alt="MORPH: the square lit"><img src="img/silt.png" alt="SILT: the ring lit"></p><p>FX: MORPH. EDIT: SILT. REC: capture mode. PLAY: grains. SEL: more. Hold HOME to clear. Start by playing notes and freezing the memory.</p><small>Development preview — browser audio uses the same C DSP as the FM-1. Hardware release is built separately.</small></main></html>
           HTML
           # Do not replace an already published installer with a preview of the same version.
-          if git ls-remote --exit-code --tags origin "refs/tags/palimpsest-v$(tr -d ' \r\n' < "$p/VERSION")" >/dev/null 2>&1; then
+          if git ls-remote --exit-code --tags origin "refs/tags/palindrome-v$(tr -d ' \r\n' < "$p/VERSION")" >/dev/null 2>&1; then
             echo "A release for this version exists; leave its site intact."
           else
-            bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/preview" palimpsest
+            bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/preview" palindrome
           fi
       - uses: actions/upload-artifact@v4
         with:
-          name: palimpsest-preview
+          name: palindrome-preview
           path: |
-            instruments/palimpsest/build/emu/
-            instruments/palimpsest/docs/img/
+            instruments/palindrome/build/emu/
+            instruments/palindrome/docs/img/
   firmware:
     needs: preview
     if: needs.preview.outputs.released == 'false'
@@ -96,21 +96,21 @@ jobs:
         set -euo pipefail
         git submodule update --init --recursive
         sudo apt-get install -y -qq libfribidi0
-        p=instruments/palimpsest
+        p=instruments/palindrome
         python3 base/tools/build.py "$p" --host
         mkdir -p "$p/docs/img" build/release-assets
-        "$p/build/host/palimpsest_host" "$p/tests/basic.txt" "$p/docs/img"
+        "$p/build/host/palindrome_host" "$p/tests/basic.txt" "$p/docs/img"
         version=$(tr -d ' \r\n' < "$p/VERSION")
         python3 base/tools/build.py "$p" --release "$version"
-        cp "$p/build/palimpsest-$version.fwsc" build/release-assets/
-        cp "$p/build/palimpsest.bin" "build/release-assets/palimpsest-$version-app.bin"
+        cp "$p/build/palindrome-$version.fwsc" build/release-assets/
+        cp "$p/build/palindrome.bin" "build/release-assets/palindrome-$version-app.bin"
         cp "$p/build/firmware.json" build/release-assets/
       test: |
         set -euo pipefail
-        p=instruments/palimpsest
-        cc -O2 -DPLAT_HOST -Ibase/include -I"$p/dsp" "$p/tests/dsp.c" "$p/dsp/palimpsest.c" -lm -o /tmp/pm-test
+        p=instruments/palindrome
+        cc -O2 -DPLAT_HOST -Ibase/include -I"$p/dsp" "$p/tests/dsp.c" "$p/dsp/palindrome.c" -lm -o /tmp/pm-test
         /tmp/pm-test
-        "$p/build/host/palimpsest_host" "$p/tests/basic.txt" "$p/docs/img"
+        "$p/build/host/palindrome_host" "$p/tests/basic.txt" "$p/docs/img"
       packages: build/release-assets/*
   release:
     needs: [preview, firmware]
@@ -128,8 +128,8 @@ jobs:
           path: build/attested
       - uses: actions/download-artifact@v4
         with:
-          name: palimpsest-preview
-          path: instruments/palimpsest
+          name: palindrome-preview
+          path: instruments/palindrome
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -143,22 +143,22 @@ jobs:
           for f in build/release-assets/*; do
             gh attestation verify "$f" --repo "$GITHUB_REPOSITORY" --signer-workflow zvenson/fm1-build/.github/workflows/build.yml --source-ref "$GITHUB_REF" --source-digest "$GITHUB_SHA"
           done
-          version=$(tr -d ' \r\n' < ../../instruments/palimpsest/VERSION)
-          if ! gh release view "palimpsest-v$version" >/dev/null 2>&1; then
-            gh release create "palimpsest-v$version" --target "$GITHUB_SHA" --title "PALIMPSEST $version (experimental)" --prerelease --latest=false --notes "Experimental alternative FM-1 instrument. Hardware validation pending; try the emulator first." build/release-assets/* SHA256SUMS
+          version=$(tr -d ' \r\n' < ../../instruments/palindrome/VERSION)
+          if ! gh release view "palindrome-v$version" >/dev/null 2>&1; then
+            gh release create "palindrome-v$version" --target "$GITHUB_SHA" --title "PALINDROME $version (experimental)" --prerelease --latest=false --notes "Experimental alternative FM-1 instrument. Hardware validation pending; try the emulator first." build/release-assets/* SHA256SUMS
           fi
       - name: Generate full installer and emulator website
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          p=instruments/palimpsest
+          p=instruments/palindrome
           version=$(tr -d ' \r\n' < "$p/VERSION")
           mkdir -p "$RUNNER_TEMP/pal-release"
           # Download the actual tagged package, including on reruns.
-          gh release download "palimpsest-v$version" --pattern 'palimpsest-*.fwsc' --dir "$RUNNER_TEMP/pal-release"
-          pkg="$RUNNER_TEMP/pal-release/palimpsest-$version.fwsc"
+          gh release download "palindrome-v$version" --pattern 'palindrome-*.fwsc' --dir "$RUNNER_TEMP/pal-release"
+          pkg="$RUNNER_TEMP/pal-release/palindrome-$version.fwsc"
           sudo apt-get install -y -qq rsync
           python3 -m pip install -q Pillow
           python3 base/tools/make_site.py "$p" "$pkg" "$version" "$RUNNER_TEMP/pal-site"
-          bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/pal-site" palimpsest
+          bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/pal-site" palindrome

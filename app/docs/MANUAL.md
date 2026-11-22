@@ -66,7 +66,7 @@ The screen has three parts, top to bottom.
   KNOB4, two on top and two below. Each box shows what the knob sets, its value, the knob's name as printed on the
   panel (ALGORITHM is shortened to ALGO), and a bar. The box you're turning lights up.
 
-![The layer under SEL: DEPTH, BEAT, FADE, DECAY, RESO, AIR and SUB](img/screen-layer2.png "SEL held")
+![The layer under SEL: DEPTH, SHIMMER, FADE, DECAY, RESO, AIR and SUB](img/screen-layer2.png "SEL held")
 
 ---
 
@@ -92,7 +92,7 @@ fine steps, or quickly to cover the whole range.
 | Knob | Control | What it does | Range |
 | --- | --- | --- | --- |
 | KNOB1 | **DEPTH** | How far MOTION moves the tone and the filter | 0–100 |
-| KNOB2 | **BEAT** | A slow beating shimmer between the voice's two halves | 0–3 Hz |
+| KNOB2 | **SHIMMER** | A slow beating shimmer between the voice's two halves | 0–3 Hz |
 | KNOB3 | **FADE** | How long voices take to fade in and out | 0.1–20 s |
 | KNOB4 | **DECAY** | How long the reverb rings, up to nearly endless | 1.5–60 s |
 | SELECT | **RESO** | Filter resonance: a singing peak at the cutoff | 0–100 |
@@ -211,8 +211,9 @@ Three more buttons do something besides PLAY, ARP, SEQ, EDIT and the octave butt
 
 - **REC = MUTATE.** Nudges the seven main controls a little in random directions. Press it a few times to wander
   somewhere new.
-- **HOME, held for one second,** resets the sound to how it started. A quick tap does nothing, so you can't hit it
-  by accident. It doesn't stop the voices.
+- **HOME, held for one second,** resets the sound to how it started. A quick tap only shows which version of STRATA
+  is installed, so you can't reset by accident. It doesn't stop the voices. The version also shows for a moment at
+  power-on.
 - **SAVE** keeps the sound, the octave and the chord that's playing. They come back after you switch off, and PLAY
   starts the saved chord. SAVE stays lit while there's something new to save.
 
@@ -226,9 +227,9 @@ can stay where it is.
 | Sound | Main controls | Under SEL | Play |
 | --- | --- | --- | --- |
 | **Deep organ** | TONE 20, RATIO 1.00, FILTER 800, SPACE 40, DRIFT 20 | SUB 60, FADE 2 s | A low note and the note seven keys up |
-| **Glass bells** | TONE 60, RATIO between 2.50 and 3.00, SPACE 70 | BEAT 0.5 Hz, DECAY 30 s, FADE 3 s | Three or four notes spread across the keys |
+| **Glass bells** | TONE 60, RATIO between 2.50 and 3.00, SPACE 70 | SHIMMER 0.5 Hz, DECAY 30 s, FADE 3 s | Three or four notes spread across the keys |
 | **Dark storm** | GRIT 60, FILTER 300, MOTION 0.05 Hz, SPACE 80 | RESO 60, AIR 50, DEPTH 80, DECAY 60 s | One or two low notes, OCT− pressed once |
-| **Shimmer pad** | TONE 40, RATIO 2.00, DRIFT 60, MOTION 0.20 Hz, SPACE 60 | BEAT 1.0 Hz | A chord of three notes |
+| **Shimmer pad** | TONE 40, RATIO 2.00, DRIFT 60, MOTION 0.20 Hz, SPACE 60 | SHIMMER 1.0 Hz | A chord of three notes |
 | **Music box ripple** | TONE 45, RATIO 3.00, SPACE 70 | DECAY 20 s; ARP on: RATE 3/s, SHAPE 10, ORDER UP-DN, FLOOR 0 | Four notes going up the keys |
 | **Night drive** | TONE 35, RATIO 2.00, FILTER 1.5k, SPACE 50 | ARP on: RATE 1/8, SHAPE 20; SEQ on: TEMPO 118, DRIVE, DUCK 60 | A minor chord of three notes |
 | **Dub space** | TONE 25, RATIO 1.00, SPACE 80 | DECAY 30 s; SEQ on: TEMPO 72, DUB, SWING 60 %, ROOM 70, DUCK 40 | One low note and its fifth |
@@ -246,23 +247,20 @@ STRATA takes MIDI in over USB and the TRS jack, on any channel.
 - **Notes** play voices while held, like a normal synth. The sustain pedal (CC 64) holds them.
 - **CC 123** (all notes off) releases the MIDI voices.
 - Keys tapped on the FM-1 go out over USB as notes, so a computer can record them.
-- **CC 20 to 44** set the twenty-five controls:
+- **CC 20 to 31 and CC 102 to 114** set the twenty-five controls. (Up to 0.4 they ran from CC 20 to 44, which
+  included two numbers that computers and keyboards send on their own.)
 
-| CC | Control | CC | Control |
-| --- | --- | --- | --- |
-| 20 | TONE | 27 | DEPTH |
-| 21 | RATIO | 28 | BEAT |
-| 22 | MOTION | 29 | FADE |
-| 23 | SPACE | 30 | DECAY |
-| 24 | FILTER | 31 | RESO |
-| 25 | DRIFT | 32 | AIR |
-| 26 | GRIT | 33 | SUB |
-| 34 | RATE (arp) | 36 | ORDER (arp) |
-| 35 | SHAPE (arp) | 37 | FLOOR (arp) |
-| 38 | TEMPO (beat) | 42 | KIT (beat) |
-| 39 | GROOVE (beat) | 43 | ROOM (beat) |
-| 40 | SWING (beat) | 44 | DUCK (beat) |
-| 41 | LEVEL (beat) | | |
+| CC | Control | CC | Control | CC | Control |
+| --- | --- | --- | --- | --- | --- |
+| 20 | TONE | 29 | FADE | 108 | TEMPO (beat) |
+| 21 | RATIO | 30 | DECAY | 109 | GROOVE (beat) |
+| 22 | MOTION | 31 | RESO | 110 | SWING (beat) |
+| 23 | SPACE | 102 | AIR | 111 | LEVEL (beat) |
+| 24 | FILTER | 103 | SUB | 112 | KIT (beat) |
+| 25 | DRIFT | 104 | RATE (arp) | 113 | ROOM (beat) |
+| 26 | GRIT | 105 | SHAPE (arp) | 114 | DUCK (beat) |
+| 27 | DEPTH | 106 | ORDER (arp) |  |  |
+| 28 | SHIMMER | 107 | FLOOR (arp) |  |  |
 
 ---
 

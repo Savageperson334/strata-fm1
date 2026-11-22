@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0 */
-#include "palimpsest.h"
+#include "palindrome.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -31,5 +31,5 @@ int main(void){
  }
  pm_panic();assert(run(30)<.00001);
  pm_init();assert(pm_fill()==0);assert(run(20)<.00001);
- puts("PALIMPSEST DSP smoke passed");
+ puts("PALINDROME DSP smoke passed");
 }

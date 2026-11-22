@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 /* Shared device / host / WebAssembly audio engine. No allocation in render. */
-#include "palimpsest.h"
+#include "palindrome.h"
 #include "fastmath.h"
 #include "plat.h"                        /* PLAT_POOL; its clamp is the integer one: floats use fclamp */
 #define MASK (PM_BUFFER-1u)
@@ -23,6 +23,7 @@ static float capture_lp, dc_l, dc_r, prev_l, prev_r, scope[64];
 static volatile float target[PM_PARAMS];
 static float p[PM_PARAMS];
 static float mx,my;
+static volatile float position_now;
 static const float defaults[PM_PARAMS]={
  .35f,.65f,.35f,.5f,.4f,0,.55f,
  .20f,.35f,.35f,.20f,.5f,0,.25f,
@@ -79,6 +80,31 @@ void pm_memory(float *lo,float *hi,uint32_t n){
         lo[i]=a;hi[i]=b;
     }
 }
+float pm_head(void){return (float)wr*(1.0f/PM_BUFFER);}
+float pm_position(void){return position_now;}
+/* The memory where it lies (not by age): a picture that stays put while the head writes over it. */
+void pm_ring(float *lo,float *hi,uint32_t n){
+    uint32_t count=filled,span;
+    if(!n)return;
+    span=PM_BUFFER/n;
+    for(uint32_t i=0;i<n;i++){
+        uint32_t base=i*span;
+        float a=0,b=0;
+        if(base>=count){lo[i]=1;hi[i]=-1;continue;}   /* (before the first lap: written from 0 up to the head) */
+        for(uint32_t j=0;j<8;j++){
+            float v=(float)memory[(base+j*span/8u)&MASK]*(1.f/32768.f);
+            if(v<a)a=v;
+            if(v>b)b=v;
+        }
+        lo[i]=a;hi[i]=b;
+    }
+}
+int pm_grain(int i,float *at,float *env){
+    if(i<0||i>=PM_GRAINS||!grain[i].active)return 0;
+    *at=grain[i].pos*(1.0f/PM_BUFFER);
+    *env=fm_sin_turns(grain[i].age*.5f);
+    return grain[i].speed<0?-1:1;
+}
 static void spawn(float position,float amp){
     if(filled<128)return;
     int s=-1;
@@ -118,6 +144,7 @@ void pm_render(float *left,float *right,uint32_t n){
     float tone=.02f+.62f*p[M_TONE]*p[M_TONE];
     float scan=p[G_SCAN];scan_phase=wrap(scan_phase+scan*.3f*(float)n*INV_RATE);
     float position=fclamp(p[S_POS]+scan*.45f*fm_sin_turns(scan_phase),0,1);
+    position_now=position;
     float rate=1.f+39.f*p[S_DENSITY]*p[S_DENSITY];
     float modal_decay=1.f-1.f/(2205.f+132300.f*p[M_EXCITE]*p[M_EXCITE]);
     int mode=capture,on=grains_on;
