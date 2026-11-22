@@ -117,7 +117,8 @@ void bb_mutate(bb_mind*m){
  int op=roll(m,m->grammar>.6f?3:6);
  if(op==0&&nn)m->tok[nouns[roll(m,nn)]]=noun(m);
  else if(op==1&&nn>1){
-  int a=nouns[roll(m,nn)],b=nouns[roll(m,nn)];
+  int ai=roll(m,nn),bi=(ai+1+roll(m,nn-1))%nn;
+  int a=nouns[ai],b=nouns[bi];
   bb_token t=m->tok[a];m->tok[a]=m->tok[b];m->tok[b]=t;
  }else if(op==2&&na)m->tok[adjs[roll(m,na)]]=make(adj[roll(m,SZ(adj))],BB_ADJ);
  else if(op==3&&m->count<BB_MAX_TOKENS-1&&m->count>2){
