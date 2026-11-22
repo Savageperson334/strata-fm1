@@ -16,11 +16,13 @@ for attempt in 1 2 3 4 5; do
   cd "$tmp/pages"
   git config user.name "github-actions[bot]"
   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+  # (--checksum: a page whose only change is the version number has the same size as the one just cloned, and
+  # often the same second on its clock, which rsync would otherwise take for unchanged)
   if [ "$instrument" = strata ]; then
-    rsync -a --delete --exclude=.git --exclude=/palindrome/ --exclude=/palimpsest/ "$src/" ./
+    rsync -a --checksum --delete --exclude=.git --exclude=/palindrome/ --exclude=/palimpsest/ "$src/" ./
   else
     mkdir -p palindrome
-    rsync -a --delete "$src/" palindrome/
+    rsync -a --checksum --delete "$src/" palindrome/
   fi
   # The old address: one small page that forwards to the new one.
   if [ -f palindrome/index.html ]; then
