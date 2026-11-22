@@ -1,4 +1,18 @@
-# STRATA
+# STRATA and PALIMPSEST
+
+Two custom firmwares for the M-VAVE FM-1 live in this repository. They are separate instruments with separate
+versions, releases and installers; the FM-1 holds one at a time, and either installer can put the other (or
+M-VAVE's own firmware) back.
+
+| Firmware | What it is | Status | Site |
+| --- | --- | --- | --- |
+| **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | <https://savageperson334.github.io/strata-fm1/> |
+| **PALIMPSEST** | An alternate instrument: MORPH blends four synthesis methods, SILT captures and granulates the sound | Experimental prerelease (`palimpsest-vX.Y`) | <https://savageperson334.github.io/strata-fm1/palimpsest/> |
+
+PALIMPSEST's source, manual and build notes are in [instruments/palimpsest](instruments/palimpsest). The rest of
+this page is about STRATA.
+
+## STRATA
 
 A drone and texture synth firmware for the M-VAVE FM-1. One mode, no menus, every knob live.
 
@@ -28,6 +42,8 @@ USB, click Connect, then Install. **Manual:** <https://savageperson334.github.io
 | `app/fm1.toml` | Build and site settings |
 | `app/tests/` | Scenarios for fm1-base's host simulator |
 | `tests/` | The engine rendered to WAV and checked; the app logic on a stand-in platform; `run_tests.sh` |
+| `instruments/palimpsest/` | PALIMPSEST, the alternate firmware: its own app, engine, tests, manual and `VERSION` |
+| `scripts/publish-instrument-site.sh` | Publishes one firmware's site to GitHub Pages without touching the other's |
 | `base/` | [fm1-base](https://github.com/charlesvestal/fm1-base) (git submodule), with felucca-bsp |
 
 ## Building
@@ -35,6 +51,8 @@ USB, click Connect, then Install. **Manual:** <https://savageperson334.github.io
 You don't need to build it yourself. Changing `VERSION` on `main` makes GitHub build the firmware from source with the shared
 FM-1 builder, run the tests, publish a signed release, and put the installer site on GitHub Pages
 (`.github/workflows/release.yml`). Every push to `main` runs the tests (`.github/workflows/tests.yml`).
+PALIMPSEST builds, releases and publishes on its own when `instruments/palimpsest/` changes
+(`.github/workflows/palimpsest.yml`), from `instruments/palimpsest/VERSION`.
 
 To build locally on Linux x86-64 (or macOS with Docker), see fm1-base's README for the JieLi toolchain and the AC79
 SDK, then:

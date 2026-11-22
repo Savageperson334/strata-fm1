@@ -1,6 +1,10 @@
 # PALIMPSEST
 
-A separate firmware from STRATA. See [manual](docs/MANUAL.md).
+A separate firmware from STRATA. See [manual](docs/MANUAL.md). Site, emulator and installer:
+<https://savageperson334.github.io/strata-fm1/palimpsest/>.
+
+The FM-1's toolchain has no C library headers: keep `<string.h>` and friends out of `app.c` and `dsp/` (the
+simulator-only `app_expect` is inside `#ifdef PLAT_HOST`), and note that `plat.h` already defines an integer `clamp`.
 
 From the repository root, after initializing the base submodule and installing its prerequisites:
 

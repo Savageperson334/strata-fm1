@@ -2,8 +2,7 @@
 /* Shared device / host / WebAssembly audio engine. No allocation in render. */
 #include "palimpsest.h"
 #include "fastmath.h"
-#include "plat.h"
-#include <string.h>
+#include "plat.h"                        /* PLAT_POOL; its clamp is the integer one: floats use fclamp */
 #define MASK (PM_BUFFER-1u)
 #define INV_RATE (1.0f/44100.0f)
 static int16_t memory[PM_BUFFER] PLAT_POOL;
@@ -28,7 +27,7 @@ static const float defaults[PM_PARAMS]={
  .35f,.65f,.35f,.5f,.4f,0,.55f,
  .20f,.35f,.35f,.20f,.5f,0,.25f,
  .65f,.20f,0,.4f,.65f,.35f,.75f};
-static float clamp(float x,float a,float b){return x<a?a:x>b?b:x;}
+static float fclamp(float x,float a,float b){return x<a?a:x>b?b:x;}
 static float wrap(float x){return x-fm_floorf(x);}
 static float rnd(void){rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return (float)(rng>>8)*(1.0f/16777216.0f);}
 static float soft(float x){return x/(1.0f+(x<0?-x:x));}
@@ -45,8 +44,12 @@ void pm_panic(void){
     capture_lp=dc_l=dc_r=prev_l=prev_r=0;
 }
 void pm_init(void){
-    memset(memory,0,sizeof memory);memset(voice,0,sizeof voice);
-    memset(grain,0,sizeof grain);memset(scope,0,sizeof scope);
+    /* (plain loops: the FM-1's toolchain has no <string.h>) */
+    static const Voice voice0;static const Grain grain0;
+    for(uint32_t i=0;i<PM_BUFFER;i++)memory[i]=0;
+    for(int i=0;i<PM_VOICES;i++)voice[i]=voice0;
+    for(int i=0;i<PM_GRAINS;i++)grain[i]=grain0;
+    for(int i=0;i<64;i++)scope[i]=0;
     wr=filled=half=scope_wr=burst_request=burst_seen=0;
     rng=0x9f26ad31u;half_sample=clock_phase=scan_phase=launch=0;
     capture=PM_LIVE;pm_panic();
@@ -90,7 +93,7 @@ static void spawn(float position,float amp){
     float safety=32.f+(speed>0?speed:0.f)*seconds*44100.f;
     if(capture!=PM_FREEZE && safety>span)safety=span;
     if(capture==PM_FREEZE)safety=2.f;
-    float t=clamp(position+(rnd()-.5f)*p[S_SPRAY],0,1);
+    float t=fclamp(position+(rnd()-.5f)*p[S_SPRAY],0,1);
     float behind=safety+t*(span-safety);
     g->pos=(float)wr-behind;
     while(g->pos<0)g->pos+=PM_BUFFER;
@@ -108,13 +111,13 @@ void pm_render(float *left,float *right,uint32_t n){
     for(int j=0;j<PM_PARAMS;j++)p[j]+=(target[j]-p[j])*.15f;
     float w[4], motion=p[M_MOVE];
     clock_phase=wrap(clock_phase+(float)n*INV_RATE*(.015f+motion*motion*1.2f));
-    mx=clamp(p[M_X]+motion*.35f*fm_sin_turns(clock_phase),0,1);
-    my=clamp(p[M_Y]+motion*.35f*fm_sin_turns(clock_phase+.25f),0,1);
+    mx=fclamp(p[M_X]+motion*.35f*fm_sin_turns(clock_phase),0,1);
+    my=fclamp(p[M_Y]+motion*.35f*fm_sin_turns(clock_phase+.25f),0,1);
     w[0]=(1-mx)*my;w[1]=mx*my;w[2]=(1-mx)*(1-my);w[3]=mx*(1-my);
     float fade=1.0f/(441.f+88200.f*p[G_FADE]*p[G_FADE]);
     float tone=.02f+.62f*p[M_TONE]*p[M_TONE];
     float scan=p[G_SCAN];scan_phase=wrap(scan_phase+scan*.3f*(float)n*INV_RATE);
-    float position=clamp(p[S_POS]+scan*.45f*fm_sin_turns(scan_phase),0,1);
+    float position=fclamp(p[S_POS]+scan*.45f*fm_sin_turns(scan_phase),0,1);
     float rate=1.f+39.f*p[S_DENSITY]*p[S_DENSITY];
     float modal_decay=1.f-1.f/(2205.f+132300.f*p[M_EXCITE]*p[M_EXCITE]);
     int mode=capture,on=grains_on;
@@ -198,7 +201,7 @@ void pm_render(float *left,float *right,uint32_t n){
                 float in=(half_sample+capture_lp)*.5f;
                 if(mode==PM_OVERDUB)
                     in=.25f*in+(float)memory[wr]*(1.f/32768.f)*(.55f+.40f*p[S_FEEDBACK]);
-                memory[wr]=(int16_t)(clamp(in,-.999f,.999f)*32767.f);
+                memory[wr]=(int16_t)(fclamp(in,-.999f,.999f)*32767.f);
                 wr=(wr+1u)&MASK;if(filled<PM_BUFFER)filled++;
             }
         }

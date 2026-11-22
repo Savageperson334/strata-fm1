@@ -2,7 +2,6 @@
 /* FM-1 panel for the independent PALIMPSEST instrument. */
 #include "palimpsest.h"
 #include "fastmath.h"
-#include <string.h>
 static int mode, octave, recording, running, slots[PM_VOICES], replace_at;
 static uint32_t old_keys, old_btn, frames;
 static float gain_now;
@@ -140,6 +139,7 @@ static void draw(void){
 }
 void app_ui_init(void){lcd_fill(0,0,240,240,C_BLACK);draw();}
 void app_frame(void){app_input_only();if((++frames&3u)==0)draw();}
+#ifdef PLAT_HOST                         /* the simulator's checks (strcmp: the FM-1's toolchain has no <string.h>) */
 int app_expect(const char *what,int *got){
     if(!strcmp(what,"mode"))*got=mode;
     else if(!strcmp(what,"voices"))*got=voices();
@@ -149,3 +149,4 @@ int app_expect(const char *what,int *got){
     else return 0;
     return 1;
 }
+#endif
