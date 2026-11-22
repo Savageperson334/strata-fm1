@@ -1,31 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="BabbleBeat turns the M-VAVE FM-1 into a grammar-driven, glitching robotic speech synthesizer.">
-<title>BabbleBeat · a sentence machine with a faulty mouth</title>
-<style>
-body {font-family: system-ui,-apple-system,"Segoe UI",sans-serif;}
-.babble-hero {max-width: 60rem; margin: 2.5rem auto 2rem;}
-.babble-eyebrow {font:700 .75rem/1.5 ui-monospace,Consolas,monospace; letter-spacing:.2em; color:var(--hot); margin:0 0 .8rem;}
-.babble-hero h1 {font:800 clamp(3rem,9vw,6rem)/.95 system-ui,sans-serif; letter-spacing:-.055em; color:var(--ink); margin:0 0 1.4rem;}
-.babble-lede {font:400 clamp(1.2rem,3vw,1.6rem)/1.4 system-ui,sans-serif; max-width:45rem; margin:0 0 1.5rem;}
-.babble-actions {display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:2rem 0;}
-.babble-actions a {border:1px solid var(--rule); color:var(--ink); border-radius:9px; padding:11px 16px; text-decoration:none; font-weight:650;}
-.babble-actions a.primary {background:var(--hot);color:#231b20;border-color:var(--hot);}
-.babble-actions a:hover {border-color:var(--hot);}
-.babble-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; max-width:60rem; margin:2rem auto;}
-.babble-card {border:1px solid var(--rule); background:var(--sheet); border-radius:13px; padding:22px;}
-.babble-card h2 {margin:0 0 .7rem;font:750 1.2rem system-ui,sans-serif;color:var(--hot-ink);border:0;padding:0;}
-.babble-card p {margin:0;line-height:1.65;}
-.babble-example {margin:2rem 0;padding:22px;border:1px solid var(--rule);border-left:4px solid var(--hot);border-radius:9px;background:var(--sheet);}
-.babble-example p {font:500 1.12rem/1.5 ui-monospace,Consolas,monospace;}
-.babble-micro {color:var(--muted);font-size:.9rem;}
-.babble-controls {max-width:60rem;margin:2rem auto;font-size:.95rem;line-height:1.7;}
-.babble-controls strong {color:var(--hot-ink);}
-@media(max-width:650px){.babble-grid{grid-template-columns:1fr}.babble-card{padding:18px}.babble-hero{margin-top:1rem;}}
-</style>
 <style id="fm1nav-style">
 #fm1nav{max-width:46rem;margin:0 auto 1.4rem;padding:12px 0 10px;display:flex;flex-direction:column;align-items:flex-end;
 gap:8px;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -70,45 +42,4 @@ body:has(.devicebox) > header h1 { color: var(--accent); }
   #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
 }
 
-</style>
-</head>
-<body>
-<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="emu/">Emulator</a><a href="manual/">Manual</a><a href="install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../">STRATA</a><a href="../palindrome/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav>
-<main>
-  <div class="babble-hero">
-    <p class="babble-eyebrow">FM-1 · THIRD INSTRUMENT · EXPERIMENTAL</p>
-    <h1>BABBLE<br>BEAT</h1>
-    <p class="babble-lede">A grammar-driven sentence machine with a faulty little mouth. Give it a vocabulary, change how it thinks, then play the words like notes.</p>
-    <p>Structured language first. Deliberate mutations second. Robotic voice third.</p>
-    <div class="babble-actions">
-      <a class="primary" href="emu/">Play BabbleBeat in your browser</a>
-      <a href="manual/">Read the controls</a>
-      <a href="install/">Hardware status</a>
-    </div>
-    <p class="babble-micro">Prototype v0.1 · Browser-first · Firmware installation is not enabled yet</p>
-  </div>
-  <section class="babble-grid" aria-label="The two parts of BabbleBeat">
-    <div class="babble-card">
-      <h2>EDIT / THE MIND</h2>
-      <p>Generate sentences from 18 grammatical patterns: questions, negation, past and future forms, conditional clauses, relatives and contrasts. Twist GRAMMAR and DAMAGE to rewrite the syntax or begin losing words. REC remembers a noun and RECALL brings it back.</p>
-    </div>
-    <div class="babble-card">
-      <h2>FX / THE MOUTH</h2>
-      <p>A compact formant-synthesis robot that says the words: gliding formants, hisses and stops, a pitch line over each sentence. Bend pitch, rate, tone, breath and stutter. Press piano keys to articulate successive words at different pitches.</p>
-    </div>
-  </section>
-  <section class="babble-example">
-    <p class="babble-eyebrow">LANGUAGE EXAMPLES</p>
-    <p>The silent circuit remembers the ghost.</p>
-    <p>If the ghost whispers, the machine follows the moon.</p>
-    <p>The machine did not remember the castle.</p>
-    <p class="babble-micro">Examples of supported structures; actual sentences are generated from random vocabulary.</p>
-  </section>
-  <section class="babble-controls">
-    <h2>Start in five seconds</h2>
-    <p>Every <strong>white key</strong> has a word and says a phrase about it. The <strong>black key</strong> beside it says the same word another way: a question, a &ldquo;not&rdquo;, a &ldquo;was&rdquo;. <strong>SEQ</strong> gives the key a new word, <strong>REC</strong> remembers it, <strong>PLAY</strong> babbles about it. <strong>SEL</strong> steps through the knobs: voice, mouth, words. Hold <strong>GLO</strong> for a guide on the screen.</p>
-    <p class="babble-micro">BabbleBeat, STRATA and PALINDROME are independent firmwares. The browser emulator uses the same C engine as the hardware target. Hardware sound and flash safety are not yet validated.</p>
-  </section>
-</main>
-</body>
-</html>
+</style><!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BabbleBeat — experimental FM-1 instrument</title><nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="emu/">Emulator</a><a href="manual/">Manual</a><a href="install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../">STRATA</a><a href="../palindrome/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav><main><h1>BabbleBeat</h1><p>A word on every key, and a tiny robotic voice.</p><p><a href="emu/">Play the BabbleBeat emulator</a> · <a href="manual.md">Controls</a></p><small>Development preview. The firmware release is built separately.</small></main></html>
