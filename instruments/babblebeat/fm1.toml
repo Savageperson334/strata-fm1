@@ -12,6 +12,6 @@ licence = "MPL-2.0"
 author = "Savageperson334"
 credits = "Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments)."
 description = "BabbleBeat builds short grammatical sentences from four curated vocabulary worlds, then mutates syntax, remembers nouns, and speaks through a tiny robotic formant engine. Experimental prototype: no general text-to-speech or CHIMERA physical vocal tract."
-tags = ["synth", "voice", "generative"]
+tags = ["synth", "generative", "experimental"]
 site = "https://savageperson334.github.io/strata-fm1/babblebeat/"
 install = "https://savageperson334.github.io/strata-fm1/babblebeat/install/"
