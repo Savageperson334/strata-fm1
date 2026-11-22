@@ -69,9 +69,10 @@ jobs:
           cat > "$RUNNER_TEMP/preview/index.html" <<'HTML'
           <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PALINDROME — experimental FM-1 instrument</title><style>body{background:#151420;color:#eadff7;font:18px system-ui;max-width:650px;margin:5rem auto;padding:1.5rem}a{color:#c7a6fa}img{max-width:46%;margin:1%}h1{letter-spacing:.08em}small{color:#c4b6d0}</style><main><a href="../">← STRATA / instruments</a><h1>PALINDROME</h1><p>Make sound. Capture it. Scatter it. Write over it.</p><p><a href="emu/">Play the PALINDROME emulator</a> · <a href="manual.md">Controls</a></p><p><img src="img/morph.png" alt="MORPH: the square lit"><img src="img/silt.png" alt="SILT: the ring lit"></p><p>FX: MORPH. EDIT: SILT. REC: capture mode. PLAY: grains. SEL: more. Hold HOME to clear. Start by playing notes and freezing the memory.</p><small>Development preview — browser audio uses the same C DSP as the FM-1. Hardware release is built separately.</small></main></html>
           HTML
-          # Do not replace an already published installer with a preview of the same version.
-          if git ls-remote --exit-code --tags origin "refs/tags/palindrome-v$(tr -d ' \r\n' < "$p/VERSION")" >/dev/null 2>&1; then
-            echo "A release for this version exists; leave its site intact."
+          # Do not replace a published installer, manual and emulator with a preview: once any PALINDROME release
+          # exists, the site changes only when the release job below publishes the next one whole.
+          if [ -n "$(git ls-remote --tags origin 'refs/tags/palindrome-v*')" ]; then
+            echo "A PALINDROME release exists; leave its site intact until the next release is published."
           else
             bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/preview" palindrome
           fi
