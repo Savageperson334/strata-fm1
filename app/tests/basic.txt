@@ -109,3 +109,24 @@ shot arp.png
 tap ARP
 wait 50
 expect arp 0
+# SEQ: a tap starts the beat; held with a turn of K1 it sets TEMPO without stopping
+tap SEQ
+wait 50
+expect beat 1
+wav beat.wav
+wait 1500
+wavstop
+expect peak_db_min -40
+press SEQ
+wait 50
+expect layer 3
+turn K1 1
+wait 100
+release SEQ
+wait 50
+expect beat 1
+expect p18 32
+shot beat.png
+tap SEQ
+wait 50
+expect beat 0

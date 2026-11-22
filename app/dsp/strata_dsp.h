@@ -29,6 +29,14 @@ enum {
     P_ASHAPE,                            /* each step's swell: sharp (a pluck) .. smooth (a slow crossfade) */
     P_AORDER,                            /* UP, DOWN, UP-DOWN, RANDOM (four quarters of the range) */
     P_AFLOOR,                            /* how loud the voices off the step stay: silent .. nearly full */
+    /* the beat's (the panel's SEQ-held layer) */
+    P_BTEMPO,                            /* 60 .. 160 BPM */
+    P_BGROOVE,                           /* one of SD_GROOVES patterns */
+    P_BSWING,                            /* 50 .. 75 % */
+    P_BLEVEL,                            /* the drums' level */
+    P_BKIT,                              /* the kit: dark and low .. bright and snappy */
+    P_BROOM,                             /* how much of the drums goes into the reverb */
+    P_BDUCK,                             /* the drone ducks under the kick: none .. deep pumping */
     SD_NPARAM
 };
 
@@ -51,6 +59,18 @@ float sd_lfo(void);                      /* the MOTION LFO, -1..1 */
 void sd_arp(int on);
 int sd_arp_on(void);
 int sd_arp_slot(void);                   /* the voice on the step now, -1 none */
+
+/* the beat: a synthesized kit (kick, snare, closed and open hat, a percussion voice tuned an octave above the lowest
+ * voice) playing one of SD_GROOVES 16-step patterns under the drone. While it runs, the arp steps on its grid
+ * (RATE picks a whole note .. a sixteenth) */
+#define SD_GROOVES 8
+void sd_beat(int on);                    /* on: from the first step */
+int sd_beat_on(void);
+int sd_beat_step(void);                  /* 0..15, the step playing now; -1 off */
+const char *sd_groove_name(float v);
+float sd_tempo_bpm(float v);
+float sd_swing_pct(float v);
+const char *sd_arp_div_name(float v);    /* RATE as a note length, while the beat runs */
 
 /* readable values for the screen */
 float sd_ratio_of(float v);

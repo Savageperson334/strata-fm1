@@ -225,7 +225,65 @@ int main(int argc, char **argv)
     check(sd_arp_slot() == -1, "arp off");
     wav_close();
 
-    /* 7. an hour of drone at the longest decay, resonance high: stable, no denormal slow-down, no drift to DC */
+    /* 7. the beat: steps at the tempo, every groove plays clean, the drone ducks, the arp follows the grid */
+    scene(dir, "beat");
+    sd_panic();
+    for (i = 0; i < SD_NPARAM; i++)
+        sd_param(i, 0.35f);
+    sd_param(P_FADE, 0.1f);
+    sd_param(P_BTEMPO, 0.6f);            /* 120 BPM: 8 sixteenths a second */
+    sd_param(P_BSWING, 0.0f);
+    sd_param(P_BGROOVE, 0.0f);
+    sd_param(P_BDUCK, 0.8f);
+    sd_param(P_BLEVEL, 0.7f);
+    sd_voice_on(0, 45);
+    sd_voice_on(1, 52);
+    render_s(1.0);
+    sd_beat(1);
+    {
+        float l[BLOCK], r[BLOCK];
+        int b, k, last = -1, steps = 0, arp_changes = 0, arp_last = -2;
+        reset_stats();
+        for (b = 0; b < (int)(4.0 * 44100.0 / BLOCK); b++) {
+            sd_render(l, r, BLOCK);
+            if (sd_beat_step() != last) { steps++; last = sd_beat_step(); }
+            for (k = 0; k < (int)BLOCK; k++) {
+                if (fabs(l[k]) > st.peak) st.peak = fabs(l[k]);
+                if (!isfinite(l[k])) st.bad++;
+                if (wav) { int16_t s2[2] = {(int16_t)lrintf(l[k] * 32000.0f), (int16_t)lrintf(r[k] * 32000.0f)}; fwrite(s2, 2, 2, wav); wav_frames++; }
+            }
+        }
+        printf("    beat: %d steps in 4 s at 120 BPM, peak %.3f\n", steps, st.peak);
+        check(steps >= 30 && steps <= 34, "the beat keeps tempo (32 sixteenths in 4 s)");
+        check(st.bad == 0 && st.peak <= 1.0, "drums and drone together stay in range");
+        /* the arp on the grid: quarter notes at 120 BPM = 2 steps a second */
+        sd_param(P_ARATE, 0.5f);         /* 1/4 */
+        sd_arp(1);
+        for (b = 0; b < (int)(4.0 * 44100.0 / BLOCK); b++) {
+            sd_render(l, r, BLOCK);
+            if (sd_arp_slot() != arp_last) { arp_changes++; arp_last = sd_arp_slot(); }
+            for (k = 0; k < (int)BLOCK; k++)
+                if (wav) { int16_t s2[2] = {(int16_t)lrintf(l[k] * 32000.0f), (int16_t)lrintf(r[k] * 32000.0f)}; fwrite(s2, 2, 2, wav); wav_frames++; }
+        }
+        printf("    arp on the beat: %d changes in 4 s (quarters: about 8)\n", arp_changes);
+        check(arp_changes >= 7 && arp_changes <= 10, "the arp steps on the beat's quarter notes");
+        sd_arp(0);
+    }
+    for (i = 0; i < SD_GROOVES; i++) {   /* every groove, swung, bright kit */
+        sd_param(P_BGROOVE, ((float)i + 0.5f) / (float)SD_GROOVES);
+        sd_param(P_BSWING, 0.7f);
+        sd_param(P_BKIT, (float)i / 7.0f);
+        reset_stats();
+        render_s(2.0);
+        if (st.bad || st.peak > 1.0) { printf("  FAIL groove %s\n", sd_groove_name(((float)i + 0.5f) / 8.0f)); fails++; }
+    }
+    check(1, "all eight grooves render in range");
+    sd_beat(0);
+    render_s(1.0);
+    check(sd_beat_step() == -1, "beat off");
+    wav_close();
+
+    /* 8. an hour of drone at the longest decay, resonance high: stable, no denormal slow-down, no drift to DC */
     printf("hour\n");
     sd_param(P_DECAY, 1.0f);
     sd_param(P_RESO, 0.95f);

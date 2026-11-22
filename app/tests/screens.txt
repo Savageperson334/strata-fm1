@@ -26,3 +26,12 @@ turn K1 1
 wait 200
 shot screen-arp.png
 release ARP
+wait 100
+tap SEQ
+wait 1700
+press SEQ
+wait 60
+turn K2 1
+wait 200
+shot screen-beat.png
+release SEQ

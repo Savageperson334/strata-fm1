@@ -277,6 +277,62 @@ int main(void)
     btn_tap(B_ARP);
     expect("arp", 0);
 
+    printf("SEQ: a tap starts the beat, a hold and a turn sets it\n");
+    expect("beat", 0);
+    btn_tap(B_SEQ);
+    expect("beat", 1);
+    {
+        int k, last = -9, changes = 0;
+        for (k = 0; k < 60; k++) { run_ms(32); if (sd_beat_step() != last) { changes++; last = sd_beat_step(); } }
+        if (changes < 8) { printf("  FAIL beat steps %d\n", changes); fails++; } else printf("  ok   the beat steps (%d)\n", changes);
+    }
+    btn_now |= 1u << B_SEQ;
+    run_ms(50);
+    expect("layer", 3);
+    enc_pending[EN_K1] = 1;              /* TEMPO */
+    run_ms(100);
+    enc_pending[EN_PRESET] = 1;          /* DUCK */
+    run_ms(100);
+    btn_now &= ~(1u << B_SEQ);
+    run_ms(50);
+    expect("beat", 1);
+    expect("layer", 0);
+    expect("p18", 32);                   /* TEMPO 0.30 + 1/64 */
+    expect("p24", 37);                   /* DUCK 0.35 + 1/64 */
+    btn_tap(B_SAVE);
+    memset(&set, 0, sizeof set);
+    app_init();
+    run_ms(50);
+    expect("beat", 1);
+    expect("p18", 32);
+    btn_tap(B_SEQ);
+    expect("beat", 0);
+
+    printf("0.2's saved sound carries over\n");
+    {
+        settings_v2_t v2;
+        int i;
+        memset(&v2, 0, sizeof v2);
+        v2.magic = SET_MAGIC_V2;
+        for (i = 0; i < 18; i++) v2.param[i] = 0.5f;
+        v2.param[14] = 0.66f;
+        v2.octave = -2;
+        v2.nchord = 2;
+        v2.chord[0] = 45; v2.chord[1] = 52;
+        v2.arp = 1;
+        memcpy(store, &v2, sizeof v2);
+        store_len = (int)sizeof v2;
+        memset(&set, 0, sizeof set);
+        app_init();
+        run_ms(50);
+        expect("p14", 66);
+        expect("arp", 1);
+        expect("octave", -2);
+        expect("beat", 0);
+        expect("p18", 30);
+        btn_tap(B_ARP);
+    }
+
     printf("0.1's saved sound carries over\n");
     {
         settings_v1_t v1;

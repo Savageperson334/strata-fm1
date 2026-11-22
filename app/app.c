@@ -4,12 +4,13 @@
  *   keys            tap to start a drone voice at that note, tap again to let it fade (up to six at once)
  *   K1..K4, SELECT, ALGO, PRESET   the seven main controls; hold SEL for the seven more beneath them
  *   ARP             tap: the arpeggiator on / off; hold ARP and turn K1..K4: RATE, SHAPE, ORDER, FLOOR
+ *   SEQ             tap: the beat on / off; hold SEQ and turn the seven: TEMPO, GROOVE, SWING, LEVEL, KIT, ROOM, DUCK
  *   PLAY            all voices out (the chord is kept); again, the chord back in
  *   OCT- / OCT+     the keys' octave
  *   REC             MUTATE: nudge the sound somewhere nearby
  *   HOME (hold 1 s) the sound back to its defaults
  *   SAVE            keep the sound, the octave and the chord (PLAY brings the chord back after a power-on)
- *   MIDI in         notes play voices while held (CC 64 holds them); CC 20..37 the eighteen controls
+ *   MIDI in         notes play voices while held (CC 64 holds them); CC 20..44 the twenty-five controls
  *
  * Part of fm1-base's unity build (device/unity.c, host/plat_host.c), after the platform: gfx.c and announce.c are in
  * scope. The sound engine is dsp/strata_dsp.c, a unit of its own at -O2. */
@@ -17,7 +18,8 @@
 #include "strata_dsp.h"
 
 /* --------------------------------------------------------------- settings --- */
-#define SET_MAGIC 0x53545232u            /* "STR2" (0.2, with the arp): another magic loads the defaults */
+#define SET_MAGIC 0x53545233u            /* "STR3" (0.3, with the beat): another magic loads the defaults */
+#define SET_MAGIC_V2 0x53545232u         /* "STR2" (0.2): read and carried over (settings_v2_t) */
 #define SET_MAGIC_V1 0x53545231u         /* "STR1" (0.1): read and carried over (settings_v1_t) */
 typedef struct {
     uint32_t magic;
@@ -26,8 +28,18 @@ typedef struct {
     uint8_t nchord;                      /* the chord PLAY brings back */
     uint8_t chord[SD_VOICES];
     uint8_t arp;                         /* the arpeggiator on */
-    uint8_t rsv[3];
+    uint8_t beat;                        /* the beat on */
+    uint8_t rsv[2];
 } settings_t;
+typedef struct {                         /* 0.2's record: 18 controls, the arp */
+    uint32_t magic;
+    float param[18];
+    int8_t octave;
+    uint8_t nchord;
+    uint8_t chord[SD_VOICES];
+    uint8_t arp;
+    uint8_t rsv[3];
+} settings_v2_t;
 typedef struct {                         /* 0.1's record: 14 controls, no arp */
     uint32_t magic;
     float param[14];
@@ -43,11 +55,13 @@ static const float DEFAULTS[SD_NPARAM] = {
     0.35f, 0.10f, 0.25f, 0.45f, 0.55f, 0.30f, 0.08f,   /* TONE RATIO MOTION SPACE FILTER DRIFT GRIT */
     0.40f, 0.15f, 0.45f, 0.60f, 0.20f, 0.10f, 0.25f,   /* DEPTH BEAT FADE DECAY RESO AIR SUB */
     0.45f, 0.55f, 0.00f, 0.15f,                        /* RATE SHAPE ORDER FLOOR (the arp) */
+    0.30f, 0.00f, 0.20f, 0.60f, 0.40f, 0.25f, 0.35f,   /* TEMPO GROOVE SWING LEVEL KIT ROOM DUCK (the beat) */
 };
 
 static const char *const P_NAME[SD_NPARAM] = {"TONE", "RATIO", "MOTION", "SPACE", "FILTER", "DRIFT", "GRIT",
                                               "DEPTH", "BEAT", "FADE", "DECAY", "RESO", "AIR", "SUB",
-                                              "RATE", "SHAPE", "ORDER", "FLOOR"};
+                                              "RATE", "SHAPE", "ORDER", "FLOOR",
+                                              "TEMPO", "GROOVE", "SWING", "LEVEL", "KIT", "ROOM", "DUCK"};
 static const char *const ORDER_NAME[4] = {"UP", "DOWN", "UP-DN", "RND"};
 /* the encoders, in the order the screen shows them: K1 K2 K3 K4 on top, SELECT ALGO PRESET below */
 static const uint8_t ENC_OF_CELL[7] = {EN_K1, EN_K2, EN_K3, EN_K4, EN_SELECT, EN_ALGO, EN_PRESET};
@@ -66,14 +80,15 @@ static void settings_defaults(void)
     for (i = 2; i < SD_VOICES; i++)
         set.chord[i] = 0;
     set.arp = 0;
-    for (i = 0; i < 3; i++)
+    set.beat = 0;
+    for (i = 0; i < 2; i++)
         set.rsv[i] = 0;
 }
 
 static int settings_ok(void)
 {
     int i;
-    if (set.magic != SET_MAGIC || set.octave < -3 || set.octave > 2 || set.nchord > SD_VOICES || set.arp > 1u)
+    if (set.magic != SET_MAGIC || set.octave < -3 || set.octave > 2 || set.nchord > SD_VOICES || set.arp > 1u || set.beat > 1u)
         return 0;
     for (i = 0; i < SD_NPARAM; i++)
         if (!(set.param[i] >= 0.0f && set.param[i] <= 1.0f))   /* (NaN fails too) */
@@ -84,10 +99,32 @@ static int settings_ok(void)
     return 1;
 }
 
+static void bytes_copy(void *dst, const void *src, uint32_t n)
+{
+    uint8_t *d = (uint8_t *)dst;
+    const uint8_t *s = (const uint8_t *)src;
+    while (n--)
+        *d++ = *s++;
+}
+
 static void settings_load(void)
 {
     int got = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (got == (int)sizeof(settings_v1_t) && set.magic == SET_MAGIC_V1) {   /* 0.1's: kept, the arp's added */
+    if (got == (int)sizeof(settings_v2_t) && set.magic == SET_MAGIC_V2) {   /* 0.2's: kept, the beat's added */
+        settings_v2_t v2;
+        int i;
+        bytes_copy(&v2, &set, sizeof v2);
+        settings_defaults();
+        for (i = 0; i < 18; i++)
+            set.param[i] = v2.param[i];
+        set.octave = v2.octave;
+        set.nchord = v2.nchord;
+        for (i = 0; i < SD_VOICES; i++)
+            set.chord[i] = v2.chord[i];
+        set.arp = v2.arp;
+        got = (int)sizeof set;
+    }
+    if (got == (int)sizeof(settings_v1_t) && set.magic == SET_MAGIC_V1) {   /* 0.1's: kept, the arp's and beat's added */
         settings_v1_t v1;
         uint8_t *d = (uint8_t *)&v1;
         const uint8_t *src = (const uint8_t *)&set;
@@ -114,6 +151,7 @@ static void params_to_engine(void)
     for (i = 0; i < SD_NPARAM; i++)
         sd_param(i, set.param[i]);
     sd_arp(set.arp);
+    sd_beat(set.beat);
 }
 
 /* ----------------------------------------------------------------- voices --- */
@@ -384,7 +422,17 @@ static const char *value_text(int p, char *b)
     case P_BEAT: fixed_text(sd_beat_hz(v), 2, b); return "Hz";
     case P_FADE: { float s = sd_fade_s(v); fixed_text(s, s < 10.0f ? 1 : 0, b); return "s"; }
     case P_DECAY: { float s = sd_decay_s(v); fixed_text(s, s < 10.0f ? 1 : 0, b); return "s"; }
-    case P_ARATE: hz_text(sd_arp_hz(v), b); return "/s";
+    case P_ARATE:
+        if (set.beat) {                  /* on the beat's grid: a note length */
+            b[0] = 0;
+            text_cat(b, sd_arp_div_name(v));
+            return "";
+        }
+        hz_text(sd_arp_hz(v), b);
+        return "/s";
+    case P_BTEMPO: int_text((int32_t)(sd_tempo_bpm(v) + 0.5f), b); return "bpm";
+    case P_BGROOVE: b[0] = 0; text_cat(b, sd_groove_name(v)); return "";
+    case P_BSWING: int_text((int32_t)(sd_swing_pct(v) + 0.5f), b); return "%";
     case P_AORDER: b[0] = 0; text_cat(b, ORDER_NAME[sd_arp_order(v)]); return "";
     default: int_text((int32_t)(v * 100.0f + 0.5f), b); return "";
     }
@@ -405,8 +453,9 @@ static struct {
     char msg[2][24];
     uint32_t msg_until;
     uint32_t keys, btn;
-    uint8_t layer;                       /* 0 main, 1 SEL held, 2 ARP held */
+    uint8_t layer;                       /* 0 main, 1 SEL held, 2 ARP held, 3 SEQ held */
     uint8_t arp_turned;                  /* a knob turned while ARP was held: its release does not switch the arp */
+    uint8_t seq_turned;                  /* the same for SEQ and the beat */
     int8_t touched;                      /* the cell turned last (lit a moment), -1 none */
     uint32_t touched_at;
     uint32_t enc_at[NE];                 /* when each encoder last moved: fast turns go further */
@@ -420,6 +469,8 @@ static int cell_param(int c)
 {
     if (ui.layer == 2)
         return c < 4 ? P_ARATE + c : -1;
+    if (ui.layer == 3)
+        return P_BTEMPO + c;
     return c + 7 * ui.layer;
 }
 
@@ -473,6 +524,11 @@ static void param_change(int p, int32_t detents, int fast)
 {
     float step = (fast ? 3.0f : 1.0f) / 64.0f;
     float v = fm_clampf(set.param[p] + step * (float)detents, 0.0f, 1.0f);
+    if (p == P_BGROOVE || p == P_AORDER) {   /* a choice: each detent the next one */
+        int n = p == P_BGROOVE ? SD_GROOVES : 4, bin = (int)(set.param[p] * (float)n);
+        bin = clamp(bin + (detents > 0 ? 1 : -1), 0, n - 1);
+        v = ((float)bin + 0.5f) / (float)n;
+    }
     char t[16], u[24];
     const char *unit;
     if (v == set.param[p])
@@ -529,6 +585,15 @@ static void arp_toggle(void)
     app_say("ARP", set.arp ? "ON" : "OFF");
 }
 
+static void beat_toggle(void)
+{
+    set.beat = (uint8_t)!set.beat;
+    sd_beat(set.beat);
+    set_dirty = 1;
+    ui.redraw_head = ui.redraw_params = 1;
+    app_say("BEAT", set.beat ? "ON" : "OFF");
+}
+
 static void octave_step(int d)
 {
     int o = clamp(set.octave + d, -3, 2);
@@ -577,6 +642,8 @@ static void lights(void)
         lit |= 1u << B_SEL;
     if (set.arp)
         lit |= 1u << B_ARP;
+    if (set.beat && (sd_beat_step() & 3) < 2)   /* SEQ flashes on the quarter notes */
+        lit |= 1u << B_SEQ;
     if (voices_on())
         lit |= LED_PLAY_GREEN;
     if (set_dirty)
@@ -584,7 +651,7 @@ static void lights(void)
     for (k = 0; k < NB; k++)             /* a held button lights while held */
         if (ui.btn >> k & 1u)
             lit |= 1u << k;
-    dim = 1u << B_SEL | 1u << B_ARP | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE;
+    dim = 1u << B_SEL | 1u << B_ARP | 1u << B_SEQ | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE;
     plat_lights(lit, keys, dim, dkeys, 1);
 }
 
@@ -634,11 +701,14 @@ static void input(void)
         case B_SAVE: save(); break;
         case B_HOME: ui.home_t = now ? now : 1u; break;
         case B_ARP: ui.arp_turned = 0; break;
+        case B_SEQ: ui.seq_turned = 0; break;
         default: break;
         }
     }
     if ((ui.btn >> B_ARP & 1u) && !(btn >> B_ARP & 1u) && !ui.arp_turned)
         arp_toggle();                    /* ARP let go without a turn: the arp on / off */
+    if ((ui.btn >> B_SEQ & 1u) && !(btn >> B_SEQ & 1u) && !ui.seq_turned)
+        beat_toggle();                   /* SEQ let go without a turn: the beat on / off */
     if (ui.home_t) {                     /* HOME held a second: the sound back to its defaults */
         if (!(btn >> B_HOME & 1u)) {
             ui.home_t = 0;
@@ -648,7 +718,8 @@ static void input(void)
             reset_sound();
         }
     }
-    c = (btn >> B_ARP & 1u) ? 2 : (int)((btn >> B_SEL) & 1u);   /* ARP held: the arp's; SEL held: the layer beneath */
+    c = (btn >> B_SEQ & 1u) ? 3 : (btn >> B_ARP & 1u) ? 2 : (int)((btn >> B_SEL) & 1u);   /* SEQ: the beat's, ARP: the
+                                                                                            * arp's, SEL: beneath */
     if (c != ui.layer) {
         ui.layer = (uint8_t)c;
         ui.redraw_params = 1;
@@ -664,6 +735,8 @@ static void input(void)
         ui.enc_at[en] = now;
         if (ui.layer == 2)
             ui.arp_turned = 1;
+        if (ui.layer == 3)
+            ui.seq_turned = 1;
         if (cell_param(c) < 0)
             continue;
         ui.touched = (int8_t)c;
@@ -698,9 +771,10 @@ static void draw_head(void)
     } else {
         cv_text(8, 4, &FONT_B, APP_NAME, C_WHITE);
         if (ui.layer)
-            cv_text(98, 9, &FONT_XS, ui.layer == 2 ? "ARP SETTINGS" : "MORE", C_HI);
-        else if (set.arp)
-            cv_text(98, 9, &FONT_XS, "ARP", C_AMB);
+            cv_text(98, 9, &FONT_XS, ui.layer == 3 ? "BEAT SETTINGS" : ui.layer == 2 ? "ARP SETTINGS" : "MORE", C_HI);
+        else
+            cv_text(98, 9, &FONT_XS, set.arp && set.beat ? "ARP  BEAT" : set.arp ? "ARP" : set.beat ? "BEAT" : "",
+                    C_AMB);
         octave_text(t + 4);
         t[0] = 'O'; t[1] = 'C'; t[2] = 'T'; t[3] = ' ';
         cv_text(232 - text_w(&FONT_XS, t), 9, &FONT_XS, t, C_GRAY);
@@ -724,7 +798,11 @@ static void draw_scope(void)
         px = x;
         py = y;
     }
-    {                                    /* the LFO: a dot moving across the bottom of the wave */
+    if (sd_beat_step() >= 0) {           /* the beat: its sixteen steps, the one playing lit */
+        int32_t k, st = sd_beat_step();
+        for (k = 0; k < 16; k++)
+            cv_rect(8 + k * 14, 65, 10, 3, k == st ? C_WHITE : (k & 3) == 0 ? C_AMB : C_LINE);
+    } else {                             /* the LFO: a dot moving across the bottom of the wave */
         int32_t lx = 120 + (int32_t)(sd_lfo() * 112.0f);
         cv_rect(lx - 2, 66, 5, 3, C_AMB);
     }
@@ -775,15 +853,15 @@ static void draw_params(void)
             if (w > 0)
                 cv_rect(x + 4, y + 53, w, 3, lit ? C_WHITE : C_AMB);
         } else {                         /* the eighth cell: what SEL does */
-            if (ui.layer == 2) {         /* ARP held: whether it's on, and how to switch it */
-                cv_text(x + 4, y + 4, &FONT_XS, "ARP", C_WHITE);
-                cv_text(x + 4, y + 20, &FONT_B, set.arp ? "ON" : "OFF", set.arp ? C_HI : C_DIM);
-                cv_text(x + 4, y + 40, &FONT_XS, "TAP ARP", C_DIM);
-            } else {
-                cv_text(x + 4, y + 4, &FONT_XS, "HOLD SEL", ui.layer ? C_WHITE : C_GRAY);
-                cv_text(x + 4, y + 16, &FONT_XS, ui.layer ? "LAYER 2" : "FOR MORE", ui.layer ? C_HI : C_DIM);
-                cv_text(x + 4, y + 32, &FONT_XS, "HOLD ARP", C_GRAY);
-                cv_text(x + 4, y + 44, &FONT_XS, set.arp ? "ARP IS ON" : "FOR ARP", set.arp ? C_AMB : C_DIM);
+            if (ui.layer >= 2) {         /* ARP or SEQ held: whether it's on, and how to switch it */
+                int on = ui.layer == 2 ? set.arp : set.beat;
+                cv_text(x + 4, y + 4, &FONT_XS, ui.layer == 2 ? "ARP" : "BEAT", C_WHITE);
+                cv_text(x + 4, y + 20, &FONT_B, on ? "ON" : "OFF", on ? C_HI : C_DIM);
+                cv_text(x + 4, y + 40, &FONT_XS, ui.layer == 2 ? "TAP ARP" : "TAP SEQ", C_DIM);
+            } else {                     /* what the held buttons give */
+                cv_text(x + 4, y + 4, &FONT_XS, "SEL: MORE", ui.layer ? C_WHITE : C_GRAY);
+                cv_text(x + 4, y + 20, &FONT_XS, set.arp ? "ARP: ON" : "ARP: OFF", set.arp ? C_AMB : C_DIM);
+                cv_text(x + 4, y + 36, &FONT_XS, set.beat ? "SEQ: BEAT" : "SEQ: OFF", set.beat ? C_AMB : C_DIM);
             }
         }
         if (c % 4)
@@ -843,6 +921,8 @@ int app_expect(const char *what, int *got)
         *got = set.nchord;
     else if (!strcmp(what, "arp"))
         *got = set.arp;
+    else if (!strcmp(what, "beat"))
+        *got = set.beat;
     else if (what[0] == 'p' && what[1] >= '0' && what[1] <= '9')   /* pN: control N, x 100 */
         *got = (int)(set.param[atoi(what + 1) % SD_NPARAM] * 100.0f + 0.5f);
     else

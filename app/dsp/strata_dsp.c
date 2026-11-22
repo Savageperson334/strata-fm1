@@ -22,6 +22,8 @@ static const float P_DEFAULT[SD_NPARAM] = {
     0.15f, /* BEAT */   0.45f, /* FADE */       0.60f, /* DECAY */  0.20f, /* RESO */
     0.10f, /* AIR */    0.25f, /* SUB */
     0.45f, /* ARATE: ~1.2 steps/s */ 0.55f, /* ASHAPE */ 0.00f, /* AORDER: UP */ 0.15f, /* AFLOOR */
+    0.30f, /* BTEMPO: 90 BPM */ 0.00f, /* BGROOVE: PULSE */ 0.20f, /* BSWING */ 0.60f, /* BLEVEL */
+    0.40f, /* BKIT */ 0.25f, /* BROOM */ 0.35f, /* BDUCK */
 };
 
 static float clamp01(float v) { return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v; }
@@ -54,6 +56,13 @@ float sd_decay_s(float v) { return 1.5f * fm_exp2f(clamp01(v) * 5.3219f); }     
 float sd_beat_hz(float v) { float x = clamp01(v); return 3.0f * x * x; }            /* 0 .. 3 Hz */
 float sd_arp_hz(float v) { return 0.1f * fm_exp2f(clamp01(v) * 6.3219f); }          /* 0.1 .. 8 steps/s */
 int sd_arp_order(float v) { int o = (int)(clamp01(v) * 4.0f); return o > 3 ? 3 : o; }
+float sd_tempo_bpm(float v) { return 60.0f + 100.0f * clamp01(v); }                 /* 60 .. 160 BPM */
+float sd_swing_pct(float v) { return 50.0f + 25.0f * clamp01(v); }                  /* 50 .. 75 % */
+static int groove_of(float v) { int g = (int)(clamp01(v) * (float)SD_GROOVES); return g >= SD_GROOVES ? SD_GROOVES - 1 : g; }
+static int arp_div_of(float v) { int d = (int)(clamp01(v) * 5.0f); return d > 4 ? 4 : d; }   /* 0 whole .. 4 sixteenth */
+static const char *const DIV_NAME[5] = {"1/1", "1/2", "1/4", "1/8", "1/16"};
+static const uint32_t DIV_TICKS[5] = {16u, 8u, 4u, 2u, 1u};
+const char *sd_arp_div_name(float v) { return DIV_NAME[arp_div_of(v)]; }
 
 /* ------------------------------------------------------------------- noise --- */
 static uint32_t rng = 0x2545F491u;
@@ -133,6 +142,212 @@ static inline float rv_read_frac(int i, float dly)   /* dly > 1: a delay of a fr
     return a + (b - a) * f;
 }
 
+/* -------------------------------------------------------------------- beat --- */
+/* the grooves: per pattern, five rows of 16 steps (kick, snare, closed hat, open hat, perc); x a hit, X an accent */
+static const char *const GROOVE_NAME[SD_GROOVES] = {"PULSE", "DUB", "BREAK", "HALF", "TOMS", "TICK", "HEART", "DRIVE"};
+static const char *const GROOVES[SD_GROOVES][5] = {
+    /* PULSE: four on the floor, hats off the beat */
+    {"X...x...X...x...", "................", "..x...x...x...x.", "..............x.", "......x.......x."},
+    /* DUB: one drop, kick and snare on three */
+    {"........X.......", "........X.......", "x.x.x.x.x.x.x.x.", "..............x.", "....x.......x..."},
+    /* BREAK: a breakbeat */
+    {"X.....x...X.....", "....X.......X..x", "x.x.x.x.x.x.xxx.", "................", ".......x........"},
+    /* HALF: half time */
+    {"X......x..x.....", "........X.......", "x...x...x...x...", "......x.........", "...............x"},
+    /* TOMS: toms and kick */
+    {"X..x..x.X..x....", "................", ".......x.......x", "................", "x.xx.x.xx.x.xx.x"},
+    /* TICK: kick and ticks */
+    {"X.......X.......", "................", "....x.......x...", "................", "..x.......x....x"},
+    /* HEART: lub-dub */
+    {"X..x............", "................", "................", "................", "........x......."},
+    /* DRIVE: driving */
+    {"X...X...X...X...", "....X.......X...", "xXxxxXxxxXxxxXxx", "................", "................"},
+};
+enum { DK, DS, DH, DO, DP, ND };
+static uint16_t g_hit[SD_GROOVES][ND], g_acc[SD_GROOVES][ND];
+const char *sd_groove_name(float v) { return GROOVE_NAME[groove_of(v)]; }
+
+static volatile int beat_on, beat_restart;
+static volatile int beat_step_now = -1;
+static int beat_step = -1;
+static uint32_t beat_ticks;              /* the sixteenth playing, counted from 0 at the start (the arp's grid) */
+static uint32_t beat_count;              /* sixteenths started */
+static uint32_t arp_bucket = 0xFFFFFFFFu;   /* with the beat: the grid cell the arp's last step was in */
+static float beat_left;                  /* samples to the next step */
+static float duck = 1.0f;                /* the drone's gain under the kick */
+static struct {
+    float kph, kenv, kpenv;              /* kick */
+    float sph, senv, snenv, sb1, sb2;    /* snare: tone and noise */
+    float henv, hdec, hx, hy, hb1, hb2;  /* hats: one voice, closed chokes open */
+    float pph, pmph, penv, pfreq;        /* perc: a tuned FM blip */
+} dr;
+/* per block: the kit's coefficients */
+static float k_fs, k_fe, k_pc, k_ac, s_c, sn_c, h_closed, h_open, p_c, d_c, sbg, sba1, sba2, sba3, hbg, hba1, hba2, hba3;
+
+void sd_beat(int on)
+{
+    if (on && !beat_on) {
+        beat_restart = 1;
+        beat_ticks = 0;
+        arp_bucket = 0xFFFFFFFFu;        /* the arp's first step on the beat's first */
+    }
+    beat_on = on != 0;
+    if (!on)
+        beat_step_now = -1;
+}
+int sd_beat_on(void) { return beat_on; }
+int sd_beat_step(void) { return beat_on ? beat_step_now : -1; }
+
+static void grooves_init(void)
+{
+    int g, r, k;
+    for (g = 0; g < SD_GROOVES; g++)
+        for (r = 0; r < ND; r++) {
+            g_hit[g][r] = g_acc[g][r] = 0;
+            for (k = 0; k < 16; k++) {
+                char c = GROOVES[g][r][k];
+                if (c == 'x' || c == 'X')
+                    g_hit[g][r] |= (uint16_t)(1u << k);
+                if (c == 'X')
+                    g_acc[g][r] |= (uint16_t)(1u << k);
+            }
+        }
+}
+
+static inline float decay_c(float tau_s) { return fm_expf(-1.0f / (tau_s * SD_RATE)); }
+
+static void tpt_bp(float fc, float k, float *g, float *a1, float *a2, float *a3)
+{
+    *g = fm_tanf(3.14159265f * fc * (1.0f / SD_RATE));
+    *a1 = 1.0f / (1.0f + *g * (*g + k));
+    *a2 = *g * *a1;
+    *a3 = *g * *a2;
+}
+
+static void beat_block(void)             /* the kit from KIT, the duck's recovery from the tempo */
+{
+    float kit = p[P_BKIT], quarter = 60.0f / sd_tempo_bpm(p[P_BTEMPO]);
+    int s, low = 128;
+    k_fe = 38.0f + 24.0f * kit;
+    k_fs = 120.0f + 160.0f * kit;
+    k_pc = decay_c(0.022f + 0.012f * kit);
+    k_ac = decay_c(0.42f - 0.24f * kit);
+    s_c = decay_c(0.07f);
+    sn_c = decay_c(0.10f + 0.08f * kit);
+    h_closed = decay_c(0.025f + 0.03f * kit);
+    h_open = decay_c(0.22f + 0.15f * kit);
+    p_c = decay_c(0.06f + 0.10f * (1.0f - kit));
+    d_c = 1.0f - fm_expf(-1.0f / (0.45f * quarter * SD_RATE));
+    tpt_bp(1200.0f + 1800.0f * kit, 0.9f, &sbg, &sba1, &sba2, &sba3);
+    tpt_bp(6000.0f + 4000.0f * kit, 0.8f, &hbg, &hba1, &hba2, &hba3);
+    for (s = 0; s < SD_VOICES; s++)      /* the perc an octave above the lowest voice sounding (A4 with none) */
+        if (V[s].req_gate && V[s].req_note < low)
+            low = V[s].req_note;
+    dr.pfreq = 440.0f * fm_exp2f(((float)(low < 128 ? low + 12 : 69) - 69.0f) * (1.0f / 12.0f));
+}
+
+static void beat_trigger(int k)          /* step k of the groove: its hits */
+{
+    int g = groove_of(p[P_BGROOVE]);
+    uint32_t bit = 1u << k;
+    if (g_hit[g][DK] & bit) {
+        float a = (g_acc[g][DK] & bit) ? 1.0f : 0.72f;
+        dr.kenv = a;
+        dr.kpenv = 1.0f;
+        dr.kph = 0.0f;
+        duck = 1.0f - 0.85f * p[P_BDUCK] * a;
+    }
+    if (g_hit[g][DS] & bit) {
+        float a = (g_acc[g][DS] & bit) ? 1.0f : 0.6f;
+        dr.senv = a;
+        dr.snenv = a;
+        dr.sph = 0.0f;
+    }
+    if (g_hit[g][DO] & bit) {
+        dr.henv = (g_acc[g][DO] & bit) ? 0.9f : 0.65f;
+        dr.hdec = h_open;
+    } else if (g_hit[g][DH] & bit) {     /* (a closed hat chokes the open one) */
+        dr.henv = (g_acc[g][DH] & bit) ? 0.75f : 0.45f;
+        dr.hdec = h_closed;
+    }
+    if (g_hit[g][DP] & bit) {
+        dr.penv = (g_acc[g][DP] & bit) ? 1.0f : 0.7f;
+        dr.pph = dr.pmph = 0.0f;
+    }
+}
+
+/* one sample of the drums (dl, dr) and the beat's clock */
+static inline void beat_sample(float *dl, float *dr_out, float swing, float step_len)
+{
+    float k, sn, h, pc, x, v3, v1, v2;
+    if (!beat_on && dr.kenv + dr.senv + dr.snenv + dr.henv + dr.penv < 1e-5f) {   /* off and quiet: nothing to make */
+        duck += (1.0f - duck) * d_c;
+        *dl = *dr_out = 0.0f;
+        return;
+    }
+    if (beat_on) {
+        if (beat_restart) {
+            beat_restart = 0;
+            beat_step = -1;
+            beat_left = 0.0f;
+            beat_count = 0;
+        }
+        beat_left -= 1.0f;
+        if (beat_left <= 0.0f) {
+            beat_step = (beat_step + 1) & 15;
+            beat_ticks = beat_count++;
+            beat_step_now = beat_step;
+            beat_trigger(beat_step);
+            /* swing: the first sixteenth of each pair longer, the second shorter */
+            beat_left += 2.0f * step_len * ((beat_step & 1) ? 1.0f - swing : swing);
+        }
+    }
+    /* kick: a sine falling in pitch */
+    dr.kpenv *= k_pc;
+    dr.kph += (k_fe + (k_fs - k_fe) * dr.kpenv) * (1.0f / SD_RATE);
+    if (dr.kph >= 1.0f)
+        dr.kph -= 1.0f;
+    k = fm_sin_turns(dr.kph) * dr.kenv;
+    dr.kenv *= k_ac;
+    /* snare: a short tone and band-passed noise */
+    x = rnd();
+    dr.sph += 185.0f * (1.0f / SD_RATE);
+    if (dr.sph >= 1.0f)
+        dr.sph -= 1.0f;
+    v3 = x - dr.sb2;
+    v1 = sba1 * dr.sb1 + sba2 * v3;
+    v2 = dr.sb2 + sba2 * dr.sb1 + sba3 * v3;
+    dr.sb1 = 2.0f * v1 - dr.sb1;
+    dr.sb2 = 2.0f * v2 - dr.sb2;
+    sn = fm_sin_turns(dr.sph) * dr.senv * 0.6f + v1 * 0.9f * dr.snenv;
+    dr.senv *= s_c;
+    dr.snenv *= sn_c;
+    /* hats: high-passed noise, band-passed high */
+    x = rnd();
+    dr.hy = 0.92f * (dr.hy + x - dr.hx);
+    dr.hx = x;
+    v3 = dr.hy - dr.hb2;
+    v1 = hba1 * dr.hb1 + hba2 * v3;
+    v2 = dr.hb2 + hba2 * dr.hb1 + hba3 * v3;
+    dr.hb1 = 2.0f * v1 - dr.hb1;
+    dr.hb2 = 2.0f * v2 - dr.hb2;
+    h = v1 * dr.henv;
+    dr.henv *= dr.hdec;
+    /* perc: an FM blip at the drone's pitch */
+    dr.pmph += dr.pfreq * 1.41f * (1.0f / SD_RATE);
+    if (dr.pmph >= 1.0f)
+        dr.pmph -= 1.0f;
+    dr.pph += dr.pfreq * (1.0f / SD_RATE);
+    if (dr.pph >= 1.0f)
+        dr.pph -= 1.0f;
+    pc = fm_sin_turns(dr.pph + 0.35f * dr.penv * fm_sin_turns(dr.pmph)) * dr.penv;
+    dr.penv *= p_c;
+    /* the drone comes back up after the kick */
+    duck += (1.0f - duck) * d_c;
+    *dl = k * 0.85f + sn * 0.42f + h * 0.30f + pc * 0.34f;
+    *dr_out = k * 0.85f + sn * 0.42f + h * 0.38f + pc * 0.26f;
+}
+
 /* ------------------------------------------------------------ arpeggiator --- */
 static volatile int arp_on;
 static float arp_ph;                     /* 0..1 through the step */
@@ -170,11 +385,18 @@ static void arp_block(uint32_t n)
         }
         order[k] = s;
     }
-    arp_ph += sd_arp_hz(p[P_ARATE]) * (float)n * (1.0f / SD_RATE);
-    if (arp_ph < 1.0f && !(arp_slot >= 0 && !V[arp_slot].req_gate))
-        return;                          /* (a voice let go on its step: the next one now) */
-    if (arp_ph >= 1.0f)
-        arp_ph -= fm_floorf(arp_ph);
+    if (beat_on) {                       /* on the beat's grid: a step each RATE's note length */
+        uint32_t b = beat_ticks / DIV_TICKS[arp_div_of(p[P_ARATE])];
+        if (b == arp_bucket && !(arp_slot >= 0 && !V[arp_slot].req_gate))
+            return;
+        arp_bucket = b;
+    } else {
+        arp_ph += sd_arp_hz(p[P_ARATE]) * (float)n * (1.0f / SD_RATE);
+        if (arp_ph < 1.0f && !(arp_slot >= 0 && !V[arp_slot].req_gate))
+            return;                      /* (a voice let go on its step: the next one now) */
+        if (arp_ph >= 1.0f)
+            arp_ph -= fm_floorf(arp_ph);
+    }
     arp_step++;
     if (cnt == 0) {
         arp_slot = -1;
@@ -239,6 +461,11 @@ void sd_init(void)
     }
     arp_on = 0;
     arp_slot = -1;
+    grooves_init();
+    beat_on = 0;
+    beat_step_now = -1;
+    duck = 1.0f;
+    dr.hdec = 0.99f;
 }
 
 void sd_panic(void)
@@ -249,6 +476,7 @@ void sd_panic(void)
         V[i].env = 0.0f;
         V[i].level = 0.0f;
     }
+    dr.kenv = dr.senv = dr.snenv = dr.henv = dr.penv = 0.0f;
 }
 
 float sd_lfo(void) { return lfo_val; }
@@ -288,6 +516,9 @@ void sd_render(float *outl, float *outr, uint32_t n)
     float ratio, tone_i, depth, fb, beat, fade_c, drift, sub_g, air_g;
     float fc, g, k, a1, a2, a3;
     float rt60, rv_g[4], damp, wet, dry, mod_d0, mod_d1, rv_in, norm0, dnorm, sum_e2 = 0.0f;
+    float swing = sd_swing_pct(p[P_BSWING]) * 0.01f;
+    float step_len = 15.0f / sd_tempo_bpm(p[P_BTEMPO]) * SD_RATE;   /* a sixteenth, in samples */
+    float dlev = p[P_BLEVEL] * p[P_BLEVEL] * 1.3f, droom = p[P_BROOM] * 0.8f;
 
     /* the controls, smoothed once a block (~50 ms) */
     for (s = 0; s < SD_NPARAM; s++)
@@ -312,6 +543,7 @@ void sd_render(float *outl, float *outr, uint32_t n)
         lfo_ph -= 1.0f;
     lfo_val = fm_sin_turns(lfo_ph);
 
+    beat_block();
     arp_block(n);
 
     /* the filter's coefficients, swept by the LFO up to 1.5 octaves */
@@ -385,7 +617,9 @@ void sd_render(float *outl, float *outr, uint32_t n)
         idx1 *= 1.0f / (1.0f + f * (1.0f / 2500.0f));   /* high notes less bright: no fizz */
         /* the arp: this voice up on its step, down to FLOOR off it; SHAPE from a 4 ms pluck to a whole-step swell */
         if (arp_on) {
-            float step_s = 1.0f / sd_arp_hz(p[P_ARATE]), sh = p[P_ASHAPE];
+            float step_s = beat_on ? (float)DIV_TICKS[arp_div_of(p[P_ARATE])] * 15.0f / sd_tempo_bpm(p[P_BTEMPO])
+                                   : 1.0f / sd_arp_hz(p[P_ARATE]);
+            float sh = p[P_ASHAPE];
             float tau = 0.004f + sh * sh * step_s * 0.45f;
             float fl = p[P_AFLOOR] * p[P_AFLOOR];
             agt = arp_slot == s ? 1.0f : fl;
@@ -483,7 +717,7 @@ void sd_render(float *outl, float *outr, uint32_t n)
     if (rv_mod_ph >= 1.0f)
         rv_mod_ph -= 1.0f;
     for (i = 0; i < n; i++) {
-        float x[2], y[2], d[4], h[4], il, ir;
+        float x[2], y[2], d[4], h[4], il, ir, dl, drr;
         int c;
         float nm = norm0 + dnorm * (float)i;
         x[0] = outl[i] * nm;
@@ -499,8 +733,11 @@ void sd_render(float *outl, float *outr, uint32_t n)
         }
         /* reverb: diffuse each side, then into the network */
         denorm = -denorm;
-        il = allpass(1, allpass(0, y[0] * rv_in + denorm));
-        ir = allpass(3, allpass(2, y[1] * rv_in + denorm));
+        beat_sample(&dl, &drr, swing, step_len);
+        dl *= dlev;
+        drr *= dlev;
+        il = allpass(1, allpass(0, y[0] * rv_in + dl * droom + denorm));
+        ir = allpass(3, allpass(2, y[1] * rv_in + drr * droom + denorm));
         ap_w++;
         d[0] = rv_read_frac(0, (float)RV_DLY[0] + mod_d0);
         d[1] = rv_buf[1][(rv_w - RV_DLY[1]) & RV_MASK];
@@ -520,8 +757,9 @@ void sd_render(float *outl, float *outr, uint32_t n)
         rv_buf[2][rv_w & RV_MASK] = h[2] + il * 0.5f;
         rv_buf[3][rv_w & RV_MASK] = h[3] + ir * 0.5f;
         rv_w++;
-        y[0] = y[0] * dry + (rv_lp[0] + rv_lp[2]) * 0.5f * wet;
-        y[1] = y[1] * dry + (rv_lp[1] + rv_lp[3]) * 0.5f * wet;
+        /* the drone (and the reverb) ducked under the kick, the drums on top */
+        y[0] = (y[0] * dry + (rv_lp[0] + rv_lp[2]) * 0.5f * wet) * duck + dl;
+        y[1] = (y[1] * dry + (rv_lp[1] + rv_lp[3]) * 0.5f * wet) * duck + drr;
         for (c = 0; c < 2; c++) {                        /* DC blocker, soft clip */
             float o = y[c] - dc_x[c] + 0.9995f * dc_y[c];
             dc_x[c] = y[c];
@@ -537,6 +775,9 @@ void sd_render(float *outl, float *outr, uint32_t n)
     }
     for (s = 0; s < 4; s++)
         rv_lp[s] = fm_flush(rv_lp[s]);
+    dr.sb1 = fm_flush(dr.sb1); dr.sb2 = fm_flush(dr.sb2); dr.hb1 = fm_flush(dr.hb1); dr.hb2 = fm_flush(dr.hb2);
+    dr.hy = fm_flush(dr.hy); dr.kenv = fm_flush(dr.kenv); dr.senv = fm_flush(dr.senv); dr.snenv = fm_flush(dr.snenv);
+    dr.henv = fm_flush(dr.henv); dr.penv = fm_flush(dr.penv);
     for (s = 0; s < 2; s++) {
         flt[s].ic1 = fm_flush(flt[s].ic1);
         flt[s].ic2 = fm_flush(flt[s].ic2);

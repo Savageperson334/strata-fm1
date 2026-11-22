@@ -8,11 +8,13 @@ USB, click Connect, then Install. **Manual:** <https://savageperson334.github.io
 
 - Tap keys to start up to six long voices; tap again to let them fade. PLAY fades all out and brings the chord back.
 - ARP: a slow arpeggiator through the latched voices (tap to switch; hold ARP for RATE, SHAPE, ORDER, FLOOR).
+- SEQ: a drum groove under the drone, 8 patterns on a synthesized kit with sidechain ducking; the arp locks to its
+  tempo (tap to switch; hold SEQ for TEMPO, GROOVE, SWING, LEVEL, KIT, ROOM, DUCK).
 - K1–K4, SELECT, ALGO, PRESET: TONE, RATIO, MOTION, SPACE, FILTER, DRIFT, GRIT. Hold SEL for DEPTH, BEAT, FADE,
   DECAY, RESO, AIR, SUB.
 - Each voice: two detuned FM pairs with feedback, a sub sine, and noise band-passed at its pitch. Then a resonant
   TPT low-pass swept by a slow LFO, and a 4-line FDN reverb up to near-endless decay.
-- MIDI in over USB and TRS: notes, sustain, CC 20–37 for the eighteen controls.
+- MIDI in over USB and TRS: notes, sustain, CC 20–44 for the twenty-five controls.
 
 ## Layout
 
