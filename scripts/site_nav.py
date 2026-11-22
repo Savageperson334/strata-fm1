@@ -15,7 +15,7 @@ installer and the emulator had none. Run again on a page that has it: the block 
 
 The emulator also gets a switch over the panel, [ Play | Tutorial ]: Tutorial draws a blueprint over the panel, a line
 from each control to a box that says what it does in this firmware; a tap there reads about a control instead of
-playing it (scripts/tutorial/)."""
+playing it. PALINDROME's has a third, Guide, which leads through the first rings on the live panel (scripts/tutorial/)."""
 import re
 import sys
 from pathlib import Path
@@ -45,10 +45,16 @@ font-size:12px;letter-spacing:.07em}
 
 
 TUTORIAL = Path(__file__).resolve().parent / "tutorial"
-MODE_HTML = ('<div id="fm1mode" role="group" aria-label="Play the panel, or read what each control does">'
-             '<button type="button" data-mode="play" aria-pressed="true">Play</button>'
-             '<button type="button" data-mode="tutorial" aria-pressed="false">Tutorial</button></div>\n'
-             '<div id="fm1tut-card" aria-live="polite" hidden></div>')
+
+
+def mode_html(data):
+    """the switch over the panel: Play, Guide (a firmware whose tutorial has one) and Tutorial / Reference, and the card"""
+    names = [("play", "Play")] + ([("guide", data["guide"].get("label", "Guide"))] if data.get("guide") else [])
+    names.append(("tutorial", data.get("tutorial_label", "Tutorial")))
+    return ('<div id="fm1mode" role="group" aria-label="Play the panel, be guided on it, or read what each control does">'
+            + "".join(f'<button type="button" data-mode="{m}" aria-pressed="{"true" if m == "play" else "false"}">{t}</button>'
+                      for m, t in names)
+            + '</div>\n<div id="fm1tut-card" aria-live="polite" hidden></div>')
 
 
 def emu_tutorial(html, instrument):
@@ -58,10 +64,10 @@ def emu_tutorial(html, instrument):
                 r'<script id="fm1labels-js">.*?</script>\s*', r'<style id="fm1tut-style">.*?</style>\s*',
                 r'<div id="fm1mode".*?</div>\s*<div id="fm1tut-card"[^>]*></div>\s*', r'<script id="fm1tut-js">.*?</script>\s*'):
         html = re.sub(old, "", html, flags=re.S)                     # (run again: replaced)
-    html, n = re.subn(r'(<div class="devicebox">)', lambda m: MODE_HTML + "\n" + m.group(1), html, count=1)
+    data = json.loads((TUTORIAL / f"{instrument}.json").read_text(encoding="utf-8"))
+    html, n = re.subn(r'(<div class="devicebox">)', lambda m: mode_html(data) + "\n" + m.group(1), html, count=1)
     if not n:
         raise SystemExit("site_nav: no panel in the emulator's page")
-    data = json.loads((TUTORIAL / f"{instrument}.json").read_text(encoding="utf-8"))
     js = (TUTORIAL / "tutorial.js").read_text(encoding="utf-8").replace("__TUTORIAL__", json.dumps(data).replace("</", "<\\/"))
     css = (TUTORIAL / "tutorial.css").read_text(encoding="utf-8")
     html = html.replace("</head>", f'<style id="fm1tut-style">\n{css}</style>\n</head>', 1)

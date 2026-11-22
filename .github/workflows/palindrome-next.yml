@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: MPL-2.0
+# PALINDROME's SILT-first redesign, before it is released (docs/PALINDROME_SILT_FIRST_REDESIGN.md): on every push to
+# its branch, the tests, the simulator's walk, the device build's memory report, and a playable preview of the
+# browser emulator at /palindrome/next/. No version, no release, no installer: the released site is not touched.
+name: PALINDROME next (preview)
+
+on:
+  push:
+    branches: ['feature/silt-first']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: palindrome-next
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencies
+        run: |
+          sudo apt-get install -y -qq libfribidi0 rsync
+          python3 -m pip install -q Pillow
+      - name: Engine tests and the simulator's walk
+        run: |
+          set -euo pipefail
+          p=instruments/palindrome
+          cc -O2 -DPLAT_HOST -Ibase/include -I"$p/dsp" "$p/tests/dsp.c" "$p/dsp/palindrome.c" -lm -o /tmp/pm-test
+          /tmp/pm-test
+          if grep -nE '#include <(string|stdlib|stdio|math)\.h>' "$p/app.c" "$p/app.h" "$p"/dsp/*.[ch]; then exit 1; fi
+          python3 base/tools/build.py "$p" --host
+          mkdir -p "$p/docs/img"
+          "$p/build/host/palindrome_host" "$p/tests/basic.txt" "$p/docs/img"
+      - name: Browser emulator
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          git -C "$RUNNER_TEMP/emsdk" checkout -q a2b92777574c2feda07994cd4f1079a3dfc151f8
+          "$RUNNER_TEMP/emsdk/emsdk" install 6.0.10
+          "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.10
+          set +u; source "$RUNNER_TEMP/emsdk/emsdk_env.sh"; set -u
+          python3 base/tools/build.py instruments/palindrome --web
+      - name: Publish the preview to /palindrome/next/
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          p=instruments/palindrome
+          out="$RUNNER_TEMP/next"
+          mkdir -p "$out"
+          cp -r "$p/build/emu" "$out/emu"
+          cp -r "$p/docs/img" "$out/img"
+          cp "$p/docs/MANUAL.md" "$out/manual.md"
+          python3 scripts/palindrome_next.py "$out" "$GITHUB_SHA"
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          for attempt in 1 2 3 4 5; do
+            rm -rf "$RUNNER_TEMP/pages"
+            git clone -q --depth 1 --branch gh-pages "$remote" "$RUNNER_TEMP/pages"
+            cd "$RUNNER_TEMP/pages"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            mkdir -p palindrome/next
+            rsync -a --checksum --delete "$out/" palindrome/next/
+            git add -A
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -q -m "Publish palindrome preview from $GITHUB_SHA"
+            if git push -q "$remote" HEAD:gh-pages; then exit 0; fi
+            cd "$GITHUB_WORKSPACE"
+            sleep "$attempt"
+          done
+          exit 1
+  memory:
+    # the device build (no release, no package kept): what it says of the image, the RAM and the pool with PM_RINGS
+    # rings. Its failing does not stop the preview.
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Toolchain
+        run: |
+          sudo apt-get install -y -qq libfribidi0
+          python3 -m pip install -q Pillow
+          sh base/tools/setup_toolchain.sh --only jieli,ac79-sdk
+      - name: Device build and its memory report
+        run: |
+          set -euo pipefail
+          python3 base/tools/build.py instruments/palindrome 2>&1 | tee /tmp/build.log
+          echo "---- memory ----"
+          grep -E "image [0-9]+ B|pool [0-9]+ B|SRAM" /tmp/build.log

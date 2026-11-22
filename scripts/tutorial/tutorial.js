@@ -3,10 +3,14 @@
 // tutorial JSON into the emulator's page).
 //
 //   Play      the panel as it is: buttons, knobs and keys play the instrument.
-//   Tutorial  a blueprint drawn over the panel: every control outlined, a line from each one to a box that says
-//             what it does in this firmware. Tapping a control here does not play it: it shows what it does in the
-//             card over the panel. A button that changes what the knobs or keys do (a mode, or a layer held)
-//             changes the boxes too: tap it once for "held", again to let go.
+//   Guide     (a firmware whose JSON has "guide") the panel still plays; a card says what to do next and the control
+//             to use is ringed. A step is done when the instrument itself says so: its lights (the page's frames:
+//             window.emuLast) and, for PALINDROME, its rings (window.palState, from its web/emu/app.js). Back, Next
+//             and Exit are always there: nothing depends on a step being noticed.
+//   Tutorial  ("Reference" where the JSON says so) a blueprint drawn over the panel: every control outlined, a line
+//             from each one to a box that says what it does in this firmware. Tapping a control here does not play
+//             it: it shows what it does in the card over the panel. A button that changes what the knobs or keys do
+//             (a page; in STRATA a layer held: one tap for held, another to let go) changes the boxes too.
 //
 // The drawing takes its geometry from the panel fm1-base drew (svg#panel, viewBox 0 0 1000 640), so the two agree.
 (function () {
@@ -37,7 +41,8 @@
     } catch (e) { /* (not drawn yet) */ }
   }
   function page() { return T.pages[hold || base]; }
-  function keysNow() { return page().keys || T.pages[base].keys; }
+  function keysNow() { return page().keys || T.pages[base].keys || T.keys; }
+  function knobNow(name) { return name === "MASTER" ? T.master : name === "SELECT" && T.select ? T.select : page().knobs[name]; }
 
   // --- the panel's geometry -----------------------------------------------------------------------------------
   function measure() {
@@ -165,7 +170,7 @@
     KNOB_ORDER.forEach(function (name) {
       var t = parts["knob:" + name];
       if (!t) return;
-      var k = name === "MASTER" ? T.master : p.knobs[name];
+      var k = knobNow(name);
       t.textContent = k ? k[0] : "—";
       t.parentNode.classList.toggle("unused", !k);
       fit(t, 92);
@@ -174,7 +179,8 @@
     svg.querySelectorAll(".part").forEach(function (g) {
       var id = g.getAttribute("data-part"), name = id.split(":")[1], d = T.buttons[name];
       g.classList.toggle("on", id === picked);
-      g.classList.toggle("held", id.indexOf("button:") === 0 && !!d && ((hold && d.hold === hold) || (!hold && d.base === base)));
+      g.classList.toggle("held", id.indexOf("button:") === 0 && !!d &&
+                         ((hold && d.hold === hold) || (!hold && (d.base === base || (d.pages && d.pages.indexOf(base) >= 0)))));
     });
     later.forEach(function (x) { fit(x[0], x[1]); });
   }
@@ -197,50 +203,146 @@
       if (!d || d.unused) say(name, "", (d && d.unused) || "Does nothing in this firmware.");
       else {
         var before = hold || base;
-        if (d.base && base !== d.base) { base = d.base; hold = null; }
+        if (d.pages) { base = d.pages[(d.pages.indexOf(base) + 1) % d.pages.length]; hold = null; }   // (a button with two pages: the next)
+        else if (d.base && base !== d.base) { base = d.base; hold = null; }
         else if (d.hold) hold = hold === d.hold ? null : d.hold;
         else if (d.base) hold = null;
         p = page();
-        if ((hold || base) !== before || d.base || d.hold) {
+        if ((hold || base) !== before || d.base || d.hold || d.pages) {
           note = "The knobs here now show " + p.title + " (" + p.how + ").";
           if (hold && d.hold === hold) note += " Tap " + name + " again to let go.";
           else if (d.hold && d.base === base && !hold) note += " Tap " + name + " again for its held set.";
+          else if (d.pages) note += " Tap " + name + " again for " + T.pages[d.pages[(d.pages.indexOf(base) + 1) % d.pages.length]].title + ".";
         }
         say(name + " · " + d.label, d.sub || "", d.text, note);
       }
     } else if (kind === "knob") {
       p = page();
-      k = name === "MASTER" ? T.master : p.knobs[name];
-      if (k) say(name + " · " + k[0], name === "MASTER" ? "always" : p.title + " (" + p.how + ")", k[1]);
+      k = knobNow(name);
+      if (k) say(name + " · " + k[0], name === "MASTER" || (name === "SELECT" && T.select) ? "on every page" : p.title + " (" + p.how + ")", k[1]);
       else say(name, p.title + " (" + p.how + ")", "Sets nothing on this page.");
     } else if (kind === "keys") {
       k = keysNow();
-      say("KEYS · " + k[0], T.pages[base].title + " (" + T.pages[base].how + ")", k[1]);
+      say("KEYS · " + k[0], page().keys || T.pages[base].keys ? T.pages[base].title + " (" + T.pages[base].how + ")" : "", k[1]);
     } else say("SCREEN", "", T.screen);
     refresh();
   }
 
+  // --- the guide: the panel plays; a card says what to do next, and the control to use is ringed ---------------
+  var BIT = { FX: 0, SEL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7, ARP: 8, SEQ: 9, PLAY: 10, REC: 11 };
+  var G = T.guide, gi = 0, gtimer = null, gwait = 0, rings = null;
+  function met(c) {                                  // a step's "done", against what the instrument says of itself
+    var f = window.emuLast, st = window.palState;
+    if (!c) return false;
+    if (c.on && !f) return false;
+    if (c.lit) {
+      if (!f) return false;
+      var m = f.buttons >>> 0;
+      if (!(m & (1 << BIT[c.lit])) && !(c.lit === "PLAY" && (m & (1 << 14)))) return false;   // (PLAY's green: bit 14)
+    }
+    if (c.keys && !(f && (f.keys >>> 0))) return false;
+    if (c.rings !== undefined && !(st && st.rings >= c.rings)) return false;
+    if (c.ring !== undefined && !(st && st.ring === c.ring)) return false;
+    return true;
+  }
+  function ring(show) {                              // the controls a step uses, ringed on the live panel
+    if (!rings) {
+      rings = document.createElementNS(NS, "svg");
+      rings.setAttribute("id", "fm1guide");
+      rings.setAttribute("viewBox", "0 0 1000 640");
+      rings.setAttribute("aria-hidden", "true");
+      device.appendChild(rings);
+    }
+    rings.textContent = "";
+    (show || []).forEach(function (name) {
+      var b = buttons[name], k = knobs[name];
+      if (name === "keys") el("rect", { x: 40, y: 344, width: 920, height: 262, rx: 16, class: "use" }, rings);
+      else if (b) el("rect", { x: b.x - 5, y: b.y - 5, width: b.w + 10, height: b.h + 10, rx: 12, class: "use" }, rings);
+      else if (k) el("circle", { cx: k.x, cy: k.y, r: k.r + 12, class: "use" }, rings);
+    });
+  }
+  function gbutton(text, fn, cls) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = text;
+    if (cls) b.className = cls;
+    b.addEventListener("click", fn);
+    return b;
+  }
+  function gshow() {
+    var st = G.steps[gi], row = document.createElement("div"), h = document.createElement("strong"),
+        s = document.createElement("span"), p = document.createElement("p");
+    card.textContent = "";
+    gwait = 0;
+    row.className = "row";
+    if (!st) {                                       // through
+      p.textContent = G.done;
+      card.appendChild(p);
+      row.appendChild(gbutton("Start again", function () { gi = 0; gshow(); }));
+      row.appendChild(gbutton("Play", function () { mode("play"); }));
+      if (svg) row.appendChild(gbutton(T.tutorial_label || "Tutorial", function () { mode("tutorial"); }));
+      card.appendChild(row);
+      ring([]);
+      return;
+    }
+    h.textContent = st.title;
+    s.textContent = "Step " + (gi + 1) + " of " + G.steps.length;
+    p.textContent = st.text;
+    card.appendChild(h); card.appendChild(s); card.appendChild(p);
+    if (gi > 0) row.appendChild(gbutton("Back", function () { gi--; gshow(); }));
+    row.appendChild(gbutton(gi === G.steps.length - 1 ? "Finish" : "Next", function () { gi++; gshow(); }));
+    row.appendChild(gbutton("Exit", function () { mode("play"); }, "quiet"));
+    card.appendChild(row);
+    ring(st.show);
+  }
+  function gtick() {                                 // the step done on the instrument itself: a moment, then on
+    var st = G.steps[gi];
+    if (!st) return;
+    if (gwait) { if (Date.now() >= gwait) { gi++; gshow(); } return; }
+    if (met(st.done)) {
+      gwait = Date.now() + 900;
+      card.classList.add("done");
+      setTimeout(function () { card.classList.remove("done"); }, 900);
+    }
+  }
+
   // --- the switch ---------------------------------------------------------------------------------------------
-  var controls = document.getElementById("controls"), wasInert = false;
-  function mode(tutorial) {
-    if (!svg) return;
-    pill.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String((b.dataset.mode === "tutorial") === tutorial)); });
-    if (tutorial) {
+  var controls = document.getElementById("controls"), wasInert = null, now = "play";
+  function mode(m) {
+    if (m === "guide" && !G) m = "play";
+    if (m === "tutorial" && !svg) return;
+    pill.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.mode === m)); });
+    // out of the mode that was
+    if (now === "tutorial" && m !== "tutorial") {
+      svg.setAttribute("hidden", "");
+      if (controls && wasInert !== null) controls.inert = wasInert;
+      wasInert = null;
+    }
+    if (now === "guide" && m !== "guide") {
+      if (gtimer) { clearInterval(gtimer); gtimer = null; }
+      if (rings) rings.textContent = "";
+    }
+    now = m;
+    card.hidden = m === "play";
+    card.classList.toggle("guide", m === "guide");
+    device.classList.toggle("fm1tut-on", m === "tutorial");
+    if (m === "tutorial") {
       svg.removeAttribute("hidden");
-      card.hidden = false;
-      if (!picked) { card.textContent = ""; var p = document.createElement("p"); p.textContent = T.intro; card.appendChild(p); }
+      card.textContent = "";
+      var p = document.createElement("p");
+      p.textContent = T.intro;
+      card.appendChild(p);
+      picked = null;
       if (controls) { wasInert = controls.inert; controls.inert = true; }      // (the real controls: out of reach)
       refresh();
-    } else {
-      svg.setAttribute("hidden", "");
-      card.hidden = true;
-      if (controls) controls.inert = wasInert;
+    } else if (m === "guide") {
+      gshow();
+      gtimer = setInterval(gtick, 150);
     }
-    device.classList.toggle("fm1tut-on", tutorial);
   }
   pill.addEventListener("click", function (e) {
     var b = e.target.closest("button");
-    if (b) mode(b.dataset.mode === "tutorial");
+    if (b) mode(b.dataset.mode);
   });
   build();
 })();

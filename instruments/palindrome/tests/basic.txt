@@ -1,88 +1,199 @@
-wait 600
-expect mode 0
+# PALINDROME: the walk a player takes. SILT is home; MORPH is the source; REC makes a new ring each time and
+# touches no other; nothing is held. (page: 0 SILT, 1 MORPH, 2 RINGS, 3 SHAPE, 4 MOTION, 5 MIX, 6 REC FX)
+wait 3000
+expect page 0
+expect rings 0
+expect ring 0
 expect voices 0
+shot silt0.png
+# REC with nothing to record: no capture, no ring
+tap REC
+wait 100
+expect capturing 0
+expect rings 0
+wait 2000
+# FX: MORPH, the keys its notes
+tap FX
+wait 100
+expect page 1
 key 0 down
 wait 60
 key 0 up
 key 7 down
 wait 60
 key 7 up
-wait 2200
+wait 1200
 expect voices 2
-expect filled 100
 wav morph.wav
 wait 700
 wavstop
 expect peak_db_min -45
 shot morph.png
-tap EDIT
-wait 100
-expect mode 1
+# REC once: a capture that ends by itself. Pressed again meanwhile: no second ring
+expect source 0
 tap REC
 wait 100
-expect recording 1
+expect capturing 1
+expect rings 0
+wait 600
+tap REC
+wait 100
+shot capture.png
+wait 1800
+expect capturing 0
+expect rings 1
+expect ring 1
+expect parent 0
+expect page 0
+wait 1800
+shot silt1.png
+# PLAY: grains of ring 01; the keys are their pitches now, MORPH's notes stay as they were
 tap PLAY
-wait 1400
+wait 100
 expect grains 1
-wav silt.wav
-wait 700
-wavstop
-expect peak_db_min -45
-# SILT's keys are the grains' pitches: a tap holds one (and plays it), another tap lets it go
+turn K3 30
+turn K2 20
 key 7 down
 wait 60
 key 7 up
 key 14 down
 wait 60
 key 14 up
-wait 200
+wait 1200
 expect gkeys 2
 expect voices 2
-# EDIT held: the rest of SILT's knobs (ALGORITHM is CLUSTER)
-press EDIT
+expect sounding 1
+wav silt.wav
+wait 700
+wavstop
+expect peak_db_min -45
+# a second generation: SILT's grains, an octave's part up, captured as ring 02. Its PITCH starts level again
+turn PRESET 8
 wait 100
-turn ALGO 16
-wait 200
-shot more.png
-release EDIT
-wait 100
-expect cluster 25
-expect mode 1
-key 14 down
-wait 60
-key 14 up
-wait 100
-expect gkeys 1
-# REC held: the recording's knobs (KNOB1 is NOISE); letting go after a turn does not step the mode
-press REC
-wait 100
-turn K1 8
-wait 200
-shot rec.png
-release REC
-wait 100
-expect recording 1
-expect noise 13
-# (every hint done: the picture for the manual, with plenty of grains)
-turn K3 24
-turn K2 24
-wait 1000
-shot silt.png
-# a tap still steps it
+expect pitch 63
+expect source 1
 tap REC
 wait 100
-expect recording 2
-# HOME: a tap clears nothing; held a second, every voice and the grains off
+expect capturing 1
+# (SELECT does nothing through a capture)
+turn SELECT -1
+wait 100
+expect ring 1
+wait 2400
+expect rings 2
+expect ring 2
+expect parent 1
+expect pitch 50
+expect page 0
+wait 1800
+shot silt.png
+# each ring keeps its own settings: 02's SIZE is its own, 01 still has the PITCH it was left with
+turn K2 -24
+wait 100
+expect size 29
+turn SELECT -1
+wait 100
+expect ring 1
+expect pitch 63
+expect size 66
+turn SELECT 1
+wait 100
+expect ring 2
+expect size 29
+turn SELECT -1
+wait 100
+# the other pages: one press each, and they stay
+tap ENV
+wait 100
+expect page 3
+turn ALGO 16
+wait 100
+expect cluster 25
+shot shape.png
+tap LFO
+wait 100
+expect page 4
+shot motion.png
+tap GLO
+wait 100
+expect page 5
+shot mix.png
+tap GLO
+wait 100
+expect page 6
+turn K1 8
+wait 100
+expect noise 13
+shot recfx.png
+turn K1 -8
+tap GLO
+wait 100
+expect page 5
 tap HOME
 wait 100
-expect grains 1
-press HOME
-wait 1200
-release HOME
+expect page 0
+# a branch: back on 01, captured again: ring 03's parent is 01
+expect ring 1
+tap REC
+wait 2600
+expect rings 3
+expect ring 3
+expect parent 1
+wait 1800
+shot silt3.png
+# full: REC makes nothing and deletes nothing; it opens RINGS
+tap REC
 wait 100
+expect capturing 0
+expect rings 3
+expect page 2
+wait 1800
+turn SELECT -1
+wait 100
+expect ring 2
+shot rings.png
+# KNOB4 arms a delete; any other button calls it off
+turn K4 1
+wait 100
+expect arm 1
+shot delete.png
+tap PLAY
+wait 100
+expect arm 0
+expect rings 3
+tap PLAY
+wait 100
+# ...and SEL confirms it
+turn K4 1
+wait 100
+tap SEL
+wait 100
+expect rings 2
+expect ring 3
+expect page 2
+# the room is used by the next capture, with a new number; SAVE says what it is
+tap SAVE
+wait 100
+tap EDIT
+wait 100
+expect page 0
+tap REC
+wait 2600
+expect rings 3
+expect ring 4
+expect parent 3
+# KNOB4 twice, SEL: everything cleared
+tap SEL
+wait 100
+turn K4 1
+wait 100
+turn K4 1
+wait 100
+expect arm 2
+tap SEL
+wait 200
+expect rings 0
+expect ring 0
 expect voices 0
 expect gkeys 0
 expect grains 0
-tap FX
-wait 100
-expect mode 0

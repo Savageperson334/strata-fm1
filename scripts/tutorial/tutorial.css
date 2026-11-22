@@ -38,3 +38,14 @@ background-size:16px 16px}
 #fm1tut .on .outline,#fm1tut .on .box,#fm1tut .on .leader{stroke:#ffd166;stroke-opacity:1;stroke-width:2}
 #fm1tut .on .dot{fill:#ffd166}
 #fm1tut .on text.name{fill:#ffd166}
+/* the guide: the card's buttons, a step done, and the rings round the controls to use (over the live panel) */
+#fm1tut-card .row{display:flex;flex-wrap:wrap;gap:.5rem;margin:.55rem 0 0}
+#fm1tut-card .row button{font:600 14px/1.2 inherit;letter-spacing:.05em;color:#0e3a73;background:#e6f1ff;border:0;border-radius:999px;
+padding:.42rem 1rem;cursor:pointer}
+#fm1tut-card .row button.quiet{background:transparent;color:#e6f1ff;border:1.5px solid #9cc4f2}
+#fm1tut-card .row button:focus-visible{outline:2px solid #ffd166;outline-offset:2px}
+#fm1tut-card.done{border-color:#ffd166;box-shadow:0 0 0 2px #ffd166}
+#fm1guide{pointer-events:none;z-index:3}
+#fm1guide .use{fill:none;stroke:#ffd166;stroke-width:5;animation:fm1use 1.1s ease-in-out infinite}
+@keyframes fm1use{0%,100%{stroke-opacity:1}50%{stroke-opacity:.25}}
+@media (prefers-reduced-motion:reduce){#fm1guide .use{animation:none}}
