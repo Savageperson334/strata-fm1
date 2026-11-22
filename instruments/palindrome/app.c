@@ -17,6 +17,10 @@
  *   REC          a tap steps how the memory is written (LIVE, FREEZE, OVERDUB, RESAMPLE); held, the knobs are the
  *                recording's own: NOISE, COLOR, CRUSH, GATE, DROP, DAMP, FEEDBACK. The head's tick dims while GATE
  *                or DROP has it lifted, and specks trail it as NOISE goes in.
+ *   EDIT         a tap gives the knobs to SILT; held, they are the rest of SILT's (EDIT: SILT MORE): TIMING, VARY,
+ *                SCATTER, DETUNE, STEREO, CLUSTER, SCAN. In SILT the keys are the grains' pitches: up to four held
+ *                (a tap holds a key, another lets it go), the grains taking them in turn; the held pitches are
+ *                written under the square, in semitones from the recorded pitch.
  *   the boxes    the seven knobs by what they set now, placed as they are on the panel (MASTER, SELECT, PRESETS,
  *                ALGORITHM left of the screen; KNOB1..4 right of it), each with a bar; a turned knob's value shows
  *                in its box.
@@ -33,18 +37,31 @@ static uint32_t message_until;
 static int touched=-1;                   /* the knob turned last (0..6): its box white, its value in it, for a moment */
 static uint32_t touched_at;
 static int learned;                      /* the hints no longer needed: bit 0 a key played, 1 PLAY pressed, 2 REC
-                                          * tapped, 3 REC held and a knob turned */
+                                          * tapped, 3 REC held and a knob turned, 4 a key played in SILT, 5 EDIT
+                                          * held and a knob turned */
+static int gslots[PM_PITCHES],greplace_at;   /* the keys held for the grains: semitones, PM_NO_PITCH none */
 static const int enc[7]={EN_K1,EN_K2,EN_K3,EN_K4,EN_SELECT,EN_ALGO,EN_PRESET};
 static const char *const labels[PM_PARAMS]={
  "X","Y","COMPLEX","TONE","SPREAD","MOVE","EXCITE",
  "POSITION","SIZE","DENSITY","SPRAY","PITCH","REVERSE","FEEDBACK",
- "MIX","FADE","SCAN","WINDOW","STEREO","DAMP","LEVEL",
- "NOISE","COLOR","CRUSH","GATE","DROP"};
-/* the control on knob j (KNOB1..4, SELECT, ALGORITHM, PRESETS) of a page: 0 MORPH, 1 SILT, 2 shared (SEL held),
- * 3 the recording's (REC held: its five, with DAMP and FEEDBACK, which also shape what is written) */
+ "MIX","FADE","SCAN","SHAPE","STEREO","DAMP","LEVEL",
+ "NOISE","COLOR","CRUSH","GATE","DROP",
+ "TIMING","VARY","SCATTER","DETUNE","CLUSTER"};
+/* the control on knob j (KNOB1..4, SELECT, ALGORITHM, PRESETS) of a page, or -1 (that knob sets nothing there):
+ * 0 MORPH, 1 SILT, 2 both halves' (SEL held), 3 the recording's (REC held), 4 the rest of SILT's (EDIT held) */
+#define PG_NONE 255
 static int pidx(int page,int j){
-    static const uint8_t REC_PAGE[7]={R_NOISE,R_COLOR,R_CRUSH,R_GATE,R_DROP,G_DAMP,S_FEEDBACK};
-    return page==3?REC_PAGE[j]:page*7+j;
+    static const uint8_t PAGE[5][7]={
+        {M_X,M_Y,M_COMPLEX,M_TONE,M_SPREAD,M_MOVE,M_EXCITE},
+        {S_POS,S_SIZE,S_DENSITY,S_SPRAY,S_PITCH,S_REVERSE,S_SHAPE},
+        {G_MIX,G_FADE,PG_NONE,PG_NONE,PG_NONE,PG_NONE,G_LEVEL},
+        {R_NOISE,R_COLOR,R_CRUSH,R_GATE,R_DROP,G_DAMP,S_FEEDBACK},
+        {S_TIMING,S_VARY,S_SCATTER,S_DETUNE,G_STEREO,S_CLUSTER,G_SCAN}};
+    return PAGE[page][j]==PG_NONE?-1:PAGE[page][j];
+}
+/* the knobs' page now: a held REC, SEL or EDIT before the half chosen */
+static int page_of(uint32_t btn){
+    return (btn&(1u<<B_REC))?3:(btn&(1u<<B_SEL))?2:(btn&(1u<<B_EDIT))?4:mode;
 }
 static int rec_turned;                   /* a knob turned while REC was held: its release does not step the mode */
 static const char *const rec_names[]={"LIVE","FREEZE","OVERDUB","RESAMPLE"};
@@ -63,7 +80,22 @@ void app_say(const char *a,const char *b){
     message[i]=0;message_until=plat_ms()+1200u;
 }
 static int voices(void){int n=0;for(int j=0;j<PM_VOICES;j++)n+=slots[j]>=0;return n;}
-static void all_off(void){for(int j=0;j<PM_VOICES;j++){slots[j]=-1;pm_note(j,-1);}}
+static int gkeys(void){int n=0;for(int j=0;j<PM_PITCHES;j++)n+=gslots[j]!=PM_NO_PITCH;return n;}
+static void all_off(void){
+    for(int j=0;j<PM_VOICES;j++){slots[j]=-1;pm_note(j,-1);}
+    for(int j=0;j<PM_PITCHES;j++){gslots[j]=PM_NO_PITCH;pm_grain_pitch(j,PM_NO_PITCH);}
+}
+/* SILT's keys: a tap holds a pitch for the grains and plays it at once, a tap on a held one lets it go */
+static void glatch(int semis){
+    int empty=-1;
+    if(semis<-48||semis>48)return;
+    for(int j=0;j<PM_PITCHES;j++){
+        if(gslots[j]==semis){gslots[j]=PM_NO_PITCH;pm_grain_pitch(j,PM_NO_PITCH);return;}
+        if(gslots[j]==PM_NO_PITCH&&empty<0)empty=j;
+    }
+    if(empty<0)empty=(greplace_at++)%PM_PITCHES;
+    gslots[empty]=semis;pm_grain_pitch(empty,semis);pm_strike(empty);
+}
 static void latch(int note){
     int empty=-1;
     for(int j=0;j<PM_VOICES;j++){
@@ -77,7 +109,7 @@ static void latch(int note){
 /* sine and cosine of 256 steps round the circle, x 127: the ring's geometry, made once */
 static int8_t pd_sin[256],pd_cos[256];
 void app_init(void){
-    pm_init();mode=0;octave=-1;recording=PM_LIVE;running=0;replace_at=0;
+    pm_init();mode=0;octave=-1;recording=PM_LIVE;running=0;replace_at=greplace_at=0;
     old_keys=old_btn=frames=message_until=home_t=0;gain_now=0;touched=-1;learned=0;
     for(int i=0;i<256;i++){
         pd_sin[i]=(int8_t)(fm_sin_turns((float)i*(1.f/256.f))*127.f);
@@ -122,18 +154,16 @@ void app_input_only(void){
     for(int k=0;k<NKEYS;k++)if(newk&(1u<<k)){
         learned|=1;
         if(!mode)latch(53+12*octave+k);
-        else{
-            pm_set(S_POS,(float)k/(NKEYS-1));
-            pm_burst();
-        }
+        else{learned|=16;glatch(53+12*(octave+1)+k-60);}      /* (the C key, as the keys start: the recorded pitch) */
     }
-    int page=(btn&(1u<<B_REC))?3:(btn&(1u<<B_SEL))?2:mode;
+    int page=page_of(btn);
     for(int j=0;j<7;j++){
         int d=plat_enc(enc[j]),id=pidx(page,j);
-        if(!d)continue;
+        if(!d||id<0)continue;
         pm_set(id,fm_clampf(pm_get(id)+(float)d/64.f,0,1));
         touched=j;touched_at=now;        /* (its box shows the value for a moment) */
         if(page==3){rec_turned=1;learned|=8;}
+        if(page==4)learned|=32;
     }
     old_keys=keys;old_btn=btn;
     uint32_t lit=(1u<<(mode?B_EDIT:B_FX))|(running?LED_PLAY_GREEN:0)|
@@ -143,7 +173,10 @@ void app_input_only(void){
         int k=slots[j]-(53+12*octave);
         if(k>=0&&k<NKEYS)kl|=1u<<k;
     }
-    else kl=1u<<(int)(pm_get(S_POS)*(NKEYS-1)+.5f);
+    else for(int j=0;j<PM_PITCHES;j++){
+        int k=gslots[j]+60-(53+12*(octave+1));
+        if(gslots[j]!=PM_NO_PITCH&&k>=0&&k<NKEYS)kl|=1u<<k;
+    }
     plat_lights(lit,kl,(1u<<B_FX)|(1u<<B_EDIT)|(1u<<B_REC)|(1u<<B_PLAY)|(1u<<B_HOME)|(1u<<B_SEL),0,1);
 }
 
@@ -203,12 +236,14 @@ static const char *pd_hint(void){
     if(mode&&pm_fill()<.5f&&!voices())return "NO SOUND YET: TAP FX";
     if(mode&&!running&&!(learned&2))return "PLAY STARTS THE GRAINS";
     if(mode&&running&&recording==PM_LIVE&&!(learned&4))return "REC FREEZES THE LOOP";
-    if(mode&&running&&(learned&4)&&!(learned&8))return "HOLD REC: NOISE, GATE";
+    if(mode&&running&&(learned&4)&&!(learned&16))return "KEYS PLAY THE GRAINS AS NOTES";
+    if(mode&&running&&(learned&16)&&!(learned&32))return "HOLD EDIT: MORE GRAIN KNOBS";
+    if(mode&&running&&(learned&32)&&!(learned&8))return "HOLD REC: NOISE, GATE";
     return 0;
 }
 
 static void pd_scene(void){
-    int rec=(int)((old_btn>>B_REC)&1u),sel=!rec&&(int)((old_btn>>B_SEL)&1u);
+    int page=page_of(old_btn),rec=page==3,sel=page==2,more=page==4;
     int ring_on=mode||sel||rec,field_on=(!mode||sel)&&!rec,i;
     uint16_t ringc=ring_on?C_HI:C_DIM,ringa=ring_on?C_AMB:C_DIM;
     uint16_t fldc=field_on?C_HI:C_DIM,fldg=field_on?C_GRAY:C_LINE;
@@ -302,11 +337,24 @@ static void pd_scene(void){
         }
     }
 
+    {                                        /* the keys held for the grains, in semitones from the recorded pitch */
+        char t[28];
+        int n=0;
+        for(i=0;i<PM_PITCHES;i++)if(gslots[i]!=PM_NO_PITCH){
+            if(n)t[n++]=' ';
+            if(gslots[i]>0)t[n++]='+';
+            number(gslots[i],t+n);
+            while(t[n])n++;
+        }
+        t[n]=0;
+        if(n)pd_text(PD_CX-text_w(&FONT_XS,t)/2,PD_CY+PD_FH+10,t,ring_on?C_AMB:C_DIM);
+    }
+
     /* --- the corners: the buttons, what they do and how they stand (lit: in use, or running) --- */
     if(rec)pd_legend(4,1,0,"REC:","RECORDING",C_HI);
     else if(sel)pd_legend(4,1,0,"SEL:","SHARED",C_HI);
     else pd_legend(4,1,0,"FX:","MORPH",!mode?C_HI:C_DIM);
-    pd_legend(236,1,1,"EDIT:","SILT",mode&&!sel&&!rec?C_HI:C_DIM);
+    pd_legend(236,1,1,"EDIT:",more?"SILT MORE":"SILT",mode&&!sel&&!rec?C_HI:C_DIM);
     pd_legend(4,184,0,"REC:",rec_names[recording],recording==PM_LIVE?C_HI:recording==PM_FREEZE?C_AMB:C_WHITE);
     pd_legend(236,184,1,"PLAY:","GRAINS",running?C_WHITE:C_DIM);
 
@@ -326,11 +374,12 @@ static void pd_scene(void){
     /* --- the knobs by what they set, where they are on the panel: MASTER SELECT | KNOB1 KNOB2 over
      *     PRESETS ALGORITHM | KNOB3 KNOB4 --- */
     {
-        int page=rec?3:sel?2:mode,lit=touched>=0&&plat_ms()-touched_at<900u?touched:-1;
+        int lit=touched>=0&&plat_ms()-touched_at<900u?touched:-1;
         static const uint8_t COL[7]={2,3,2,3,1,1,0},ROW[7]={0,0,1,1,0,1,1};        /* KNOB1..4, SELECT, ALGORITHM, PRESETS */
         uint16_t fill=rec?C_WHITE:sel?C_HI:C_AMB;
         pd_knob(0,0,"VOLUME",(float)plat_master()*(1.f/4096.f),0,C_GRAY);            /* MASTER */
-        for(i=0;i<7;i++)pd_knob(COL[i],ROW[i],labels[pidx(page,i)],pm_get(pidx(page,i)),lit==i,fill);
+        for(i=0;i<7;i++)if(pidx(page,i)>=0)
+            pd_knob(COL[i],ROW[i],labels[pidx(page,i)],pm_get(pidx(page,i)),lit==i,fill);
         pd_box(119,201,2,38,C_DIM);                                                  /* left knobs | right knobs */
     }
 }
@@ -362,6 +411,8 @@ int app_expect(const char *what,int *got){
     else if(!strcmp(what,"grains"))*got=running;
     else if(!strcmp(what,"filled"))*got=(int)(pm_fill()*100);
     else if(!strcmp(what,"noise"))*got=(int)(pm_get(R_NOISE)*100+.5f);
+    else if(!strcmp(what,"gkeys"))*got=gkeys();
+    else if(!strcmp(what,"cluster"))*got=(int)(pm_get(S_CLUSTER)*100+.5f);
     else return 0;
     return 1;
 }

@@ -29,6 +29,31 @@ wait 700
 wavstop
 expect peak_db_min -45
 shot silt.png
+# SILT's keys are the grains' pitches: a tap holds one (and plays it), another tap lets it go
+key 7 down
+wait 60
+key 7 up
+key 14 down
+wait 60
+key 14 up
+wait 200
+expect gkeys 2
+expect voices 2
+# EDIT held: the rest of SILT's knobs (ALGORITHM is CLUSTER)
+press EDIT
+wait 100
+turn ALGO 16
+wait 200
+shot more.png
+release EDIT
+wait 100
+expect cluster 25
+expect mode 1
+key 14 down
+wait 60
+key 14 up
+wait 100
+expect gkeys 1
 # REC held: the recording's knobs (KNOB1 is NOISE); letting go after a turn does not step the mode
 press REC
 wait 100
@@ -52,6 +77,7 @@ wait 1200
 release HOME
 wait 100
 expect voices 0
+expect gkeys 0
 expect grains 0
 tap FX
 wait 100

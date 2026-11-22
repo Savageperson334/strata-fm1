@@ -1,7 +1,7 @@
 # PALINDROME
 
 PALINDROME is an experimental instrument for the M-VAVE FM-1 in two halves. MORPH makes sound from four methods you
-blend with two knobs; SILT records that sound into a loop and plays it back in grains, forward and backward.
+blend with two knobs; SILT records that sound into a loop and plays it back in grains, forward and backward, at the pitches of the keys you hold.
 
 ![PALINDROME's screen: MORPH's square in the middle of SILT's memory ring, the buttons named in the corners, the knobs named at the foot](manual/img/silt.png "PALINDROME on the FM-1's screen")
 
@@ -10,14 +10,16 @@ blend with two knobs; SILT records that sound into a loop and plays it back in g
 1. Turn MASTER up and tap a few keys. Up to four notes latch; KNOB1 and KNOB2 move the sound around the square.
 2. Wait two seconds for the ring to fill, then tap EDIT. The knobs are now SILT's.
 3. Tap REC to freeze the loop and PLAY to start the grains.
-4. Turn KNOB1 to choose where the grains start, KNOB2 for their length, KNOB3 for how many.
-5. Hold REC and turn KNOB1 to record hiss into the loop, KNOB3 to crush it, KNOB4 to gate quiet sound out.
+4. Tap two or three keys: the grains play those pitches in turn. Hold EDIT and turn ALGORITHM up for a chord.
+5. Turn KNOB1 to choose where the grains start, KNOB2 for their length, KNOB3 for how many.
+6. Hold REC and turn KNOB1 to record hiss into the loop, KNOB3 to crush it, KNOB4 to gate quiet sound out.
 
 ## Get it
 
 - **[Install PALINDROME](install/)** from Chrome or Edge on a computer, with the FM-1 plugged in by USB. It takes
   about a minute.
-- [Play it in the browser](emu/) first if you like. It's the same code, with sound, so you don't need an FM-1.
+- [Play it in the browser](emu/) first if you like. It's the same code, with sound, so you don't need an FM-1. Its switch over the panel
+  (Names / What they do) writes on each button what it does.
 - The [manual](manual/) is one page: the screen, the knobs and the buttons.
 - [Download {{PKG}}](firmware/{{PKG}}) for the command-line installer.
 - The [source](https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome) is under MPL-2.0.

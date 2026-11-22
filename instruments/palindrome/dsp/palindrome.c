@@ -10,12 +10,17 @@ typedef struct {
     float phase, m1, m2, env, modal, filt, inc;
     int note;
 } Voice;
-typedef struct {float pos, speed, age, step, pan, amp; int active;} Grain;
+typedef struct {float pos, speed, age, step, pan, amp, atk, up, down; int active;} Grain;
 static Voice voice[PM_VOICES];
 static Grain grain[PM_GRAINS];
 static volatile int requested[PM_VOICES];
 static volatile int capture, grains_on;
 static volatile uint32_t burst_request;
+static volatile int gpitch[PM_PITCHES];        /* the keys held for the grains, semitones (PM_NO_PITCH: none) */
+static volatile uint32_t strike_request[PM_PITCHES];
+static uint32_t strike_seen[PM_PITCHES];
+static int turn;                         /* whose turn among the held pitches */
+static float next_at;                    /* the next grain's time, in even pulses (1: on the pulse) */
 static uint32_t burst_seen, half, rng;
 static volatile uint32_t wr, filled, scope_wr;
 static float half_sample, clock_phase, scan_phase, launch, dry_gain, wet_gain;
@@ -30,8 +35,9 @@ static int dropping;
 static const float defaults[PM_PARAMS]={
  .35f,.65f,.35f,.5f,.4f,0,.55f,
  .20f,.35f,.35f,.20f,.5f,0,.25f,
- .65f,.20f,0,.4f,.65f,.35f,.75f,
- 0,.5f,0,0,0};                           /* a clean recording: no hiss, no crush, no gate, no dropouts */
+ .65f,.20f,0,.5f,.65f,.35f,.75f,          /* (SHAPE: a bell) */
+ 0,.5f,0,0,0,                            /* a clean recording: no hiss, no crush, no gate, no dropouts */
+ 0,0,0,0,0};                             /* grains on an even pulse, all one length and pitch, one at a time */
 static float fclamp(float x,float a,float b){return x<a?a:x>b?b:x;}
 static float wrap(float x){return x-fm_floorf(x);}
 static float rnd(void){rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return (float)(rng>>8)*(1.0f/16777216.0f);}
@@ -42,9 +48,14 @@ void pm_note(int slot,int note){if(slot>=0&&slot<PM_VOICES)requested[slot]=note>
 void pm_record(int mode){if(mode>=0&&mode<=3)capture=mode;}
 void pm_grains(int on){if(on&&!grains_on)burst_request++;grains_on=on!=0;}
 void pm_burst(void){burst_request++;}
+void pm_grain_pitch(int slot,int semis){
+    if(slot>=0&&slot<PM_PITCHES)gpitch[slot]=semis>=-48&&semis<=48?semis:PM_NO_PITCH;
+}
+void pm_strike(int slot){if(slot>=0&&slot<PM_PITCHES)strike_request[slot]++;}
 void pm_panic(void){
     for(int i=0;i<PM_VOICES;i++){requested[i]=-1;voice[i].env=0;voice[i].note=-1;}
     for(int i=0;i<PM_GRAINS;i++)grain[i].active=0;
+    for(int i=0;i<PM_PITCHES;i++){gpitch[i]=PM_NO_PITCH;strike_seen[i]=strike_request[i];}
     grains_on=0;burst_seen=burst_request; wet_gain=0;dry_gain=1;
     capture_lp=dc_l=dc_r=prev_l=prev_r=0;
 }
@@ -56,7 +67,7 @@ void pm_init(void){
     for(int i=0;i<PM_GRAINS;i++)grain[i]=grain0;
     for(int i=0;i<64;i++)scope[i]=0;
     wr=filled=half=scope_wr=burst_request=burst_seen=0;
-    rng=0x9f26ad31u;half_sample=clock_phase=scan_phase=launch=0;
+    rng=0x9f26ad31u;half_sample=clock_phase=scan_phase=launch=0;turn=0;next_at=1;
     capture=PM_LIVE;pm_panic();
     for(int i=0;i<PM_PARAMS;i++)p[i]=target[i]=defaults[i];
     gate_env=noise_lp=0;write_amt=1;dropping=0;
@@ -105,20 +116,33 @@ void pm_ring(float *lo,float *hi,uint32_t n){
         lo[i]=a;hi[i]=b;
     }
 }
+/* a grain's loudness now: up over its first part (SHAPE: how much of it), down over the rest, eased at both ends */
+static float grain_env(const Grain *g){
+    float t=g->age<g->atk?g->age*g->up:(1.f-g->age)*g->down;
+    return t*t*(3.f-2.f*t);
+}
 int pm_grain(int i,float *at,float *env){
     if(i<0||i>=PM_GRAINS||!grain[i].active)return 0;
     *at=grain[i].pos*(1.0f/PM_BUFFER);
-    *env=fm_sin_turns(grain[i].age*.5f);
+    *env=grain_env(&grain[i]);
     return grain[i].speed<0?-1:1;
 }
-static void spawn(float position,float amp){
+static void spawn(float position,float amp,float semis){
     if(filled<128)return;
     int s=-1;
     for(int i=0;i<PM_GRAINS;i++)if(!grain[i].active){s=i;break;}
     if(s<0)return; /* graceful saturation, never cut a sounding grain */
     Grain *g=&grain[s];
-    float seconds=.020f+.280f*p[S_SIZE]*p[S_SIZE];
-    float speed=.5f*fm_exp2f((p[S_PITCH]-.5f)*4.0f);
+    float seconds=.020f+.480f*p[S_SIZE]*p[S_SIZE];
+    if(p[S_VARY]>.005f)seconds=fclamp(seconds*fm_exp2f((rnd()-.5f)*4.f*p[S_VARY]),.010f,.75f);
+    /* its pitch: the PITCH knob and its key; SCATTER's jump (octaves first, then a fifth, two octaves); DETUNE */
+    float st=(p[S_PITCH]-.5f)*48.f+semis;
+    if(p[S_SCATTER]>.005f&&rnd()<p[S_SCATTER]){
+        static const int8_t JUMP[7]={12,-12,7,-5,24,19,-24};
+        st+=(float)JUMP[(int)(rnd()*(2.f+p[S_SCATTER]*4.99f))];
+    }
+    if(p[S_DETUNE]>.005f)st+=(rnd()-.5f)*p[S_DETUNE];
+    float speed=fclamp(.5f*fm_exp2f(st*(1.f/12.f)),.03f,4.f);      /* (the memory is at half rate: .5 is as recorded) */
     if(rnd()<p[S_REVERSE])speed=-speed;
     /* Position is time behind the write head. Avoid crossing the writer for live grains. */
     float span=(float)filled-4.f;
@@ -130,8 +154,23 @@ static void spawn(float position,float amp){
     g->pos=(float)wr-behind;
     while(g->pos<0)g->pos+=PM_BUFFER;
     g->speed=speed;g->age=0;g->step=1.0f/(seconds*44100.f);
+    g->atk=.03f+.94f*p[S_SHAPE];g->up=1.f/g->atk;g->down=1.f/(1.f-g->atk);
     g->pan=.5f+(rnd()-.5f)*p[G_STEREO];
     g->amp=amp;g->active=1;
+}
+/* the next held key's pitch, in turn (none held: the recorded pitch) */
+static float next_pitch(void){
+    for(int k=0;k<PM_PITCHES;k++){
+        int j=(turn+k)%PM_PITCHES,st=gpitch[j];
+        if(st!=PM_NO_PITCH){turn=j+1;return (float)st;}
+    }
+    return 0.f;
+}
+/* one start: CLUSTER grains together, each on the next held key (slot >= 0: all on that key, just played) */
+static void trigger(float position,int slot){
+    static const float AMP[4]={.75f,.58f,.50f,.45f};
+    int k=1+(int)(p[S_CLUSTER]*3.99f),st=slot>=0?gpitch[slot]:PM_NO_PITCH;
+    for(int j=0;j<k;j++)spawn(position,AMP[k-1],slot<0?next_pitch():st==PM_NO_PITCH?0.f:(float)st);
 }
 static float read_grain(float pos){
     uint32_t a=(uint32_t)pos;float f=pos-(float)a;
@@ -160,7 +199,12 @@ void pm_render(float *left,float *right,uint32_t n){
     float steps=p[R_CRUSH]>.01f?fm_exp2f(14.f-12.f*p[R_CRUSH]):0.f;     /* 16384 .. 4 steps a side; 0: untouched */
     float drop_p=p[R_DROP]*p[R_DROP]*.5f;
     uint32_t br=burst_request;
-    if(br!=burst_seen){burst_seen=br;for(int j=0;j<3;j++)spawn(position,.75f);}
+    if(br!=burst_seen){burst_seen=br;for(int j=0;j<3;j++)trigger(position,-1);}
+    for(int j=0;j<PM_PITCHES;j++){           /* a key played: its grains now */
+        uint32_t sr=strike_request[j];
+        if(sr!=strike_seen[j]){strike_seen[j]=sr;trigger(position,j);trigger(position,j);}
+    }
+    float timing=p[S_TIMING];
     int sounding=0;
     for(int j=0;j<PM_VOICES;j++){
         Voice *v=&voice[j];int req=requested[j];
@@ -207,12 +251,18 @@ void pm_render(float *left,float *right,uint32_t n){
             float pan=.5f+((float)j-1.5f)*p[M_SPREAD]*.27f;
             dl+=val*(1.f-pan);dr+=val*pan;
         }
-        if(on){launch+=rate*INV_RATE;if(launch>=1.f){launch-=1.f;spawn(position,.75f);}}
+        if(on){
+            launch+=rate*INV_RATE;
+            if(launch>=next_at){             /* TIMING: on the pulse .. anywhere (short gaps and long, the same on average) */
+                launch-=next_at;
+                next_at=timing>.005f?(1.f-timing)+timing*4.f*rnd()*rnd():1.f;
+                if(next_at<.05f)next_at=.05f;
+                trigger(position,-1);
+            }
+        }
         for(int j=0;j<PM_GRAINS;j++){
             Grain *g=&grain[j];if(!g->active)continue;active++;
-            float env=fm_sin_turns(g->age*.5f);
-            env=env*(1.f-p[G_WINDOW])+env*env*p[G_WINDOW];
-            float sample=read_grain(g->pos)*env*g->amp;
+            float sample=read_grain(g->pos)*grain_env(g)*g->amp;
             /* Suppress a moving-write-head crossing; frozen buffers remain readable. */
             if(mode!=PM_FREEZE){
                 float dist=(float)wr-g->pos;

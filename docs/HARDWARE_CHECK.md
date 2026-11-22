@@ -55,6 +55,9 @@ This is the one that matters most: it loads the chip as hard as STRATA can.
 - [ ] Hold SEL and turn KNOB1 (MIX) up, then tap FX and EDIT a few times. **Note:** any clicks when switching?
 - [ ] Tap REC until the corner says LIVE, then hold REC and turn KNOB1 (NOISE) up. **Note:** do the grains turn to
       hiss, and did letting go of REC leave the mode on LIVE?
+- [ ] The heavy test: tap EDIT, tap three keys, then hold EDIT and turn ALGORITHM (CLUSTER) all the way up; let go
+      and turn KNOB3 (DENSITY) and KNOB2 (SIZE) all the way up. **Note:** any crackle or stutter with 16 grains
+      playing, and does the screen keep moving?
 - [ ] Install STRATA again and press PLAY. **Note:** did STRATA's saved sound survive?
 
 ## What to send back
