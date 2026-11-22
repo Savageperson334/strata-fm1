@@ -24,6 +24,11 @@ enum {
     P_RESO,                              /* filter resonance */
     P_AIR,                               /* band-passed noise tuned to each voice */
     P_SUB,                               /* a sine an octave below each voice */
+    /* the arpeggiator's (the panel's ARP-held layer) */
+    P_ARATE,                             /* steps a second, 0.1 .. 8 */
+    P_ASHAPE,                            /* each step's swell: sharp (a pluck) .. smooth (a slow crossfade) */
+    P_AORDER,                            /* UP, DOWN, UP-DOWN, RANDOM (four quarters of the range) */
+    P_AFLOOR,                            /* how loud the voices off the step stay: silent .. nearly full */
     SD_NPARAM
 };
 
@@ -41,6 +46,12 @@ void sd_render(float *l, float *r, uint32_t n);
 void sd_scope(float *dst64);
 float sd_lfo(void);                      /* the MOTION LFO, -1..1 */
 
+/* the arpeggiator: the sounding voices one at a time, lowest to highest (or as ORDER says), each swelling up while the
+ * rest sink to FLOOR; one voice alone pulses on and off */
+void sd_arp(int on);
+int sd_arp_on(void);
+int sd_arp_slot(void);                   /* the voice on the step now, -1 none */
+
 /* readable values for the screen */
 float sd_ratio_of(float v);
 float sd_motion_hz(float v);
@@ -48,3 +59,5 @@ float sd_cutoff_hz(float v);
 float sd_fade_s(float v);
 float sd_decay_s(float v);
 float sd_beat_hz(float v);
+float sd_arp_hz(float v);
+int sd_arp_order(float v);               /* 0 UP, 1 DOWN, 2 UP-DOWN, 3 RANDOM */

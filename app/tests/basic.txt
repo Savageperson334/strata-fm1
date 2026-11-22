@@ -84,3 +84,28 @@ expect voices 0
 midi B0 14 7F
 wait 50
 expect p0 100
+# ARP: a tap switches it on; held with a turn of K1 it sets RATE without switching
+tap ARP
+wait 50
+expect arp 1
+press ARP
+wait 50
+expect layer 2
+turn K1 1
+wait 100
+release ARP
+wait 50
+expect arp 1
+expect layer 0
+expect p14 47
+key 0 down
+wait 50
+key 0 up
+key 4 down
+wait 50
+key 4 up
+wait 2000
+shot arp.png
+tap ARP
+wait 50
+expect arp 0

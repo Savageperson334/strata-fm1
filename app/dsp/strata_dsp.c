@@ -21,6 +21,7 @@ static const float P_DEFAULT[SD_NPARAM] = {
     0.55f, /* FILTER */ 0.30f, /* DRIFT */      0.08f, /* GRIT */   0.40f, /* DEPTH */
     0.15f, /* BEAT */   0.45f, /* FADE */       0.60f, /* DECAY */  0.20f, /* RESO */
     0.10f, /* AIR */    0.25f, /* SUB */
+    0.45f, /* ARATE: ~1.2 steps/s */ 0.55f, /* ASHAPE */ 0.00f, /* AORDER: UP */ 0.15f, /* AFLOOR */
 };
 
 static float clamp01(float v) { return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v; }
@@ -51,6 +52,8 @@ float sd_cutoff_hz(float v) { return 40.0f * fm_exp2f(clamp01(v) * 8.4525f); }  
 float sd_fade_s(float v) { return 0.1f * fm_exp2f(clamp01(v) * 7.6439f); }          /* 0.1 .. 20 s */
 float sd_decay_s(float v) { return 1.5f * fm_exp2f(clamp01(v) * 5.3219f); }         /* 1.5 .. 60 s */
 float sd_beat_hz(float v) { float x = clamp01(v); return 3.0f * x * x; }            /* 0 .. 3 Hz */
+float sd_arp_hz(float v) { return 0.1f * fm_exp2f(clamp01(v) * 6.3219f); }          /* 0.1 .. 8 steps/s */
+int sd_arp_order(float v) { int o = (int)(clamp01(v) * 4.0f); return o > 3 ? 3 : o; }
 
 /* ------------------------------------------------------------------- noise --- */
 static uint32_t rng = 0x2545F491u;
@@ -73,6 +76,7 @@ typedef struct {
     float wand[3], wand_t[3];            /* slow random wander: pitch A, pitch B, level */
     float bp1, bp2;                      /* AIR's band-pass state */
     float idx_now;                       /* the FM index at the end of the last block (ramped) */
+    float ag;                            /* the arpeggiator's gain on this voice, 0..1 (1 with the arp off) */
     float level;                         /* for the screen */
 } voice_t;
 static voice_t V[SD_VOICES];
@@ -129,6 +133,83 @@ static inline float rv_read_frac(int i, float dly)   /* dly > 1: a delay of a fr
     return a + (b - a) * f;
 }
 
+/* ------------------------------------------------------------ arpeggiator --- */
+static volatile int arp_on;
+static float arp_ph;                     /* 0..1 through the step */
+static int arp_step;                     /* steps since it started (UP-DOWN and the pulse use it) */
+static volatile int arp_slot = -1;
+static int arp_dir = 1;
+
+void sd_arp(int on)
+{
+    if (on && !arp_on) {
+        arp_ph = 1.0f;                   /* the first step at once */
+        arp_step = -1;
+        arp_dir = 1;
+    }
+    arp_on = on != 0;
+}
+int sd_arp_on(void) { return arp_on; }
+int sd_arp_slot(void) { return arp_on ? arp_slot : -1; }
+
+/* once a block: the step's voice, from the voices asked to sound, ordered by pitch */
+static void arp_block(uint32_t n)
+{
+    int order[SD_VOICES], cnt = 0, s, k, pos;
+    if (!arp_on) {
+        arp_slot = -1;
+        return;
+    }
+    for (s = 0; s < SD_VOICES; s++) {    /* insertion sort by note: six at most */
+        if (!V[s].req_gate)
+            continue;
+        k = cnt++;
+        while (k > 0 && V[order[k - 1]].req_note > V[s].req_note) {
+            order[k] = order[k - 1];
+            k--;
+        }
+        order[k] = s;
+    }
+    arp_ph += sd_arp_hz(p[P_ARATE]) * (float)n * (1.0f / SD_RATE);
+    if (arp_ph < 1.0f && !(arp_slot >= 0 && !V[arp_slot].req_gate))
+        return;                          /* (a voice let go on its step: the next one now) */
+    if (arp_ph >= 1.0f)
+        arp_ph -= fm_floorf(arp_ph);
+    arp_step++;
+    if (cnt == 0) {
+        arp_slot = -1;
+        return;
+    }
+    if (cnt == 1) {                      /* one voice alone: on, off, on, off */
+        arp_slot = (arp_step & 1) ? -1 : order[0];
+        return;
+    }
+    switch (sd_arp_order(p[P_AORDER])) {
+    case 1: pos = cnt - 1 - arp_step % cnt; break;
+    case 2: {                            /* up and down, the ends not repeated: 0 1 2 1 0 1 2 ... */
+        int period = 2 * (cnt - 1);
+        pos = arp_step % period;
+        if (pos >= cnt)
+            pos = period - pos;
+        break;
+    }
+    case 3: {                            /* random, never the same twice running */
+        int last = -1;
+        for (k = 0; k < cnt; k++)
+            if (order[k] == arp_slot)
+                last = k;
+        pos = (int)((rnd() * 0.5f + 0.5f) * (float)cnt);
+        if (pos >= cnt)
+            pos = cnt - 1;
+        if (pos == last)
+            pos = (pos + 1) % cnt;
+        break;
+    }
+    default: pos = arp_step % cnt; break;
+    }
+    arp_slot = order[pos];
+}
+
 /* -------------------------------------------------------------- the rest --- */
 static float lfo_ph;
 static float lfo_val;
@@ -154,7 +235,10 @@ void sd_init(void)
         v->pmA = 0.11f;
         v->pmB = 0.63f;
         v->idx_now = 0.0f;
+        v->ag = 1.0f;
     }
+    arp_on = 0;
+    arp_slot = -1;
 }
 
 void sd_panic(void)
@@ -228,6 +312,8 @@ void sd_render(float *outl, float *outr, uint32_t n)
         lfo_ph -= 1.0f;
     lfo_val = fm_sin_turns(lfo_ph);
 
+    arp_block(n);
+
     /* the filter's coefficients, swept by the LFO up to 1.5 octaves */
     fc = sd_cutoff_hz(p[P_FILTER]) * fm_exp2f(depth * 1.5f * lfo_val);
     if (fc > 18000.0f)
@@ -257,6 +343,7 @@ void sd_render(float *outl, float *outr, uint32_t n)
         int gate = v->req_gate, want = v->req_note;
         float tgt, c, f, detA, detB, incA, incB, incmA, incmB, incS, lfo_v, idx0, idx1, didx;
         float panA_l, panA_r, panB_l, panB_r, lvl, bpg, bpk, bpa1, bpa2, bpa3, peak = 0.0f;
+        float agt, agc;
         int w;
 
         if (!gate && v->env < 0.00002f) {           /* silent: nothing to do */
@@ -296,6 +383,18 @@ void sd_render(float *outl, float *outr, uint32_t n)
         if (idx1 < 0.0f)
             idx1 = 0.0f;
         idx1 *= 1.0f / (1.0f + f * (1.0f / 2500.0f));   /* high notes less bright: no fizz */
+        /* the arp: this voice up on its step, down to FLOOR off it; SHAPE from a 4 ms pluck to a whole-step swell */
+        if (arp_on) {
+            float step_s = 1.0f / sd_arp_hz(p[P_ARATE]), sh = p[P_ASHAPE];
+            float tau = 0.004f + sh * sh * step_s * 0.45f;
+            float fl = p[P_AFLOOR] * p[P_AFLOOR];
+            agt = arp_slot == s ? 1.0f : fl;
+            agc = 1.0f - fm_expf(-1.0f / (tau * SD_RATE));
+            idx1 *= 0.75f + 0.35f * v->ag;              /* the voice on the step a little brighter */
+        } else {
+            agt = 1.0f;
+            agc = 0.0005f;                               /* ~45 ms back to full when the arp stops */
+        }
         idx0 = v->idx_now;
         didx = (idx1 - idx0) * inv_n;
         v->idx_now = idx1;
@@ -324,7 +423,8 @@ void sd_render(float *outl, float *outr, uint32_t n)
         for (i = 0; i < n; i++) {
             float mA, mB, cA, cB, idx, e, sub, out_l, out_r;
             v->env += (tgt - v->env) * c;
-            e = v->env * v->env * lvl;                   /* squared: fades sound even */
+            v->ag += (agt - v->ag) * agc;
+            e = v->env * v->env * lvl * v->ag;           /* squared: fades sound even */
             idx = idx0 + didx * (float)i;
             mA = fm_sin_turns(v->pmA + fb * (v->yA1 + v->yA2));
             v->yA2 = v->yA1;
@@ -364,7 +464,7 @@ void sd_render(float *outl, float *outr, uint32_t n)
         v->bp1 = fm_flush(v->bp1);
         v->bp2 = fm_flush(v->bp2);
         peak = v->env;
-        v->level = peak;
+        v->level = peak * v->ag;         /* (the screen shows the arp's swell too) */
         sum_e2 += peak * peak;
     }
 

@@ -3,12 +3,13 @@
  *
  *   keys            tap to start a drone voice at that note, tap again to let it fade (up to six at once)
  *   K1..K4, SELECT, ALGO, PRESET   the seven main controls; hold SEL for the seven more beneath them
+ *   ARP             tap: the arpeggiator on / off; hold ARP and turn K1..K4: RATE, SHAPE, ORDER, FLOOR
  *   PLAY            all voices out (the chord is kept); again, the chord back in
  *   OCT- / OCT+     the keys' octave
  *   REC             MUTATE: nudge the sound somewhere nearby
  *   HOME (hold 1 s) the sound back to its defaults
  *   SAVE            keep the sound, the octave and the chord (PLAY brings the chord back after a power-on)
- *   MIDI in         notes play voices while held (CC 64 holds them); CC 20..33 the fourteen controls
+ *   MIDI in         notes play voices while held (CC 64 holds them); CC 20..37 the eighteen controls
  *
  * Part of fm1-base's unity build (device/unity.c, host/plat_host.c), after the platform: gfx.c and announce.c are in
  * scope. The sound engine is dsp/strata_dsp.c, a unit of its own at -O2. */
@@ -16,25 +17,38 @@
 #include "strata_dsp.h"
 
 /* --------------------------------------------------------------- settings --- */
-#define SET_MAGIC 0x53545231u            /* "STR1": another magic loads the defaults */
+#define SET_MAGIC 0x53545232u            /* "STR2" (0.2, with the arp): another magic loads the defaults */
+#define SET_MAGIC_V1 0x53545231u         /* "STR1" (0.1): read and carried over (settings_v1_t) */
 typedef struct {
     uint32_t magic;
     float param[SD_NPARAM];
     int8_t octave;                       /* -3 .. +2: the keys start at F3 + 12 x octave */
     uint8_t nchord;                      /* the chord PLAY brings back */
     uint8_t chord[SD_VOICES];
-    uint8_t rsv[4];
+    uint8_t arp;                         /* the arpeggiator on */
+    uint8_t rsv[3];
 } settings_t;
+typedef struct {                         /* 0.1's record: 14 controls, no arp */
+    uint32_t magic;
+    float param[14];
+    int8_t octave;
+    uint8_t nchord;
+    uint8_t chord[SD_VOICES];
+    uint8_t rsv[4];
+} settings_v1_t;
 static settings_t set;
 static uint8_t set_dirty;                /* changed since the last save: SAVE is lit */
 
 static const float DEFAULTS[SD_NPARAM] = {
     0.35f, 0.10f, 0.25f, 0.45f, 0.55f, 0.30f, 0.08f,   /* TONE RATIO MOTION SPACE FILTER DRIFT GRIT */
     0.40f, 0.15f, 0.45f, 0.60f, 0.20f, 0.10f, 0.25f,   /* DEPTH BEAT FADE DECAY RESO AIR SUB */
+    0.45f, 0.55f, 0.00f, 0.15f,                        /* RATE SHAPE ORDER FLOOR (the arp) */
 };
 
 static const char *const P_NAME[SD_NPARAM] = {"TONE", "RATIO", "MOTION", "SPACE", "FILTER", "DRIFT", "GRIT",
-                                              "DEPTH", "BEAT", "FADE", "DECAY", "RESO", "AIR", "SUB"};
+                                              "DEPTH", "BEAT", "FADE", "DECAY", "RESO", "AIR", "SUB",
+                                              "RATE", "SHAPE", "ORDER", "FLOOR"};
+static const char *const ORDER_NAME[4] = {"UP", "DOWN", "UP-DN", "RND"};
 /* the encoders, in the order the screen shows them: K1 K2 K3 K4 on top, SELECT ALGO PRESET below */
 static const uint8_t ENC_OF_CELL[7] = {EN_K1, EN_K2, EN_K3, EN_K4, EN_SELECT, EN_ALGO, EN_PRESET};
 static const char *const ENC_LABEL[7] = {"K1", "K2", "K3", "K4", "SELECT", "ALGO", "PRESET"};
@@ -51,12 +65,15 @@ static void settings_defaults(void)
     set.chord[1] = 48;
     for (i = 2; i < SD_VOICES; i++)
         set.chord[i] = 0;
+    set.arp = 0;
+    for (i = 0; i < 3; i++)
+        set.rsv[i] = 0;
 }
 
 static int settings_ok(void)
 {
     int i;
-    if (set.magic != SET_MAGIC || set.octave < -3 || set.octave > 2 || set.nchord > SD_VOICES)
+    if (set.magic != SET_MAGIC || set.octave < -3 || set.octave > 2 || set.nchord > SD_VOICES || set.arp > 1u)
         return 0;
     for (i = 0; i < SD_NPARAM; i++)
         if (!(set.param[i] >= 0.0f && set.param[i] <= 1.0f))   /* (NaN fails too) */
@@ -69,7 +86,25 @@ static int settings_ok(void)
 
 static void settings_load(void)
 {
-    if (plat_store_load(OBJ_SETTINGS, &set, sizeof set) != (int)sizeof set || !settings_ok())
+    int got = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
+    if (got == (int)sizeof(settings_v1_t) && set.magic == SET_MAGIC_V1) {   /* 0.1's: kept, the arp's added */
+        settings_v1_t v1;
+        uint8_t *d = (uint8_t *)&v1;
+        const uint8_t *src = (const uint8_t *)&set;
+        uint32_t k;
+        int i;
+        for (k = 0; k < sizeof v1; k++)
+            d[k] = src[k];
+        settings_defaults();
+        for (i = 0; i < 14; i++)
+            set.param[i] = v1.param[i];
+        set.octave = v1.octave;
+        set.nchord = v1.nchord;
+        for (i = 0; i < SD_VOICES; i++)
+            set.chord[i] = v1.chord[i];
+        got = (int)sizeof set;
+    }
+    if (got != (int)sizeof set || !settings_ok())
         settings_defaults();
 }
 
@@ -78,6 +113,7 @@ static void params_to_engine(void)
     int i;
     for (i = 0; i < SD_NPARAM; i++)
         sd_param(i, set.param[i]);
+    sd_arp(set.arp);
 }
 
 /* ----------------------------------------------------------------- voices --- */
@@ -194,7 +230,7 @@ static void midi_in(void)                /* audio interrupt */
     int port;
     while (plat_midi_in(&pkt, &port)) {
         uint32_t st = (pkt >> 8) & 0xF0u, d1 = (pkt >> 16) & 0x7Fu, d2 = (pkt >> 24) & 0x7Fu;
-        if (st == 0xB0u && d1 >= 20u && d1 < 20u + SD_NPARAM) {
+        if (st == 0xB0u && d1 >= 20u && d1 < 20u + SD_NPARAM) {   /* CC 20..37 */
             sd_param((int)(d1 - 20u), (float)d2 * (1.0f / 127.0f));
             cc_moved = 1;
         } else if (st == 0x90u || st == 0x80u || (st == 0xB0u && (d1 == 64u || d1 == 123u))) {
@@ -348,6 +384,8 @@ static const char *value_text(int p, char *b)
     case P_BEAT: fixed_text(sd_beat_hz(v), 2, b); return "Hz";
     case P_FADE: { float s = sd_fade_s(v); fixed_text(s, s < 10.0f ? 1 : 0, b); return "s"; }
     case P_DECAY: { float s = sd_decay_s(v); fixed_text(s, s < 10.0f ? 1 : 0, b); return "s"; }
+    case P_ARATE: hz_text(sd_arp_hz(v), b); return "/s";
+    case P_AORDER: b[0] = 0; text_cat(b, ORDER_NAME[sd_arp_order(v)]); return "";
     default: int_text((int32_t)(v * 100.0f + 0.5f), b); return "";
     }
 }
@@ -367,7 +405,8 @@ static struct {
     char msg[2][24];
     uint32_t msg_until;
     uint32_t keys, btn;
-    uint8_t layer;                       /* 0 main, 1 SEL held */
+    uint8_t layer;                       /* 0 main, 1 SEL held, 2 ARP held */
+    uint8_t arp_turned;                  /* a knob turned while ARP was held: its release does not switch the arp */
     int8_t touched;                      /* the cell turned last (lit a moment), -1 none */
     uint32_t touched_at;
     uint32_t enc_at[NE];                 /* when each encoder last moved: fast turns go further */
@@ -375,6 +414,14 @@ static struct {
     uint8_t redraw_head, redraw_params;
     uint32_t frame;
 } ui;
+
+/* the control on screen cell c (0..6) in the layer showing, -1 none */
+static int cell_param(int c)
+{
+    if (ui.layer == 2)
+        return c < 4 ? P_ARATE + c : -1;
+    return c + 7 * ui.layer;
+}
 
 void app_say(const char *a, const char *b)
 {
@@ -473,6 +520,15 @@ static void reset_sound(void)
     app_say("SOUND", "RESET");
 }
 
+static void arp_toggle(void)
+{
+    set.arp = (uint8_t)!set.arp;
+    sd_arp(set.arp);
+    set_dirty = 1;
+    ui.redraw_head = ui.redraw_params = 1;
+    app_say("ARP", set.arp ? "ON" : "OFF");
+}
+
 static void octave_step(int d)
 {
     int o = clamp(set.octave + d, -3, 2);
@@ -517,8 +573,10 @@ static void lights(void)
         else if (sd_voice_busy(s))
             dkeys |= 1u << rel;
     }
-    if (ui.layer)
+    if (ui.layer == 1)
         lit |= 1u << B_SEL;
+    if (set.arp)
+        lit |= 1u << B_ARP;
     if (voices_on())
         lit |= LED_PLAY_GREEN;
     if (set_dirty)
@@ -526,7 +584,7 @@ static void lights(void)
     for (k = 0; k < NB; k++)             /* a held button lights while held */
         if (ui.btn >> k & 1u)
             lit |= 1u << k;
-    dim = 1u << B_SEL | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE;
+    dim = 1u << B_SEL | 1u << B_ARP | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE;
     plat_lights(lit, keys, dim, dkeys, 1);
 }
 
@@ -575,9 +633,12 @@ static void input(void)
         case B_REC: mutate(); break;
         case B_SAVE: save(); break;
         case B_HOME: ui.home_t = now ? now : 1u; break;
+        case B_ARP: ui.arp_turned = 0; break;
         default: break;
         }
     }
+    if ((ui.btn >> B_ARP & 1u) && !(btn >> B_ARP & 1u) && !ui.arp_turned)
+        arp_toggle();                    /* ARP let go without a turn: the arp on / off */
     if (ui.home_t) {                     /* HOME held a second: the sound back to its defaults */
         if (!(btn >> B_HOME & 1u)) {
             ui.home_t = 0;
@@ -587,7 +648,7 @@ static void input(void)
             reset_sound();
         }
     }
-    c = (btn >> B_SEL) & 1;              /* SEL held: the layer beneath */
+    c = (btn >> B_ARP & 1u) ? 2 : (int)((btn >> B_SEL) & 1u);   /* ARP held: the arp's; SEL held: the layer beneath */
     if (c != ui.layer) {
         ui.layer = (uint8_t)c;
         ui.redraw_params = 1;
@@ -601,9 +662,13 @@ static void input(void)
             continue;
         fast = e > 1 || e < -1 || now - ui.enc_at[en] < 45u;
         ui.enc_at[en] = now;
+        if (ui.layer == 2)
+            ui.arp_turned = 1;
+        if (cell_param(c) < 0)
+            continue;
         ui.touched = (int8_t)c;
         ui.touched_at = now;
-        param_change(c + 7 * ui.layer, e, fast);
+        param_change(cell_param(c), e, fast);
     }
     if (cc_moved) {                      /* MIDI moved a control: show it, light SAVE */
         int p;
@@ -633,7 +698,9 @@ static void draw_head(void)
     } else {
         cv_text(8, 4, &FONT_B, APP_NAME, C_WHITE);
         if (ui.layer)
-            cv_text(98, 9, &FONT_XS, "MORE", C_HI);
+            cv_text(98, 9, &FONT_XS, ui.layer == 2 ? "ARP SETTINGS" : "MORE", C_HI);
+        else if (set.arp)
+            cv_text(98, 9, &FONT_XS, "ARP", C_AMB);
         octave_text(t + 4);
         t[0] = 'O'; t[1] = 'C'; t[2] = 'T'; t[3] = ' ';
         cv_text(232 - text_w(&FONT_XS, t), 9, &FONT_XS, t, C_GRAY);
@@ -669,6 +736,12 @@ static void draw_scope(void)
         h = (int32_t)(lv * 18.0f + 0.5f);
         if (h > 0)
             cv_rect(x, 90 - h, 36, h, slot[i].gate ? C_AMB : C_DIM);
+        if (sd_arp_slot() == i) {        /* the arp's step: a white frame */
+            cv_rect(x, 71, 36, 1, C_WHITE);
+            cv_rect(x, 90, 36, 1, C_WHITE);
+            cv_rect(x - 1, 71, 1, 20, C_WHITE);
+            cv_rect(x + 36, 71, 1, 20, C_WHITE);
+        }
         if (slot[i].note >= 0 && (slot[i].gate || lv > 0.01f)) {
             note_name(slot[i].note, t);
             cv_text(x + (36 - text_w(&FONT_XS, t)) / 2, 75, &FONT_XS, t, slot[i].gate ? C_WHITE : C_GRAY);
@@ -684,12 +757,15 @@ static void draw_params(void)
     cv_begin(240, 120, C_BLACK);
     for (c = 0; c < 8; c++) {
         int32_t x = (c % 4) * 60, y = (c / 4) * 60, w;
-        if (c < 7) {
-            int p = c + 7 * ui.layer, lit = ui.touched == c && now - ui.touched_at < 600u;
+        if (c < 7 && cell_param(c) < 0) {   /* the arp's layer uses K1..K4 only */
+            cv_text(x + 4, y + 20, &FONT_B, "-", C_LINE);
+            cv_text(x + 4, y + 40, &FONT_XS, ENC_LABEL[c], C_LINE);
+        } else if (c < 7) {
+            int p = cell_param(c), lit = ui.touched == c && now - ui.touched_at < 600u;
             char t[16];
             const char *unit = value_text(p, t);
             int32_t vx;
-            cv_text(x + 4, y + 4, &FONT_XS, P_NAME[p], ui.layer ? C_HI : C_GRAY);
+            cv_text(x + 4, y + 4, &FONT_XS, P_NAME[p], ui.layer ? C_HI : C_GRAY);   /* (layers 1, 2: lit) */
             vx = cv_text(x + 4, y + 20, &FONT_B, t, lit ? C_WHITE : C_HI);
             if (unit[0])
                 cv_text(vx + 2, y + 26, &FONT_XS, unit, C_GRAY);
@@ -699,10 +775,16 @@ static void draw_params(void)
             if (w > 0)
                 cv_rect(x + 4, y + 53, w, 3, lit ? C_WHITE : C_AMB);
         } else {                         /* the eighth cell: what SEL does */
-            cv_text(x + 4, y + 4, &FONT_XS, "HOLD SEL", ui.layer ? C_WHITE : C_GRAY);
-            cv_text(x + 4, y + 16, &FONT_XS, ui.layer ? "LAYER 2" : "FOR MORE", ui.layer ? C_HI : C_DIM);
-            cv_text(x + 4, y + 32, &FONT_XS, "REC", C_GRAY);
-            cv_text(x + 4, y + 44, &FONT_XS, "MUTATE", C_DIM);
+            if (ui.layer == 2) {         /* ARP held: whether it's on, and how to switch it */
+                cv_text(x + 4, y + 4, &FONT_XS, "ARP", C_WHITE);
+                cv_text(x + 4, y + 20, &FONT_B, set.arp ? "ON" : "OFF", set.arp ? C_HI : C_DIM);
+                cv_text(x + 4, y + 40, &FONT_XS, "TAP ARP", C_DIM);
+            } else {
+                cv_text(x + 4, y + 4, &FONT_XS, "HOLD SEL", ui.layer ? C_WHITE : C_GRAY);
+                cv_text(x + 4, y + 16, &FONT_XS, ui.layer ? "LAYER 2" : "FOR MORE", ui.layer ? C_HI : C_DIM);
+                cv_text(x + 4, y + 32, &FONT_XS, "HOLD ARP", C_GRAY);
+                cv_text(x + 4, y + 44, &FONT_XS, set.arp ? "ARP IS ON" : "FOR ARP", set.arp ? C_AMB : C_DIM);
+            }
         }
         if (c % 4)
             cv_rect(x, y + 4, 1, 52, C_LINE);
@@ -759,6 +841,8 @@ int app_expect(const char *what, int *got)
         *got = set_dirty;
     else if (!strcmp(what, "nchord"))
         *got = set.nchord;
+    else if (!strcmp(what, "arp"))
+        *got = set.arp;
     else if (what[0] == 'p' && what[1] >= '0' && what[1] <= '9')   /* pN: control N, x 100 */
         *got = (int)(set.param[atoi(what + 1) % SD_NPARAM] * 100.0f + 0.5f);
     else

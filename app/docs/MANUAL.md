@@ -102,9 +102,34 @@ If you're not sure which physical knob is which, turn one and watch which box li
 
 ---
 
+## The arpeggiator
+
+The arpeggiator plays the voices you've started one at a time, each swelling up while the others sink back. With
+the slow default it sounds like a ripple through the chord, not a fast pattern.
+
+- **Tap ARP** to switch it on or off. ARP lights up while it's on, and the screen says ARP at the top.
+- **Hold ARP and turn K1 to K4** to set it up. The screen shows ARP SETTINGS. Letting go of ARP after a turn doesn't
+  switch it off.
+- The voice on the step has a white frame around its box on the screen.
+- With only one voice playing, the arp pulses it on and off.
+- Tap keys in and out while it runs; the arp picks up the change on the next step.
+
+![ARP held: RATE, SHAPE, ORDER and FLOOR on K1 to K4, the C3 voice framed as the step](img/screen-arp.png "ARP settings")
+
+| Knob (ARP held) | Control | What it does | Range |
+| --- | --- | --- | --- |
+| K1 | **RATE** | How fast it steps | 0.1–8 steps a second |
+| K2 | **SHAPE** | Sharp steps at 0, slow swells that blend into each other near 100 | 0–100 |
+| K3 | **ORDER** | UP (low to high), DOWN, UP-DN (up and back), RND (random) | 4 choices |
+| K4 | **FLOOR** | How loud the voices off the step stay: silent at 0, nearly full at 100 | 0–100 |
+
+SAVE keeps whether the arp is on and its settings.
+
+---
+
 ## The other buttons
 
-Three buttons do something besides PLAY and the octave buttons; the rest do nothing in STRATA.
+Three more buttons do something besides PLAY, ARP and the octave buttons; the rest do nothing in STRATA.
 
 - **REC = MUTATE.** Nudges the seven main controls a little in random directions. Press it a few times to wander
   somewhere new.
@@ -126,6 +151,8 @@ can stay where it is.
 | **Glass bells** | TONE 60, RATIO between 2.50 and 3.00, SPACE 70 | BEAT 0.5 Hz, DECAY 30 s, FADE 3 s | Three or four notes spread across the keys |
 | **Dark storm** | GRIT 60, FILTER 300, MOTION 0.05 Hz, SPACE 80 | RESO 60, AIR 50, DEPTH 80, DECAY 60 s | One or two low notes, OCT− pressed once |
 | **Shimmer pad** | TONE 40, RATIO 2.00, DRIFT 60, MOTION 0.20 Hz, SPACE 60 | BEAT 1.0 Hz | A chord of three notes |
+| **Music box ripple** | TONE 45, RATIO 3.00, SPACE 70 | DECAY 20 s; ARP on: RATE 3/s, SHAPE 10, ORDER UP-DN, FLOOR 0 | Four notes going up the keys |
+| **Slow tide** | TONE 25, RATIO 1.00, FILTER 1.0k, SPACE 60 | SUB 50; ARP on: RATE 0.3/s, SHAPE 90, FLOOR 30 | A low chord of three notes |
 
 Once a recipe sounds right, press **SAVE** to keep it.
 
@@ -138,7 +165,7 @@ STRATA takes MIDI in over USB and the TRS jack, on any channel.
 - **Notes** play voices while held, like a normal synth. The sustain pedal (CC 64) holds them.
 - **CC 123** (all notes off) releases the MIDI voices.
 - Keys tapped on the FM-1 go out over USB as notes, so a computer can record them.
-- **CC 20 to 33** set the fourteen controls:
+- **CC 20 to 37** set the eighteen controls:
 
 | CC | Control | CC | Control |
 | --- | --- | --- | --- |
@@ -149,6 +176,8 @@ STRATA takes MIDI in over USB and the TRS jack, on any channel.
 | 24 | FILTER | 31 | RESO |
 | 25 | DRIFT | 32 | AIR |
 | 26 | GRIT | 33 | SUB |
+| 34 | RATE (arp) | 36 | ORDER (arp) |
+| 35 | SHAPE (arp) | 37 | FLOOR (arp) |
 
 ---
 
@@ -161,6 +190,7 @@ STRATA takes MIDI in over USB and the TRS jack, on any channel.
 | The installer can't find the FM-1 | Use Chrome or Edge, try another USB cable, and close other apps or pages that use MIDI. |
 | The knobs do M-VAVE things | STRATA isn't installed yet: the screen should say STRATA at the top. |
 | "OVERLOAD" on the screen | The sound took too long to make, so the oldest voice was let go. Use fewer voices or less AIR. |
+| The voices pulse or take turns | The arp is on: tap ARP to switch it off. |
 | Want the original sound back | Hold HOME for a second. |
 | Want M-VAVE's firmware back | Use the installer's "Back to the stock firmware" link. |
 

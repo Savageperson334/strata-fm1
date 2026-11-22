@@ -176,7 +176,56 @@ int main(int argc, char **argv)
     check(st.maxjump < 0.5, "sweeps stay smooth");
     wav_close();
 
-    /* 6. an hour of drone at the longest decay, resonance high: stable, no denormal slow-down, no drift to DC */
+    /* 6. the arpeggiator: three voices take turns; the level moves step to step, nothing clicks, even plucked */
+    scene(dir, "arp");
+    sd_panic();
+    for (i = 0; i < SD_NPARAM; i++)
+        sd_param(i, 0.35f);
+    sd_param(P_FADE, 0.1f);
+    sd_param(P_AFLOOR, 0.0f);
+    sd_param(P_ARATE, 0.55f);            /* ~1.6 steps/s */
+    sd_voice_on(0, 48);
+    sd_voice_on(1, 55);
+    sd_voice_on(2, 60);
+    sd_arp(1);
+    render_s(1.0);
+    {
+        int seen[SD_VOICES] = {0}, k, kinds = 0, b;
+        float l[BLOCK], r[BLOCK];
+        reset_stats();
+        for (b = 0; b < (int)(6.0 * 44100.0 / BLOCK); b++) {
+            int a = sd_arp_slot();
+            if (a >= 0) seen[a] = 1;
+            sd_render(l, r, BLOCK);
+            for (k = 0; k < (int)BLOCK; k++) {
+                double j = fabs(l[k] - st.last_l);
+                if (j > st.maxjump) st.maxjump = j;
+                st.last_l = l[k];
+                if (wav) { int16_t s2[2] = {(int16_t)lrintf(l[k] * 32000.0f), (int16_t)lrintf(r[k] * 32000.0f)}; fwrite(s2, 2, 2, wav); wav_frames++; }
+            }
+        }
+        for (k = 0; k < SD_VOICES; k++) kinds += seen[k];
+        printf("    arp: %d voices took a step, max step %.4f\n", kinds, st.maxjump);
+        check(kinds == 3, "every voice gets its step");
+        check(st.maxjump < 0.25, "the arp does not click (smooth)");
+    }
+    sd_param(P_ASHAPE, 0.0f);            /* plucked */
+    sd_param(P_AORDER, 0.9f);            /* random */
+    reset_stats();
+    render_s(4.0);
+    printf("    arp plucked: max step %.4f\n", st.maxjump);
+    check(st.bad == 0 && st.maxjump < 0.35, "the arp does not click (plucked, random)");
+    sd_voice_off(1);
+    sd_voice_off(2);
+    reset_stats();
+    render_s(3.0);
+    check(st.peak > 0.01, "one voice left pulses on");
+    sd_arp(0);
+    render_s(1.0);
+    check(sd_arp_slot() == -1, "arp off");
+    wav_close();
+
+    /* 7. an hour of drone at the longest decay, resonance high: stable, no denormal slow-down, no drift to DC */
     printf("hour\n");
     sd_param(P_DECAY, 1.0f);
     sd_param(P_RESO, 0.95f);

@@ -18,3 +18,11 @@ turn K3 1
 wait 200
 shot screen-layer2.png
 release SEL
+tap ARP
+wait 1500
+press ARP
+wait 60
+turn K1 1
+wait 200
+shot screen-arp.png
+release ARP

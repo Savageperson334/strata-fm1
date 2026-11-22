@@ -239,6 +239,67 @@ int main(void)
     run_ms(50);
     expect("p0", 100);
 
+    printf("ARP: a tap switches it, a hold and a turn sets it\n");
+    int filter_before = (int)(set.param[P_FILTER] * 100.0f + 0.5f);
+    expect("arp", 0);
+    btn_tap(B_ARP);
+    expect("arp", 1);
+    if (!(lights_btn & (1u << B_ARP))) { printf("  FAIL ARP light\n"); fails++; } else printf("  ok   ARP is lit\n");
+    btn_now |= 1u << B_ARP;
+    run_ms(50);
+    expect("layer", 2);
+    enc_pending[EN_K1] = 1;              /* RATE */
+    run_ms(100);
+    enc_pending[EN_SELECT] = 1;          /* nothing on this layer */
+    run_ms(100);
+    btn_now &= ~(1u << B_ARP);
+    run_ms(50);
+    expect("arp", 1);                    /* a turn while held: no switch */
+    expect("layer", 0);
+    expect("p14", 47);                   /* 0.45 + 1/64 */
+    expect("p4", filter_before);         /* FILTER untouched: SELECT does nothing on the arp's layer */
+    {
+        int k, steps = 0, last = -2;
+        for (k = 0; k < 4; k++) key_tap(k * 4);
+        for (k = 0; k < 200; k++) {      /* the step moves among the voices */
+            run_ms(32);
+            if (sd_arp_slot() != last) { steps++; last = sd_arp_slot(); }
+        }
+        if (steps < 4) { printf("  FAIL arp steps %d\n", steps); fails++; } else printf("  ok   the arp steps (%d changes)\n", steps);
+    }
+    btn_tap(B_SAVE);
+    app_panic();
+    memset(&set, 0, sizeof set);
+    app_init();
+    run_ms(50);
+    expect("arp", 1);
+    expect("p14", 47);
+    btn_tap(B_ARP);
+    expect("arp", 0);
+
+    printf("0.1's saved sound carries over\n");
+    {
+        settings_v1_t v1;
+        int i;
+        memset(&v1, 0, sizeof v1);
+        v1.magic = SET_MAGIC_V1;
+        for (i = 0; i < 14; i++) v1.param[i] = 0.5f;
+        v1.param[0] = 0.77f;
+        v1.octave = 1;
+        v1.nchord = 3;
+        v1.chord[0] = 40; v1.chord[1] = 47; v1.chord[2] = 52;
+        memcpy(store, &v1, sizeof v1);
+        store_len = (int)sizeof v1;
+        memset(&set, 0, sizeof set);
+        app_init();
+        run_ms(50);
+        expect("p0", 77);
+        expect("octave", 1);
+        expect("nchord", 3);
+        expect("arp", 0);
+        expect("p14", 45);               /* the arp's controls at their defaults */
+    }
+
     printf("an hour of frames and audio with six voices\n");
     {
         int k;
