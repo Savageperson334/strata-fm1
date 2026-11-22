@@ -46,6 +46,8 @@ static int32_t enc_pending[NE];
 static uint8_t store[256];
 static int store_len = -1, store_writes;
 static uint32_t min_q[64], min_w, min_r, midi_out_n;
+static uint32_t master_now = 2048;
+uint32_t plat_master(void) { return master_now; }
 uint32_t plat_ms(void) { return now_ms; }
 uint32_t plat_keys(void) { return keys_now; }
 uint32_t plat_buttons(void) { return btn_now; }
@@ -307,6 +309,94 @@ int main(void)
     expect("p18", 32);
     btn_tap(B_SEQ);
     expect("beat", 0);
+
+    printf("EDIT: a tap switches the lanes, a hold and a turn sets the picked lane\n");
+    expect("euc", 0);
+    expect("L0s", 16);
+    expect("L0p", 4);
+    expect("L0t", ET_KICK);
+    expect("L1s", 12);
+    btn_tap(B_EDIT);
+    expect("euc", 1);
+    if (!(lights_btn & (1u << B_EDIT))) { printf("  FAIL EDIT light\n"); fails++; } else printf("  ok   EDIT is lit\n");
+    run_ms(600);
+    if (!sd_clock_on()) { printf("  FAIL the clock should run\n"); fails++; } else printf("  ok   the lanes start the clock, the beat off\n");
+    expect("beat", 0);
+    btn_now |= 1u << B_EDIT;
+    run_ms(50);
+    expect("layer", 4);
+    enc_pending[EN_K2] = 1;              /* lane 1: PULSES 4 -> 5 */
+    run_ms(100);
+    enc_pending[EN_K1] = -12;            /* STEPS 16 -> 4: the pulses kept to what fits */
+    run_ms(100);
+    expect("L0s", 4);
+    expect("L0p", 4);
+    enc_pending[EN_K3] = -1;             /* ROTATE wraps: 0 -> 3 */
+    run_ms(100);
+    expect("L0r", 3);
+    enc_pending[EN_K4] = -3;             /* CHANCE 100 -> 85 */
+    run_ms(100);
+    expect("L0c", 85);
+    enc_pending[EN_SELECT] = 1;          /* lane 2 */
+    run_ms(100);
+    expect("lane", 1);
+    enc_pending[EN_PRESET] = 2;          /* PLAYS: one choice a turn, HAT -> OPEN */
+    run_ms(100);
+    expect("L1t", ET_OPEN);
+    enc_pending[EN_ALGO] = -1;           /* EVERY 1/16 -> 1/8 */
+    run_ms(100);
+    expect("L1d", 3);
+    expect("L0s", 4);                    /* lane 1 untouched by lane 2's turns */
+    enc_pending[EN_SELECT] = 9;          /* past the last lane: held */
+    run_ms(100);
+    enc_pending[EN_SELECT] = 1;
+    run_ms(100);
+    enc_pending[EN_SELECT] = 1;
+    run_ms(100);
+    expect("lane", 3);
+    btn_now &= ~(1u << B_EDIT);
+    run_ms(50);
+    expect("euc", 1);                    /* turns while held: no switch */
+    expect("layer", 0);
+    btn_tap(B_SAVE);
+    memset(&set, 0, sizeof set);
+    app_init();
+    run_ms(50);
+    expect("euc", 1);
+    expect("L0s", 4);
+    expect("L0c", 85);
+    expect("L1t", ET_OPEN);
+    btn_tap(B_EDIT);
+    expect("euc", 0);
+    run_ms(100);
+    if (sd_clock_on()) { printf("  FAIL the clock should stop\n"); fails++; } else printf("  ok   lanes off: the clock stops\n");
+
+    printf("0.3's saved sound carries over\n");
+    {
+        settings_v3_t v3;
+        int i;
+        memset(&v3, 0, sizeof v3);
+        v3.magic = SET_MAGIC_V3;
+        for (i = 0; i < 25; i++) v3.param[i] = 0.5f;
+        v3.param[18] = 0.8f;
+        v3.octave = 1;
+        v3.nchord = 1;
+        v3.chord[0] = 50;
+        v3.beat = 1;
+        memcpy(store, &v3, sizeof v3);
+        store_len = (int)sizeof v3;
+        memset(&set, 0, sizeof set);
+        app_init();
+        run_ms(50);
+        expect("p18", 80);
+        expect("beat", 1);
+        expect("octave", 1);
+        expect("euc", 0);
+        expect("L0s", 16);               /* the lanes at their defaults */
+        expect("L2t", ET_ARP);
+        btn_tap(B_SEQ);
+        expect("beat", 0);
+    }
 
     printf("0.2's saved sound carries over\n");
     {

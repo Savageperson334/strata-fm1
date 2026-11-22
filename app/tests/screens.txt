@@ -35,3 +35,13 @@ turn K2 1
 wait 200
 shot screen-beat.png
 release SEQ
+tap SEQ
+wait 100
+tap EDIT
+wait 1900
+press EDIT
+wait 60
+turn SELECT 1
+wait 200
+shot screen-euclid.png
+release EDIT

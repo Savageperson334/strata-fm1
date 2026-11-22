@@ -283,8 +283,143 @@ int main(int argc, char **argv)
     check(sd_beat_step() == -1, "beat off");
     wav_close();
 
-    /* 8. an hour of drone at the longest decay, resonance high: stable, no denormal slow-down, no drift to DC */
+    /* 8. the Euclidean lanes: the patterns themselves, then lanes as the drums, on their own lengths, and the arp */
+    printf("euclid\n");
+    {
+        static const struct { int p, n; const char *want; } gold[] = {
+            {3, 8, "X..X..X."}, {4, 16, "X...X...X...X..."}, {5, 12, "X..X.X..X.X."}, {5, 16, "X...X..X..X..X.."},
+            {7, 16, "X..X.X.X..X.X.X."}, {3, 9, "X..X..X.."}, {0, 8, "........"}, {8, 8, "XXXXXXXX"}, {1, 1, "X"},
+        };
+        int n, pl, k, bad = 0;
+        for (k = 0; k < (int)(sizeof gold / sizeof gold[0]); k++) {
+            char got[40];
+            uint32_t m = sd_euclid_mask(gold[k].n, gold[k].p, 0);
+            for (n = 0; n < gold[k].n; n++) got[n] = (m >> n & 1u) ? 'X' : '.';
+            got[n] = 0;
+            if (strcmp(got, gold[k].want)) { printf("  FAIL E(%d,%d) = %s, wanted %s\n", gold[k].p, gold[k].n, got, gold[k].want); fails++; bad++; }
+        }
+        check(!bad, "the known patterns: E(3,8), E(4,16), E(5,12), E(5,16), E(7,16), E(3,9), none, all");
+        bad = 0;
+        for (n = 1; n <= 32; n++)        /* every length and count: the count exact, the gaps within a step of each other */
+            for (pl = 0; pl <= n; pl++) {
+                uint32_t m = sd_euclid_mask(n, pl, 0), r;
+                int cnt = 0, first = -1, last = -1, gmin = 99, gmax = 0, rot;
+                for (k = 0; k < n; k++)
+                    if (m >> k & 1u) {
+                        cnt++;
+                        if (first < 0) first = k;
+                        if (last >= 0) { int g2 = k - last; if (g2 < gmin) gmin = g2; if (g2 > gmax) gmax = g2; }
+                        last = k;
+                    }
+                if (cnt > 1) { int g2 = first + n - last; if (g2 < gmin) gmin = g2; if (g2 > gmax) gmax = g2; }
+                if (cnt != pl || (cnt > 1 && gmax - gmin > 1) || (pl && !(m & 1u)) || (n < 32 && m >> n)) bad++;
+                for (rot = 0; rot <= n; rot++) {   /* a rotation moves it later, and wraps */
+                    r = sd_euclid_mask(n, pl, rot);
+                    for (k = 0; k < n; k++)
+                        if ((m >> k & 1u) != (r >> ((k + rot) % n) & 1u)) bad++;
+                }
+            }
+        check(!bad, "every E(p,n) to 32 steps: exact count, even gaps, a hit on step one, rotation wraps");
+    }
+    sd_panic();
+    for (i = 0; i < SD_NPARAM; i++)
+        sd_param(i, 0.35f);
+    sd_param(P_BTEMPO, 0.6f);            /* 120 BPM: 8 sixteenths a second */
+    sd_param(P_BSWING, 0.0f);
+    sd_param(P_BLEVEL, 0.7f);
+    sd_param(P_SPACE, 0.0f);
+    sd_arp(0);
+    sd_beat(0);
+    render_s(3.0);
+    scene(dir, "euclid");
+    {
+        sd_lane_t kick = {16, 4, 0, 100, 4, ET_KICK}, hat = {12, 5, 0, 100, 4, ET_HAT}, off = {16, 0, 0, 100, 4, ET_OFF};
+        sd_lane_t arp = {16, 7, 0, 100, 4, ET_ARP};
+        float l[BLOCK], r[BLOCK];
+        int b, k, seen12 = 0, seen16 = 0, changes = 0, last = -2, p0, p1;
+        sd_lane_set(0, &kick);
+        sd_lane_set(1, &hat);
+        sd_lane_set(2, &off);
+        sd_lane_set(3, &off);
+        reset_stats();
+        render_s(1.0);
+        check(st.peak < 1e-4 && !sd_clock_on(), "lanes set but switched off: silence, the clock stopped");
+        sd_euclid(1);                    /* the beat off: the lanes alone are the drums */
+        reset_stats();
+        for (b = 0; b < (int)(4.0 * 44100.0 / BLOCK); b++) {
+            sd_render(l, r, BLOCK);
+            if (sd_lane_pos(0) == 15) seen16 = 1;
+            if (sd_lane_pos(1) == 11) seen12 = 1;
+            if (sd_lane_pos(1) > 11) fails++;
+            for (k = 0; k < (int)BLOCK; k++) {
+                if (fabs(l[k]) > st.peak) st.peak = fabs(l[k]);
+                if (!isfinite(l[k])) st.bad++;
+                if (wav) { int16_t s2[2] = {(int16_t)lrintf(l[k] * 32000.0f), (int16_t)lrintf(r[k] * 32000.0f)}; fwrite(s2, 2, 2, wav); wav_frames++; }
+            }
+        }
+        printf("    lanes as drums, the beat off: peak %.3f\n", st.peak);
+        check(sd_clock_on() && st.peak > 0.1 && st.bad == 0, "the lanes play the drums with the beat off");
+        check(seen16 && seen12, "a 16-step and a 12-step lane each run their own length");
+        /* 32 sixteenths in: the 16-step lane is back at its start, the 12-step lane is 8 steps into its third turn */
+        p0 = sd_lane_pos(0);
+        p1 = sd_lane_pos(1);
+        printf("    after 4 s: lane 1 at step %d of 16, lane 2 at step %d of 12\n", p0 + 1, p1 + 1);
+        check((p0 - p1 + 48) % 4 == 0 && p0 != p1, "the two lanes have drifted apart (polymeter)");
+        sd_beat(1);                      /* the beat joins without restarting the clock */
+        sd_render(l, r, BLOCK);
+        check(sd_lane_pos(0) == p0 || sd_lane_pos(0) == (p0 + 1) % 16, "the beat joins the running clock, no restart");
+        render_s(2.0);
+        sd_beat(0);
+        kick.prob = 0;                   /* no chance: no hits */
+        hat.prob = 0;
+        sd_lane_set(0, &kick);
+        sd_lane_set(1, &hat);
+        render_s(6.0);                   /* (the last kick's tail dies away) */
+        reset_stats();
+        render_s(2.0);
+        check(st.peak < 1e-3 && sd_clock_on(), "chance 0: the lanes run and nothing plays");
+        /* a lane steps the arp: E(7,16) at 120 BPM is 3.5 hits a second */
+        sd_lane_set(0, &off);
+        sd_lane_set(1, &off);
+        sd_lane_set(2, &arp);
+        sd_voice_on(0, 45);
+        sd_voice_on(1, 52);
+        sd_voice_on(2, 57);
+        sd_arp(1);
+        check(sd_arp_lane() == 2, "lane 3 steps the arp");
+        render_s(1.0);
+        for (b = 0; b < (int)(4.0 * 44100.0 / BLOCK); b++) {
+            sd_render(l, r, BLOCK);
+            if (sd_arp_slot() != last) { changes++; last = sd_arp_slot(); }
+            for (k = 0; k < (int)BLOCK; k++)
+                if (wav) { int16_t s2[2] = {(int16_t)lrintf(l[k] * 32000.0f), (int16_t)lrintf(r[k] * 32000.0f)}; fwrite(s2, 2, 2, wav); wav_frames++; }
+        }
+        printf("    arp on E(7,16): %d steps in 4 s (14 hits)\n", changes);
+        check(changes >= 13 && changes <= 15, "the arp steps once on each of the lane's hits");
+        sd_voice_off(1);
+        sd_voice_off(2);
+        render_s(1.0);
+        changes = 0;
+        last = -2;
+        for (b = 0; b < (int)(4.0 * 44100.0 / BLOCK); b++) {
+            sd_render(l, r, BLOCK);
+            if (sd_arp_slot() != last) { changes++; last = sd_arp_slot(); }
+        }
+        printf("    one voice on E(7,16): %d on/off changes in 4 s (14 pulses)\n", changes);
+        check(changes >= 26 && changes <= 30, "one voice alone pulses on each hit");
+        sd_arp(0);
+        sd_euclid(0);
+        sd_lane_set(2, &off);
+        render_s(0.5);
+        check(!sd_clock_on() && sd_lane_pos(0) == -1, "lanes off: the clock stops");
+        sd_voice_off(0);
+    }
+    wav_close();
+
+    /* 9. an hour of drone at the longest decay, resonance high: stable, no denormal slow-down, no drift to DC */
     printf("hour\n");
+    sd_voice_on(0, 45);
+    sd_voice_on(1, 52);
     sd_param(P_DECAY, 1.0f);
     sd_param(P_RESO, 0.95f);
     sd_param(P_SPACE, 1.0f);

@@ -167,8 +167,19 @@ enum { DK, DS, DH, DO, DP, ND };
 static uint16_t g_hit[SD_GROOVES][ND], g_acc[SD_GROOVES][ND];
 const char *sd_groove_name(float v) { return GROOVE_NAME[groove_of(v)]; }
 
-static volatile int beat_on, beat_restart;
+static volatile int beat_on;
 static volatile int beat_step_now = -1;
+static volatile int tr_running;          /* the clock runs: the beat is on, or a lane plays */
+
+/* the Euclidean lanes: settings from the main loop as two words a lane (any mix of old and new is playable) */
+static volatile uint32_t lane_cfg[SD_LANES];    /* steps | pulses << 6 | prob << 12 | div << 19 | target << 22 */
+static volatile uint32_t lane_mask_v[SD_LANES];
+static volatile int euc_on;
+static uint8_t lane_cur[SD_LANES];              /* each lane's own playhead: the next step */
+static volatile int8_t lane_pos_now[SD_LANES] = {-1, -1, -1, -1};
+static uint32_t lane_rng[SD_LANES];
+static uint32_t arp_hits;                       /* hits of the lane that steps the arp, not yet taken */
+static const char *const TARGET_NAME[ET_NTARGET] = {"OFF", "KICK", "SNARE", "HAT", "OPEN", "PERC", "ARP"};
 static int beat_step = -1;
 static uint32_t beat_ticks;              /* the sixteenth playing, counted from 0 at the start (the arp's grid) */
 static uint32_t beat_count;              /* sixteenths started */
@@ -184,19 +195,52 @@ static struct {
 /* per block: the kit's coefficients */
 static float k_fs, k_fe, k_pc, k_ac, s_c, sn_c, h_closed, h_open, p_c, d_c, sbg, sba1, sba2, sba3, hbg, hba1, hba2, hba3;
 
-void sd_beat(int on)
-{
-    if (on && !beat_on) {
-        beat_restart = 1;
-        beat_ticks = 0;
-        arp_bucket = 0xFFFFFFFFu;        /* the arp's first step on the beat's first */
-    }
-    beat_on = on != 0;
-    if (!on)
-        beat_step_now = -1;
-}
+void sd_beat(int on) { beat_on = on != 0; }
 int sd_beat_on(void) { return beat_on; }
-int sd_beat_step(void) { return beat_on ? beat_step_now : -1; }
+int sd_beat_step(void) { return tr_running ? beat_step_now : -1; }
+int sd_clock_on(void) { return tr_running; }
+
+uint32_t sd_euclid_mask(int steps, int pulses, int rot)
+{
+    uint32_t m = 0;
+    int i;
+    steps = steps < 1 ? 1 : steps > 32 ? 32 : steps;
+    pulses = pulses < 0 ? 0 : pulses > steps ? steps : pulses;
+    rot = ((rot % steps) + steps) % steps;
+    for (i = 0; i < steps; i++)          /* as even as it gets: gaps differ by one step at most; E(3,8) = X..X..X. */
+        if ((i * pulses) % steps < pulses)
+            m |= 1u << ((i + rot) % steps);
+    return m;
+}
+
+void sd_lane_set(int lane, const sd_lane_t *l)
+{
+    uint32_t steps, pulses, prob, dv, tg;
+    if (lane < 0 || lane >= SD_LANES)
+        return;
+    steps = l->steps < 1u ? 1u : l->steps > 32u ? 32u : l->steps;
+    pulses = l->pulses > steps ? steps : l->pulses;
+    prob = l->prob > 100u ? 100u : l->prob;
+    dv = l->div >= SD_LANE_DIVS ? SD_LANE_DIVS - 1u : l->div;
+    tg = l->target >= ET_NTARGET ? ET_OFF : l->target;
+    lane_mask_v[lane] = sd_euclid_mask((int)steps, (int)pulses, (int)l->rot);
+    lane_cfg[lane] = steps | pulses << 6 | prob << 12 | dv << 19 | tg << 22;
+}
+void sd_euclid(int on) { euc_on = on != 0; }
+int sd_euclid_on(void) { return euc_on; }
+uint32_t sd_lane_mask(int lane) { return lane >= 0 && lane < SD_LANES ? lane_mask_v[lane] : 0u; }
+int sd_lane_pos(int lane) { return lane >= 0 && lane < SD_LANES && tr_running && euc_on ? lane_pos_now[lane] : -1; }
+int sd_arp_lane(void)
+{
+    int l;
+    if (euc_on)
+        for (l = 0; l < SD_LANES; l++)
+            if ((lane_cfg[l] >> 22 & 7u) == ET_ARP)
+                return l;
+    return -1;
+}
+const char *sd_div_name(int d) { return DIV_NAME[d < 0 ? 0 : d >= SD_LANE_DIVS ? SD_LANE_DIVS - 1 : d]; }
+const char *sd_target_name(int t) { return TARGET_NAME[t < 0 || t >= ET_NTARGET ? 0 : t]; }
 
 static void grooves_init(void)
 {
@@ -224,10 +268,28 @@ static void tpt_bp(float fc, float k, float *g, float *a1, float *a2, float *a3)
     *a3 = *g * *a2;
 }
 
-static void beat_block(void)             /* the kit from KIT, the duck's recovery from the tempo */
+static void beat_block(void)             /* the clock on or off; the kit from KIT, the duck's recovery from the tempo */
 {
     float kit = p[P_BKIT], quarter = 60.0f / sd_tempo_bpm(p[P_BTEMPO]);
-    int s, low = 128;
+    int s, low = 128, want = beat_on;
+    if (euc_on)
+        for (s = 0; s < SD_LANES; s++)
+            if (lane_cfg[s] >> 22 & 7u)
+                want = 1;
+    if (want && !tr_running) {           /* the clock starts: everything from its first step */
+        beat_step = -1;
+        beat_left = 0.0f;
+        beat_count = 0;
+        beat_ticks = 0;
+        arp_bucket = 0xFFFFFFFFu;        /* (the arp's first step on the clock's first) */
+        arp_hits = 0;
+        for (s = 0; s < SD_LANES; s++) {
+            lane_cur[s] = 0;
+            lane_pos_now[s] = -1;
+            lane_rng[s] = 0x9E3779B9u * (uint32_t)(s + 1);   /* the same chances every start */
+        }
+    }
+    tr_running = want;
     k_fe = 38.0f + 24.0f * kit;
     k_fs = 120.0f + 160.0f * kit;
     k_pc = decay_c(0.022f + 0.012f * kit);
@@ -246,32 +308,71 @@ static void beat_block(void)             /* the kit from KIT, the duck's recover
     dr.pfreq = 440.0f * fm_exp2f(((float)(low < 128 ? low + 12 : 69) - 69.0f) * (1.0f / 12.0f));
 }
 
-static void beat_trigger(int k)          /* step k of the groove: its hits */
+/* a sixteenth of the clock: the lanes that step on it, then each drum's hit from its lane, or else the groove */
+static void clock_tick(uint32_t count)
 {
-    int g = groove_of(p[P_BGROOVE]);
-    uint32_t bit = 1u << k;
-    if (g_hit[g][DK] & bit) {
-        float a = (g_acc[g][DK] & bit) ? 1.0f : 0.72f;
+    int g = groove_of(p[P_BGROOVE]), l, r;
+    uint32_t bit = 1u << (count & 15u), from_lane = 0, hit = 0, acc = 0;
+    if (euc_on)
+        for (l = 0; l < SD_LANES; l++) {
+            uint32_t cfg = lane_cfg[l], steps = cfg & 63u, prob = cfg >> 12 & 127u, tg = cfg >> 22 & 7u, pos;
+            if (tg == ET_OFF || !steps)
+                continue;
+            if (tg <= ET_PERC)
+                from_lane |= 1u << (tg - 1u);
+            if (count % DIV_TICKS[cfg >> 19 & 7u])
+                continue;                /* (not on this lane's grid) */
+            pos = lane_cur[l] % steps;
+            lane_cur[l] = (uint8_t)((pos + 1u) % steps);
+            lane_pos_now[l] = (int8_t)pos;
+            if (!(lane_mask_v[l] >> pos & 1u))
+                continue;
+            if (prob < 100u) {           /* the hit's chance, from the lane's own generator */
+                uint32_t x = lane_rng[l];
+                x ^= x << 13;
+                x ^= x >> 17;
+                x ^= x << 5;
+                lane_rng[l] = x;
+                if ((x >> 8) % 100u >= prob)
+                    continue;
+            }
+            if (tg == ET_ARP) {
+                arp_hits++;
+            } else {
+                hit |= 1u << (tg - 1u);
+                if (pos == 0u)
+                    acc |= 1u << (tg - 1u);
+            }
+        }
+    for (r = 0; r < ND; r++)             /* a drum no lane plays: the groove's, with the beat on */
+        if (!(from_lane >> r & 1u) && beat_on) {
+            if (g_hit[g][r] & bit)
+                hit |= 1u << r;
+            if (g_acc[g][r] & bit)
+                acc |= 1u << r;
+        }
+    if (hit >> DK & 1u) {
+        float a = (acc >> DK & 1u) ? 1.0f : 0.72f;
         dr.kenv = a;
         dr.kpenv = 1.0f;
         dr.kph = 0.0f;
         duck = 1.0f - 0.85f * p[P_BDUCK] * a;
     }
-    if (g_hit[g][DS] & bit) {
-        float a = (g_acc[g][DS] & bit) ? 1.0f : 0.6f;
+    if (hit >> DS & 1u) {
+        float a = (acc >> DS & 1u) ? 1.0f : 0.6f;
         dr.senv = a;
         dr.snenv = a;
         dr.sph = 0.0f;
     }
-    if (g_hit[g][DO] & bit) {
-        dr.henv = (g_acc[g][DO] & bit) ? 0.9f : 0.65f;
+    if (hit >> DO & 1u) {
+        dr.henv = (acc >> DO & 1u) ? 0.9f : 0.65f;
         dr.hdec = h_open;
-    } else if (g_hit[g][DH] & bit) {     /* (a closed hat chokes the open one) */
-        dr.henv = (g_acc[g][DH] & bit) ? 0.75f : 0.45f;
+    } else if (hit >> DH & 1u) {         /* (a closed hat chokes the open one) */
+        dr.henv = (acc >> DH & 1u) ? 0.75f : 0.45f;
         dr.hdec = h_closed;
     }
-    if (g_hit[g][DP] & bit) {
-        dr.penv = (g_acc[g][DP] & bit) ? 1.0f : 0.7f;
+    if (hit >> DP & 1u) {
+        dr.penv = (acc >> DP & 1u) ? 1.0f : 0.7f;
         dr.pph = dr.pmph = 0.0f;
     }
 }
@@ -280,24 +381,18 @@ static void beat_trigger(int k)          /* step k of the groove: its hits */
 static inline void beat_sample(float *dl, float *dr_out, float swing, float step_len)
 {
     float k, sn, h, pc, x, v3, v1, v2;
-    if (!beat_on && dr.kenv + dr.senv + dr.snenv + dr.henv + dr.penv < 1e-5f) {   /* off and quiet: nothing to make */
+    if (!tr_running && dr.kenv + dr.senv + dr.snenv + dr.henv + dr.penv < 1e-5f) {   /* off and quiet: nothing to make */
         duck += (1.0f - duck) * d_c;
         *dl = *dr_out = 0.0f;
         return;
     }
-    if (beat_on) {
-        if (beat_restart) {
-            beat_restart = 0;
-            beat_step = -1;
-            beat_left = 0.0f;
-            beat_count = 0;
-        }
+    if (tr_running) {
         beat_left -= 1.0f;
         if (beat_left <= 0.0f) {
             beat_step = (beat_step + 1) & 15;
             beat_ticks = beat_count++;
             beat_step_now = beat_step;
-            beat_trigger(beat_step);
+            clock_tick(beat_ticks);
             /* swing: the first sixteenth of each pair longer, the second shorter */
             beat_left += 2.0f * step_len * ((beat_step & 1) ? 1.0f - swing : swing);
         }
@@ -368,11 +463,27 @@ int sd_arp_on(void) { return arp_on; }
 int sd_arp_slot(void) { return arp_on ? arp_slot : -1; }
 
 /* once a block: the step's voice, from the voices asked to sound, ordered by pitch */
+/* the arp's step in seconds, for its swell: its own rate, the clock's note length, or its lane's average gap */
+static float arp_step_s(void)
+{
+    int l = sd_arp_lane();
+    float six = 15.0f / sd_tempo_bpm(p[P_BTEMPO]);
+    if (!tr_running)
+        return 1.0f / sd_arp_hz(p[P_ARATE]);
+    if (l >= 0) {
+        uint32_t cfg = lane_cfg[l], steps = cfg & 63u, pulses = cfg >> 6 & 63u;
+        return six * (float)DIV_TICKS[cfg >> 19 & 7u] * (float)(steps ? steps : 1u) / (float)(pulses ? pulses : 1u);
+    }
+    return six * (float)DIV_TICKS[arp_div_of(p[P_ARATE])];
+}
+
 static void arp_block(uint32_t n)
 {
-    int order[SD_VOICES], cnt = 0, s, k, pos;
+    static float hold;                   /* one voice on a lane: samples until its pulse lets go */
+    int order[SD_VOICES], cnt = 0, s, k, pos, lane = sd_arp_lane();
     if (!arp_on) {
         arp_slot = -1;
+        arp_hits = 0;
         return;
     }
     for (s = 0; s < SD_VOICES; s++) {    /* insertion sort by note: six at most */
@@ -385,7 +496,25 @@ static void arp_block(uint32_t n)
         }
         order[k] = s;
     }
-    if (beat_on) {                       /* on the beat's grid: a step each RATE's note length */
+    if (tr_running && lane >= 0) {       /* a Euclidean lane steps it: one step a hit, nothing between */
+        if (arp_slot >= 0 && !V[arp_slot].req_gate)
+            arp_slot = -1;               /* (its voice let go: quiet until the next hit) */
+        if (cnt == 1 && !arp_hits) {     /* one voice alone: each hit a pulse, half a lane step long */
+            hold -= (float)n;
+            if (hold <= 0.0f)
+                arp_slot = -1;
+            return;
+        }
+        if (!arp_hits)
+            return;
+        arp_hits = 0;
+        if (cnt == 1) {
+            uint32_t cfg = lane_cfg[lane];
+            hold = 0.5f * (float)DIV_TICKS[cfg >> 19 & 7u] * 15.0f / sd_tempo_bpm(p[P_BTEMPO]) * SD_RATE;
+            arp_slot = order[0];
+            return;
+        }
+    } else if (tr_running) {             /* on the clock's grid: a step each RATE's note length */
         uint32_t b = beat_ticks / DIV_TICKS[arp_div_of(p[P_ARATE])];
         if (b == arp_bucket && !(arp_slot >= 0 && !V[arp_slot].req_gate))
             return;
@@ -462,6 +591,12 @@ void sd_init(void)
     arp_on = 0;
     arp_slot = -1;
     grooves_init();
+    euc_on = 0;
+    tr_running = 0;
+    for (i = 0; i < SD_LANES; i++) {
+        lane_cfg[i] = 16u | 100u << 12 | 4u << 19;   /* 16 steps, no pulses, 1/16, off */
+        lane_mask_v[i] = 0;
+    }
     beat_on = 0;
     beat_step_now = -1;
     duck = 1.0f;
@@ -617,9 +752,7 @@ void sd_render(float *outl, float *outr, uint32_t n)
         idx1 *= 1.0f / (1.0f + f * (1.0f / 2500.0f));   /* high notes less bright: no fizz */
         /* the arp: this voice up on its step, down to FLOOR off it; SHAPE from a 4 ms pluck to a whole-step swell */
         if (arp_on) {
-            float step_s = beat_on ? (float)DIV_TICKS[arp_div_of(p[P_ARATE])] * 15.0f / sd_tempo_bpm(p[P_BTEMPO])
-                                   : 1.0f / sd_arp_hz(p[P_ARATE]);
-            float sh = p[P_ASHAPE];
+            float step_s = arp_step_s(), sh = p[P_ASHAPE];
             float tau = 0.004f + sh * sh * step_s * 0.45f;
             float fl = p[P_AFLOOR] * p[P_AFLOOR];
             agt = arp_slot == s ? 1.0f : fl;

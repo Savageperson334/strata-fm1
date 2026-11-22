@@ -130,3 +130,30 @@ shot beat.png
 tap SEQ
 wait 50
 expect beat 0
+# EDIT: a tap starts the Euclidean lanes (the beat off: they are the drums); held, the knobs set the picked lane
+tap EDIT
+wait 50
+expect euc 1
+wav euclid.wav
+wait 1500
+wavstop
+expect peak_db_min -40
+press EDIT
+wait 50
+expect layer 4
+turn K2 1
+wait 100
+turn SELECT 1
+wait 100
+turn PRESET 1
+wait 100
+release EDIT
+wait 50
+expect euc 1
+expect L0p 5
+expect lane 1
+expect L1t 4
+shot euclid.png
+tap EDIT
+wait 50
+expect euc 0

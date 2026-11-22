@@ -70,7 +70,36 @@ int sd_beat_step(void);                  /* 0..15, the step playing now; -1 off 
 const char *sd_groove_name(float v);
 float sd_tempo_bpm(float v);
 float sd_swing_pct(float v);
-const char *sd_arp_div_name(float v);    /* RATE as a note length, while the beat runs */
+const char *sd_arp_div_name(float v);    /* RATE as a note length, while the clock runs */
+
+/* the Euclidean lanes: four generators on the beat's clock, each spreading `pulses` hits as evenly as it can over
+ * `steps` steps, E(pulses, steps), with its own length, rotation, chance and step length, so lanes of different
+ * lengths drift against each other. A lane plays one of the kit's drums IN PLACE OF the groove's part for that drum
+ * (with the beat off, the lanes alone are the drums), or steps the arpeggiator on its hits. The clock runs while the
+ * beat or a lane needs it; it starts from step one when the first of them starts.
+ * Rotation 0 puts a hit on a lane's first step; each rotation step moves the pattern one step later. The hit on a
+ * lane's first step is accented. */
+#define SD_LANES 4
+enum { ET_OFF, ET_KICK, ET_SNARE, ET_HAT, ET_OPEN, ET_PERC, ET_ARP, ET_NTARGET };
+#define SD_LANE_DIVS 5                   /* div 0 .. 4: a step is 1/1, 1/2, 1/4, 1/8, 1/16 */
+typedef struct {
+    uint8_t steps;                       /* 1 .. 32 */
+    uint8_t pulses;                      /* 0 .. steps */
+    uint8_t rot;                         /* 0 .. steps - 1 */
+    uint8_t prob;                        /* 0 .. 100: the chance each hit plays */
+    uint8_t div;                         /* 0 .. SD_LANE_DIVS - 1 */
+    uint8_t target;                      /* ET_* */
+} sd_lane_t;
+uint32_t sd_euclid_mask(int steps, int pulses, int rot);   /* bit i: a hit on step i */
+void sd_lane_set(int lane, const sd_lane_t *l);            /* main loop; out-of-range fields are clamped */
+void sd_euclid(int on);                  /* all four lanes on / off */
+int sd_euclid_on(void);
+uint32_t sd_lane_mask(int lane);         /* the lane's pattern as it plays */
+int sd_lane_pos(int lane);               /* the step it played last, -1 not running */
+int sd_arp_lane(void);                   /* the lane stepping the arp, -1 none */
+int sd_clock_on(void);                   /* the clock runs (the beat, or a lane) */
+const char *sd_div_name(int div);
+const char *sd_target_name(int target);
 
 /* readable values for the screen */
 float sd_ratio_of(float v);

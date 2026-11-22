@@ -5,6 +5,10 @@
  *   K1..K4, SELECT, ALGO, PRESET   the seven main controls; hold SEL for the seven more beneath them
  *   ARP             tap: the arpeggiator on / off; hold ARP and turn K1..K4: RATE, SHAPE, ORDER, FLOOR
  *   SEQ             tap: the beat on / off; hold SEQ and turn the seven: TEMPO, GROOVE, SWING, LEVEL, KIT, ROOM, DUCK
+ *   EDIT            tap: the four Euclidean lanes on / off; hold EDIT: SELECT picks a lane, KNOB1..4 its STEPS, PULSES,
+ *                   ROTATE and CHANCE, ALGORITHM its step length, PRESETS what it plays (a drum, or the arp's steps)
+ * The screen's boxes sit as the knobs do on the panel: MASTER, SELECT, PRESETS and ALGORITHM in the left half, as on the
+ * left of the screen; KNOB1..4 in the right half.
  *   PLAY            all voices out (the chord is kept); again, the chord back in
  *   OCT- / OCT+     the keys' octave
  *   REC             MUTATE: nudge the sound somewhere nearby
@@ -18,7 +22,8 @@
 #include "strata_dsp.h"
 
 /* --------------------------------------------------------------- settings --- */
-#define SET_MAGIC 0x53545233u            /* "STR3" (0.3, with the beat): another magic loads the defaults */
+#define SET_MAGIC 0x53545234u            /* "STR4" (0.4, with the lanes): another magic loads the defaults */
+#define SET_MAGIC_V3 0x53545233u         /* "STR3" (0.3): this record without the lanes (settings_v3_t) */
 #define SET_MAGIC_V2 0x53545232u         /* "STR2" (0.2): read and carried over (settings_v2_t) */
 #define SET_MAGIC_V1 0x53545231u         /* "STR1" (0.1): read and carried over (settings_v1_t) */
 typedef struct {
@@ -29,8 +34,20 @@ typedef struct {
     uint8_t chord[SD_VOICES];
     uint8_t arp;                         /* the arpeggiator on */
     uint8_t beat;                        /* the beat on */
-    uint8_t rsv[2];
+    uint8_t euc;                         /* the Euclidean lanes on */
+    uint8_t rsv;
+    sd_lane_t lane[SD_LANES];
 } settings_t;
+typedef struct {                         /* 0.3's record: the same up to the lanes */
+    uint32_t magic;
+    float param[25];
+    int8_t octave;
+    uint8_t nchord;
+    uint8_t chord[SD_VOICES];
+    uint8_t arp;
+    uint8_t beat;
+    uint8_t rsv[2];
+} settings_v3_t;
 typedef struct {                         /* 0.2's record: 18 controls, the arp */
     uint32_t magic;
     float param[18];
@@ -65,7 +82,16 @@ static const char *const P_NAME[SD_NPARAM] = {"TONE", "RATIO", "MOTION", "SPACE"
 static const char *const ORDER_NAME[4] = {"UP", "DOWN", "UP-DN", "RND"};
 /* the encoders, in the order the screen shows them: K1 K2 K3 K4 on top, SELECT ALGO PRESET below */
 static const uint8_t ENC_OF_CELL[7] = {EN_K1, EN_K2, EN_K3, EN_K4, EN_SELECT, EN_ALGO, EN_PRESET};
-static const char *const ENC_LABEL[7] = {"K1", "K2", "K3", "K4", "SELECT", "ALGO", "PRESET"};
+static const char *const ENC_LABEL[7] = {"KNOB1", "KNOB2", "KNOB3", "KNOB4", "SELECT", "ALGORITHM", "PRESETS"};
+/* where each one's box is on the screen, in columns and rows of 60 pixels: as the knobs sit on the panel. The left
+ * half is the four knobs left of the screen (MASTER at the top left, SELECT beside it, PRESETS and ALGORITHM under
+ * them); the right half is KNOB1..4, the row right of the screen, two by two */
+static const uint8_t CELL_COL[7] = {2, 3, 2, 3, 1, 1, 0};
+static const uint8_t CELL_ROW[7] = {0, 0, 1, 1, 0, 1, 1};
+/* the lanes as they start: a kick, a hat and a perc of different lengths, and one for the arp (the design's example) */
+static const sd_lane_t LANE_DEFAULT[SD_LANES] = {
+    {16, 4, 0, 100, 4, ET_KICK}, {12, 5, 0, 100, 4, ET_HAT}, {16, 7, 0, 100, 4, ET_ARP}, {9, 3, 0, 100, 4, ET_PERC},
+};
 
 static void settings_defaults(void)
 {
@@ -81,8 +107,10 @@ static void settings_defaults(void)
         set.chord[i] = 0;
     set.arp = 0;
     set.beat = 0;
-    for (i = 0; i < 2; i++)
-        set.rsv[i] = 0;
+    set.euc = 0;
+    set.rsv = 0;
+    for (i = 0; i < SD_LANES; i++)
+        set.lane[i] = LANE_DEFAULT[i];
 }
 
 static int settings_ok(void)
@@ -96,6 +124,14 @@ static int settings_ok(void)
     for (i = 0; i < set.nchord; i++)
         if (set.chord[i] > 127u)
             return 0;
+    if (set.euc > 1u)
+        return 0;
+    for (i = 0; i < SD_LANES; i++) {
+        const sd_lane_t *l = &set.lane[i];
+        if (l->steps < 1u || l->steps > 32u || l->pulses > l->steps || l->rot >= l->steps || l->prob > 100u ||
+            l->div >= SD_LANE_DIVS || l->target >= ET_NTARGET)
+            return 0;
+    }
     return 1;
 }
 
@@ -110,6 +146,15 @@ static void bytes_copy(void *dst, const void *src, uint32_t n)
 static void settings_load(void)
 {
     int got = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
+    if (got == (int)sizeof(settings_v3_t) && set.magic == SET_MAGIC_V3) {   /* 0.3's: as it is, the lanes added */
+        int i;
+        set.magic = SET_MAGIC;
+        set.euc = 0;
+        set.rsv = 0;
+        for (i = 0; i < SD_LANES; i++)
+            set.lane[i] = LANE_DEFAULT[i];
+        got = (int)sizeof set;
+    }
     if (got == (int)sizeof(settings_v2_t) && set.magic == SET_MAGIC_V2) {   /* 0.2's: kept, the beat's added */
         settings_v2_t v2;
         int i;
@@ -152,6 +197,9 @@ static void params_to_engine(void)
         sd_param(i, set.param[i]);
     sd_arp(set.arp);
     sd_beat(set.beat);
+    for (i = 0; i < SD_LANES; i++)
+        sd_lane_set(i, &set.lane[i]);
+    sd_euclid(set.euc);
 }
 
 /* ----------------------------------------------------------------- voices --- */
@@ -412,6 +460,28 @@ static void hz_text(float hz, char *b)       /* 0.12 / 4.5 / 420 / 1.2k */
 }
 
 /* a control's value as the screen shows it, and its unit */
+/* what the settings ask of the clock: the lane that steps the arp (-1 none), and whether the clock runs */
+static int arp_lane(void)
+{
+    int l;
+    if (set.euc)
+        for (l = 0; l < SD_LANES; l++)
+            if (set.lane[l].target == ET_ARP)
+                return l;
+    return -1;
+}
+static int clock_wanted(void)
+{
+    int l;
+    if (set.beat)
+        return 1;
+    if (set.euc)
+        for (l = 0; l < SD_LANES; l++)
+            if (set.lane[l].target != ET_OFF)
+                return 1;
+    return 0;
+}
+
 static const char *value_text(int p, char *b)
 {
     float v = set.param[p];
@@ -423,7 +493,11 @@ static const char *value_text(int p, char *b)
     case P_FADE: { float s = sd_fade_s(v); fixed_text(s, s < 10.0f ? 1 : 0, b); return "s"; }
     case P_DECAY: { float s = sd_decay_s(v); fixed_text(s, s < 10.0f ? 1 : 0, b); return "s"; }
     case P_ARATE:
-        if (set.beat) {                  /* on the beat's grid: a note length */
+        if (arp_lane() >= 0) {           /* a lane steps it: RATE rests */
+            b[0] = 'E'; b[1] = 'U'; b[2] = 'C'; b[3] = (char)('1' + arp_lane()); b[4] = 0;
+            return "";
+        }
+        if (clock_wanted()) {            /* on the clock's grid: a note length */
             b[0] = 0;
             text_cat(b, sd_arp_div_name(v));
             return "";
@@ -453,7 +527,10 @@ static struct {
     char msg[2][24];
     uint32_t msg_until;
     uint32_t keys, btn;
-    uint8_t layer;                       /* 0 main, 1 SEL held, 2 ARP held, 3 SEQ held */
+    uint8_t layer;                       /* 0 main, 1 SEL held, 2 ARP held, 3 SEQ held, 4 EDIT held */
+    uint8_t lane;                        /* the lane EDIT's layer shows, 0..3 */
+    uint8_t edit_turned;                 /* a knob turned while EDIT was held: its release does not switch the lanes */
+    uint8_t vol;                         /* MASTER as the screen shows it, 0..100 */
     uint8_t arp_turned;                  /* a knob turned while ARP was held: its release does not switch the arp */
     uint8_t seq_turned;                  /* the same for SEQ and the beat */
     int8_t touched;                      /* the cell turned last (lit a moment), -1 none */
@@ -471,7 +548,51 @@ static int cell_param(int c)
         return c < 4 ? P_ARATE + c : -1;
     if (ui.layer == 3)
         return P_BTEMPO + c;
+    if (ui.layer == 4)
+        return -1;                       /* (the lanes' settings are not controls of the sound: cell_get) */
     return c + 7 * ui.layer;
+}
+
+/* what box c shows in the layer showing: its name, value, unit and how full its bar is -> 0: nothing on that knob */
+typedef struct {
+    const char *name, *unit;
+    char val[16];
+    float frac;
+} cell_t;
+static int cell_get(int c, cell_t *o)
+{
+    o->unit = "";
+    if (ui.layer == 4) {                 /* the lane picked with SELECT */
+        const sd_lane_t *l = &set.lane[ui.lane];
+        static const char *const NAME[7] = {"STEPS", "PULSES", "ROTATE", "CHANCE", "LANE", "EVERY", "PLAYS"};
+        const char *t = 0;
+        int32_t v = 0;
+        o->name = NAME[c];
+        switch (c) {
+        case 0: v = l->steps; o->frac = (float)l->steps / 32.0f; break;
+        case 1: v = l->pulses; o->frac = (float)l->pulses / (float)l->steps; break;
+        case 2: v = l->rot; o->frac = l->steps > 1u ? (float)l->rot / (float)(l->steps - 1u) : 0.0f; break;
+        case 3: v = l->prob; o->unit = "%"; o->frac = (float)l->prob / 100.0f; break;
+        case 4: v = ui.lane + 1; o->frac = (float)(ui.lane + 1) / (float)SD_LANES; break;
+        case 5: t = sd_div_name(l->div); o->frac = (float)l->div / (float)(SD_LANE_DIVS - 1); break;
+        default: t = sd_target_name(l->target); o->frac = (float)l->target / (float)(ET_NTARGET - 1); break;
+        }
+        if (t) {
+            uint32_t k;
+            for (k = 0; k < 15u && t[k]; k++)
+                o->val[k] = t[k];
+            o->val[k] = 0;
+        } else {
+            int_text(v, o->val);
+        }
+        return 1;
+    }
+    if (cell_param(c) < 0)
+        return 0;
+    o->name = P_NAME[cell_param(c)];
+    o->unit = value_text(cell_param(c), o->val);
+    o->frac = set.param[cell_param(c)];
+    return 1;
 }
 
 void app_say(const char *a, const char *b)
@@ -585,6 +706,43 @@ static void arp_toggle(void)
     app_say("ARP", set.arp ? "ON" : "OFF");
 }
 
+static void euc_toggle(void)
+{
+    set.euc = (uint8_t)!set.euc;
+    sd_euclid(set.euc);
+    set_dirty = 1;
+    ui.redraw_head = ui.redraw_params = 1;
+    app_say("EUCLID", set.euc ? "ON" : "OFF");
+}
+
+/* EDIT held, box c's knob turned e detents: the picked lane's setting (SELECT: which lane) */
+static void lane_turn(int c, int32_t e)
+{
+    sd_lane_t *l = &set.lane[ui.lane];
+    int32_t d = e > 0 ? 1 : -1, steps = l->steps;
+    ui.redraw_params = 1;
+    if (c == 4) {
+        ui.lane = (uint8_t)clamp((int32_t)ui.lane + d, 0, SD_LANES - 1);
+        return;
+    }
+    switch (c) {
+    case 0:                              /* a shorter lane keeps what fits of its pulses and rotation */
+        steps = clamp(steps + e, 1, 32);
+        l->steps = (uint8_t)steps;
+        if (l->pulses > l->steps)
+            l->pulses = l->steps;
+        l->rot = (uint8_t)(l->rot % l->steps);
+        break;
+    case 1: l->pulses = (uint8_t)clamp((int32_t)l->pulses + e, 0, steps); break;
+    case 2: l->rot = (uint8_t)((((int32_t)l->rot + e) % steps + steps) % steps); break;
+    case 3: l->prob = (uint8_t)clamp((int32_t)l->prob + 5 * e, 0, 100); break;
+    case 5: l->div = (uint8_t)clamp((int32_t)l->div + d, 0, SD_LANE_DIVS - 1); break;
+    default: l->target = (uint8_t)clamp((int32_t)l->target + d, 0, ET_NTARGET - 1); break;
+    }
+    sd_lane_set(ui.lane, l);
+    set_dirty = 1;
+}
+
 static void beat_toggle(void)
 {
     set.beat = (uint8_t)!set.beat;
@@ -644,6 +802,8 @@ static void lights(void)
         lit |= 1u << B_ARP;
     if (set.beat && (sd_beat_step() & 3) < 2)   /* SEQ flashes on the quarter notes */
         lit |= 1u << B_SEQ;
+    if (set.euc)
+        lit |= 1u << B_EDIT;
     if (voices_on())
         lit |= LED_PLAY_GREEN;
     if (set_dirty)
@@ -651,7 +811,7 @@ static void lights(void)
     for (k = 0; k < NB; k++)             /* a held button lights while held */
         if (ui.btn >> k & 1u)
             lit |= 1u << k;
-    dim = 1u << B_SEL | 1u << B_ARP | 1u << B_SEQ | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE;
+    dim = 1u << B_SEL | 1u << B_ARP | 1u << B_SEQ | 1u << B_EDIT | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE;
     plat_lights(lit, keys, dim, dkeys, 1);
 }
 
@@ -702,6 +862,7 @@ static void input(void)
         case B_HOME: ui.home_t = now ? now : 1u; break;
         case B_ARP: ui.arp_turned = 0; break;
         case B_SEQ: ui.seq_turned = 0; break;
+        case B_EDIT: ui.edit_turned = 0; break;
         default: break;
         }
     }
@@ -709,6 +870,8 @@ static void input(void)
         arp_toggle();                    /* ARP let go without a turn: the arp on / off */
     if ((ui.btn >> B_SEQ & 1u) && !(btn >> B_SEQ & 1u) && !ui.seq_turned)
         beat_toggle();                   /* SEQ let go without a turn: the beat on / off */
+    if ((ui.btn >> B_EDIT & 1u) && !(btn >> B_EDIT & 1u) && !ui.edit_turned)
+        euc_toggle();                    /* EDIT let go without a turn: the lanes on / off */
     if (ui.home_t) {                     /* HOME held a second: the sound back to its defaults */
         if (!(btn >> B_HOME & 1u)) {
             ui.home_t = 0;
@@ -718,8 +881,8 @@ static void input(void)
             reset_sound();
         }
     }
-    c = (btn >> B_SEQ & 1u) ? 3 : (btn >> B_ARP & 1u) ? 2 : (int)((btn >> B_SEL) & 1u);   /* SEQ: the beat's, ARP: the
-                                                                                            * arp's, SEL: beneath */
+    /* a held button's layer: EDIT the lanes', SEQ the beat's, ARP the arp's, SEL the sound's second */
+    c = (btn >> B_EDIT & 1u) ? 4 : (btn >> B_SEQ & 1u) ? 3 : (btn >> B_ARP & 1u) ? 2 : (int)((btn >> B_SEL) & 1u);
     if (c != ui.layer) {
         ui.layer = (uint8_t)c;
         ui.redraw_params = 1;
@@ -737,6 +900,13 @@ static void input(void)
             ui.arp_turned = 1;
         if (ui.layer == 3)
             ui.seq_turned = 1;
+        if (ui.layer == 4) {
+            ui.edit_turned = 1;
+            ui.touched = (int8_t)c;
+            ui.touched_at = now;
+            lane_turn(c, e);
+            continue;
+        }
         if (cell_param(c) < 0)
             continue;
         ui.touched = (int8_t)c;
@@ -768,13 +938,25 @@ static void draw_head(void)
     if (now < ui.msg_until) {
         x = cv_text(8, 4, &FONT_B, ui.msg[0], C_WHITE);
         cv_text(x + 8, 4, &FONT_B, ui.msg[1], C_HI);
+    } else if (ui.layer >= 2) {          /* a held button's settings, and whether its part is on */
+        int on = ui.layer == 2 ? set.arp : ui.layer == 3 ? set.beat : set.euc;
+        cv_text(8, 4, &FONT_B, APP_NAME, C_WHITE);
+        cv_text(98, 9, &FONT_XS, ui.layer == 2 ? "ARP SETTINGS" : ui.layer == 3 ? "BEAT SETTINGS" : "EUCLID LANES", C_HI);
+        cv_text(232 - text_w(&FONT_XS, on ? "ON" : "OFF"), 9, &FONT_XS, on ? "ON" : "OFF", on ? C_WHITE : C_GRAY);
     } else {
         cv_text(8, 4, &FONT_B, APP_NAME, C_WHITE);
-        if (ui.layer)
-            cv_text(98, 9, &FONT_XS, ui.layer == 3 ? "BEAT SETTINGS" : ui.layer == 2 ? "ARP SETTINGS" : "MORE", C_HI);
-        else
-            cv_text(98, 9, &FONT_XS, set.arp && set.beat ? "ARP  BEAT" : set.arp ? "ARP" : set.beat ? "BEAT" : "",
-                    C_AMB);
+        if (ui.layer) {
+            cv_text(98, 9, &FONT_XS, "MORE", C_HI);
+        } else {                         /* the parts that are on */
+            t[0] = 0;
+            if (set.arp)
+                text_cat(t, "ARP  ");
+            if (set.beat)
+                text_cat(t, "BEAT  ");
+            if (set.euc)
+                text_cat(t, "EUC");
+            cv_text(98, 9, &FONT_XS, t, C_AMB);
+        }
         octave_text(t + 4);
         t[0] = 'O'; t[1] = 'C'; t[2] = 'T'; t[3] = ' ';
         cv_text(232 - text_w(&FONT_XS, t), 9, &FONT_XS, t, C_GRAY);
@@ -783,28 +965,54 @@ static void draw_head(void)
     cv_blit(0, 0);
 }
 
-/* the sound as it is: its wave on top, the six voices below, each lit as loud as it is */
+/* EDIT held: the four lanes, a row each, a tall block a hit and a low one a rest, the step playing in white; the
+ * picked lane brighter, a lane that plays nothing grey */
+static void draw_lanes(void)
+{
+    int32_t l, i;
+    for (l = 0; l < SD_LANES; l++) {
+        const sd_lane_t *ln = &set.lane[l];
+        uint32_t m = sd_euclid_mask(ln->steps, ln->pulses, ln->rot);
+        int32_t y = 3 + l * 16, live = set.euc && ln->target != ET_OFF, pos = live ? sd_lane_pos((int)l) : -1;
+        char t[2];
+        t[0] = (char)('1' + l);
+        t[1] = 0;
+        cv_text(3, y, &FONT_XS, t, l == ui.lane ? C_WHITE : C_GRAY);
+        for (i = 0; i < ln->steps; i++) {
+            int hit = (int)(m >> i & 1u);
+            uint16_t col = i == pos ? C_WHITE : !hit ? (l == ui.lane ? C_DIM : C_LINE) : !live ? C_DIM :
+                           l == ui.lane ? C_HI : C_AMB;
+            cv_rect(15 + i * 7, y + (hit ? 1 : 5), 5, hit ? 11 : 3, col);
+        }
+    }
+}
+
+/* the sound as it is: its wave on top (EDIT held: the lanes), the six voices below, each lit as loud as it is */
 static void draw_scope(void)
 {
     float sc[64];
     int32_t i, y0 = 34, amp = 30, px = 0, py = 0;
     cv_begin(240, 92, C_BLACK);
-    sd_scope(sc);
-    cv_rect(0, y0, 240, 1, C_LINE);
-    for (i = 0; i < 64; i++) {
-        int32_t x = (i * 239) / 63, y = y0 - (int32_t)(fm_clampf(sc[i] * 1.6f, -1.0f, 1.0f) * (float)amp);
-        if (i)
-            cv_line(px, py, x, y, C_HI);
-        px = x;
-        py = y;
-    }
-    if (sd_beat_step() >= 0) {           /* the beat: its sixteen steps, the one playing lit */
-        int32_t k, st = sd_beat_step();
-        for (k = 0; k < 16; k++)
-            cv_rect(8 + k * 14, 65, 10, 3, k == st ? C_WHITE : (k & 3) == 0 ? C_AMB : C_LINE);
-    } else {                             /* the LFO: a dot moving across the bottom of the wave */
-        int32_t lx = 120 + (int32_t)(sd_lfo() * 112.0f);
-        cv_rect(lx - 2, 66, 5, 3, C_AMB);
+    if (ui.layer == 4) {
+        draw_lanes();
+    } else {
+        sd_scope(sc);
+        cv_rect(0, y0, 240, 1, C_LINE);
+        for (i = 0; i < 64; i++) {
+            int32_t x = (i * 239) / 63, y = y0 - (int32_t)(fm_clampf(sc[i] * 1.6f, -1.0f, 1.0f) * (float)amp);
+            if (i)
+                cv_line(px, py, x, y, C_HI);
+            px = x;
+            py = y;
+        }
+        if (sd_beat_step() >= 0) {       /* the clock: its sixteen steps, the one playing lit */
+            int32_t k, st = sd_beat_step();
+            for (k = 0; k < 16; k++)
+                cv_rect(8 + k * 14, 65, 10, 3, k == st ? C_WHITE : (k & 3) == 0 ? C_AMB : C_LINE);
+        } else {                         /* the LFO: a dot moving across the bottom of the wave */
+            int32_t lx = 120 + (int32_t)(sd_lfo() * 112.0f);
+            cv_rect(lx - 2, 66, 5, 3, C_AMB);
+        }
     }
     for (i = 0; i < SD_VOICES; i++) {
         int32_t x = 4 + i * 39, h;
@@ -828,46 +1036,48 @@ static void draw_scope(void)
     cv_blit(0, 28);
 }
 
+/* a box: what the knob sets, its value, the knob's name as the panel prints it, and a bar */
+static void draw_box(int32_t col, int32_t row, const char *name, const char *val, const char *unit, const char *knob,
+                     float frac, int lit, int layered)
+{
+    int32_t x = col * 60, y = row * 60, vx, w = (int32_t)(frac * 52.0f + 0.5f);
+    cv_text(x + 5, y + 3, &FONT_XS, name, layered ? C_HI : C_GRAY);
+    vx = cv_text(x + 5, y + 18, &FONT_B, val, lit ? C_WHITE : C_HI);
+    if (unit[0] && vx + 2 + text_w(&FONT_XS, unit) <= x + 58)   /* the unit, where the box has room for it */
+        cv_text(vx + 2, y + 24, &FONT_XS, unit, C_GRAY);
+    cv_text(x + 5, y + 38, &FONT_XS, knob, C_DIM);
+    cv_rect(x + 5, y + 54, 52, 3, C_LINE);
+    if (w > 0)
+        cv_rect(x + 5, y + 54, w > 52 ? 52 : w, 3, lit ? C_WHITE : C_AMB);
+}
+
+/* the eight boxes, placed as the knobs are on the panel (CELL_COL, CELL_ROW): the left half MASTER, SELECT, PRESETS
+ * and ALGORITHM, the right half KNOB1..4, a brighter rule between the halves */
 static void draw_params(void)
 {
     int c;
     uint32_t now = plat_ms();
+    char t[8];
     cv_begin(240, 120, C_BLACK);
-    for (c = 0; c < 8; c++) {
-        int32_t x = (c % 4) * 60, y = (c / 4) * 60, w;
-        if (c < 7 && cell_param(c) < 0) {   /* the arp's layer uses K1..K4 only */
-            cv_text(x + 4, y + 20, &FONT_B, "-", C_LINE);
-            cv_text(x + 4, y + 40, &FONT_XS, ENC_LABEL[c], C_LINE);
-        } else if (c < 7) {
-            int p = cell_param(c), lit = ui.touched == c && now - ui.touched_at < 600u;
-            char t[16];
-            const char *unit = value_text(p, t);
-            int32_t vx;
-            cv_text(x + 4, y + 4, &FONT_XS, P_NAME[p], ui.layer ? C_HI : C_GRAY);   /* (layers 1, 2: lit) */
-            vx = cv_text(x + 4, y + 20, &FONT_B, t, lit ? C_WHITE : C_HI);
-            if (unit[0])
-                cv_text(vx + 2, y + 26, &FONT_XS, unit, C_GRAY);
-            cv_text(x + 4, y + 40, &FONT_XS, ENC_LABEL[c], C_DIM);
-            w = (int32_t)(set.param[p] * 52.0f + 0.5f);   /* the value as a bar */
-            cv_rect(x + 4, y + 53, 52, 3, C_LINE);
-            if (w > 0)
-                cv_rect(x + 4, y + 53, w, 3, lit ? C_WHITE : C_AMB);
-        } else {                         /* the eighth cell: what SEL does */
-            if (ui.layer >= 2) {         /* ARP or SEQ held: whether it's on, and how to switch it */
-                int on = ui.layer == 2 ? set.arp : set.beat;
-                cv_text(x + 4, y + 4, &FONT_XS, ui.layer == 2 ? "ARP" : "BEAT", C_WHITE);
-                cv_text(x + 4, y + 20, &FONT_B, on ? "ON" : "OFF", on ? C_HI : C_DIM);
-                cv_text(x + 4, y + 40, &FONT_XS, ui.layer == 2 ? "TAP ARP" : "TAP SEQ", C_DIM);
-            } else {                     /* what the held buttons give */
-                cv_text(x + 4, y + 4, &FONT_XS, "SEL: MORE", ui.layer ? C_WHITE : C_GRAY);
-                cv_text(x + 4, y + 20, &FONT_XS, set.arp ? "ARP: ON" : "ARP: OFF", set.arp ? C_AMB : C_DIM);
-                cv_text(x + 4, y + 36, &FONT_XS, set.beat ? "SEQ: BEAT" : "SEQ: OFF", set.beat ? C_AMB : C_DIM);
-            }
+    int_text((int32_t)ui.vol, t);        /* MASTER: the volume, on every layer */
+    draw_box(0, 0, "VOLUME", t, "%", "MASTER", (float)ui.vol * 0.01f, 0, 0);
+    for (c = 0; c < 7; c++) {
+        cell_t cell;
+        const char *knob = ENC_LABEL[c];
+        if (c == 5 && text_w(&FONT_XS, knob) > 52)
+            knob = "ALGO";               /* (the panel's ALGORITHM, if the box is too narrow for it) */
+        if (cell_get(c, &cell)) {
+            draw_box(CELL_COL[c], CELL_ROW[c], cell.name, cell.val, cell.unit, knob, cell.frac,
+                     ui.touched == c && now - ui.touched_at < 600u, ui.layer != 0);
+        } else {                         /* nothing on this knob in this layer */
+            cv_text(CELL_COL[c] * 60 + 5, CELL_ROW[c] * 60 + 18, &FONT_B, "-", C_LINE);
+            cv_text(CELL_COL[c] * 60 + 5, CELL_ROW[c] * 60 + 38, &FONT_XS, knob, C_LINE);
         }
-        if (c % 4)
-            cv_rect(x, y + 4, 1, 52, C_LINE);
     }
+    cv_rect(60, 4, 1, 112, C_LINE);
+    cv_rect(180, 4, 1, 112, C_LINE);
     cv_rect(0, 59, 240, 1, C_LINE);
+    cv_rect(119, 0, 2, 120, C_DIM);      /* left knobs | right knobs */
     cv_blit(0, 120);
 }
 
@@ -893,6 +1103,13 @@ void app_frame(void)
     if (lit_until && now >= lit_until) {         /* a turned control's highlight goes */
         lit_until = 0;
         ui.redraw_params = 1;
+    }
+    {                                            /* MASTER turned: its box */
+        uint32_t vol = (plat_master() * 100u + 2048u) / 4096u;
+        if (vol != ui.vol) {
+            ui.vol = (uint8_t)vol;
+            ui.redraw_params = 1;
+        }
     }
     if (ui.redraw_head) {
         ui.redraw_head = 0;
@@ -923,6 +1140,15 @@ int app_expect(const char *what, int *got)
         *got = set.arp;
     else if (!strcmp(what, "beat"))
         *got = set.beat;
+    else if (!strcmp(what, "euc"))
+        *got = set.euc;
+    else if (!strcmp(what, "lane"))
+        *got = ui.lane;
+    else if (what[0] == 'L' && what[1] >= '0' && what[1] < '0' + SD_LANES && what[2]) {   /* L<lane><field> */
+        const sd_lane_t *l = &set.lane[what[1] - '0'];
+        *got = what[2] == 's' ? l->steps : what[2] == 'p' ? l->pulses : what[2] == 'r' ? l->rot :
+               what[2] == 'c' ? l->prob : what[2] == 'd' ? l->div : l->target;
+    }
     else if (what[0] == 'p' && what[1] >= '0' && what[1] <= '9')   /* pN: control N, x 100 */
         *got = (int)(set.param[atoi(what + 1) % SD_NPARAM] * 100.0f + 0.5f);
     else
