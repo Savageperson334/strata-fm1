@@ -41,6 +41,8 @@ jobs:
           python3 base/tools/build.py "$p" --host
           mkdir -p shots/palindrome
           "$p/build/host/palindrome_host" "$p/tests/basic.txt" shots/palindrome
+      - name: Three-firmware site themes and navigation
+        run: python3 tests/test_site_nav.py
       - name: BabbleBeat grammar, voice and host simulator tests
         run: |
           set -euo pipefail

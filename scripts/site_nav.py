@@ -2,13 +2,18 @@
 # SPDX-License-Identifier: MPL-2.0
 """One navigation on every page of both firmwares' sites, so STRATA's and PALINDROME's mirror each other.
 
-    scripts/site_nav.py SITE_DIR strata|palindrome
+    scripts/site_nav.py SITE_DIR strata|palindrome|babblebeat
 
 SITE_DIR is one firmware's site as fm1-base's tools/make_site.py makes it (index.html, emu/, manual/, install/).
+Single shared navigation across three firmwares, plus a per-firmware colour
+system injected into each generated GitHub Pages page. STRATA is teal,
+PALINDROME violet, and BABBLEBEAT copper on charcoal. Switching instruments
+preserves Emulator / Manual / Install context.
+
 Each of those four pages gets the same block at its top right:
 
     Emulator   Manual   Install   Source        this firmware's four places, the one you are on marked
-              [ STRATA | PALINDROME ]           the other firmware's page of the same kind, one tap away
+              [ STRATA | PALINDROME | BABBLEBEAT ]           the other firmware's page of the same kind, one tap away
 
 fm1-base's own header on the front page and the manual (the firmware's name and its links) is replaced by it; the
 installer and the emulator had none. Run again on a page that has it: the block is replaced, not doubled.
@@ -42,6 +47,74 @@ font-size:12px;letter-spacing:.07em}
 #fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
 @media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
 </style>"""
+
+
+# The base site's generated CSS supplies the layout. These semantic variables
+# recolour the page, emulator surround and manuals without recolouring the
+# simulated FM-1 hardware itself. Use the same palette per firmware/section.
+THEMES = {
+    "strata": {
+        "paper": "#eaf7f7", "sheet": "#d5ebed", "rule": "#b7d3da",
+        "ink": "#143847", "muted": "#486675", "hot": "#007d90",
+        "hot-t": "#d1ebef", "hot-ink": "#086879", "cool": "#338c78",
+        "cool-t": "#d8eee7", "ground": "#e7f5f6", "card": "#faffff",
+        "accent": "#086f88", "teal": "#096f71", "bad": "#ba4757",
+        "scheme": "light"
+    },
+    "palindrome": {
+        "paper": "#f2edfa", "sheet": "#e5dcf2", "rule": "#cfc0e2",
+        "ink": "#34264e", "muted": "#6e6087", "hot": "#8358b1",
+        "hot-t": "#e8ddf4", "hot-ink": "#683e96", "cool": "#5d75a4",
+        "cool-t": "#dbe4f4", "ground": "#eee8f8", "card": "#fcfaff",
+        "accent": "#7b52a8", "teal": "#5b5fa4", "bad": "#a73e63",
+        "scheme": "light"
+    },
+    "babblebeat": {
+        "paper": "#191b23", "sheet": "#292d37", "rule": "#4c4c5a",
+        "ink": "#f1e9de", "muted": "#bcb4a9", "hot": "#f6a873",
+        "hot-t": "#43332f", "hot-ink": "#ffc19b", "cool": "#9dc7ad",
+        "cool-t": "#303d37", "ground": "#191b23", "card": "#272b35",
+        "accent": "#eda06b", "teal": "#a8d7bd", "bad": "#ff9696",
+        "scheme": "dark"
+    }
+}
+
+THEME_RULES = """
+html { color-scheme: var(--fm1-scheme); }
+body { background: var(--paper) !important; color: var(--ink) !important; }
+body:has(.devicebox) { background: var(--ground) !important; }
+a { text-decoration-color: var(--hot); }
+a:focus-visible, button:focus-visible { outline-color: var(--hot-ink); }
+#fm1nav {
+  max-width: 60rem; color: var(--ink); border-bottom: 2px solid var(--rule);
+  padding: 10px 0 14px; margin-bottom: 1.6rem;
+}
+#fm1nav a { color: var(--ink); }
+#fm1nav .fm1nav-swap { border-color: var(--accent); }
+#fm1nav .fm1nav-swap a { color: var(--ink); padding: 7px 11px; }
+#fm1nav .fm1nav-swap a:hover { background: var(--hot-t); }
+#fm1nav .fm1nav-swap a[aria-current] {
+  background: var(--accent); color: var(--card); opacity: 1;
+  font-weight: 750;
+}
+body:has(.devicebox) > header h1 { color: var(--accent); }
+@media(max-width:540px) {
+  #fm1nav { align-items: stretch; }
+  #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
+  #fm1nav .fm1nav-swap { display: flex; width: 100%; }
+  #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
+}
+"""
+
+def theme_style(instrument):
+    colors = THEMES[instrument]
+    pairs = " ".join(
+        f'--{key}: {value};' for key, value in colors.items() if key != "scheme"
+    )
+    pairs += f' --fm1-scheme: {colors["scheme"]};'
+    return ('<meta id="fm1theme-meta" name="theme-color" content="' +
+            colors["ground"] + '">\n<style id="fm1theme-style">\n' +
+            ':root { ' + pairs + ' }\n' + THEME_RULES + '\n</style>')
 
 
 TUTORIAL = Path(__file__).resolve().parent / "tutorial"
@@ -84,7 +157,7 @@ def nav(instrument, section):
     )
     links += f'<a href="{SOURCE[instrument]}">Source</a>'
     swap = "".join(
-        f'<a href="{relative(name, "")}"{" aria-current=" + chr(34) + "true" + chr(34) if name == instrument else ""}>{name.upper()}</a>'
+        f'<a href="{relative(name, section)}"{" aria-current=" + chr(34) + "true" + chr(34) if name == instrument else ""}>{name.upper()}</a>'
         for name in ("strata", "palindrome", "babblebeat")
     )
     return (f'<nav id="fm1nav" aria-label="{instrument.upper()}"><div class="fm1nav-links">{links}</div>'
@@ -93,6 +166,8 @@ def nav(instrument, section):
 
 def apply(html, instrument, section):
     html = re.sub(r'<style id="fm1nav-style">.*?</style>\s*', "", html, flags=re.S)       # (run again: replaced)
+    html = re.sub(r'<style id="fm1theme-style">.*?</style>\s*', "", html, flags=re.S)
+    html = re.sub(r'<meta id="fm1theme-meta"[^>]*>\s*', "", html, flags=re.S)
     html = re.sub(r'<nav id="fm1nav".*?</nav>\s*', "", html, flags=re.S)
     html = re.sub(r'<p id="pali(?:mpsest|ndrome)-link">.*?</p>', "", html, flags=re.S)    # (the old one-line pointer)
     block = nav(instrument, section)
@@ -103,9 +178,10 @@ def apply(html, instrument, section):
         html, n = re.subn(r"(<main\b)", lambda m: block + m.group(1), html, count=1)
     if not n:
         raise SystemExit("site_nav: no place for the navigation")
+    additions = STYLE + "\n" + theme_style(instrument)
     if "</head>" in html:
-        return html.replace("</head>", STYLE + "\n</head>", 1)
-    return re.sub(r"(<style\b)", lambda m: STYLE + m.group(1), html, count=1) if "<style" in html else STYLE + html
+        return html.replace("</head>", additions + "\n</head>", 1)
+    return re.sub(r"(<style\b)", lambda m: additions + "\n" + m.group(1), html, count=1) if "<style" in html else additions + html
 
 
 
