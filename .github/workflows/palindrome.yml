@@ -71,7 +71,15 @@ jobs:
           HTML
           # Do not replace a published installer, manual and emulator with a preview: once any PALINDROME release
           # exists, the site changes only when the release job below publishes the next one whole.
-          if [ -n "$(git ls-remote --tags origin 'refs/tags/palindrome-v*')" ]; then
+          version=$(tr -d ' \r\n' < "$p/VERSION")
+          if [ "${{ steps.version.outputs.released }}" = true ]; then
+            # This version is already released (a change to the manual, the site or the scripts): the whole site
+            # again, with the released package.
+            mkdir -p "$RUNNER_TEMP/pal-release"
+            gh release download "palindrome-v$version" --pattern 'palindrome-*.fwsc' --dir "$RUNNER_TEMP/pal-release"
+            python3 base/tools/make_site.py "$p" "$RUNNER_TEMP/pal-release/palindrome-$version.fwsc" "$version" "$RUNNER_TEMP/pal-site"
+            bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/pal-site" palindrome
+          elif [ -n "$(git ls-remote --tags origin 'refs/tags/palindrome-v*')" ]; then
             echo "A PALINDROME release exists; leave its site intact until the next release is published."
           else
             bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/preview" palindrome
