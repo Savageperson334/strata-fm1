@@ -1,14 +1,15 @@
 # STRATA, PALINDROME and BABBLEBEAT
 
 Three custom firmwares for the M-VAVE FM-1 live in this repository. They are separate instruments with separate
-versions, releases and installers; the FM-1 holds one at a time, and the appropriate installer can put the others (or
-M-VAVE's own firmware) back.
+source trees and independent versioning; the FM-1 holds one at a time.
+STRATA and PALINDROME provide firmware installers. BabbleBeat is a browser-first prototype; no hardware
+installer is available yet.
 
 | Firmware | What it is | Status | Site | Manual | Install |
 | --- | --- | --- | --- | --- | --- |
 | **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/) | [manual](https://savageperson334.github.io/strata-fm1/manual/) | [install](https://savageperson334.github.io/strata-fm1/install/) |
 | **PALINDROME** | An alternate instrument: MORPH blends four synthesis methods, SILT records the sound into a loop and plays it in grains; the screen is a picture of the engine | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
-| **BABBLEBEAT** | Grammar-driven random sentences, mutations, remembered nouns and an early robotic formant voice | Development prototype | [source](instruments/babblebeat/) | [manual](instruments/babblebeat/docs/MANUAL.md) | Emulator build available after development preview | Not released |
+| **BABBLEBEAT** | Grammar-driven sentences, remembered nouns, structural mutations and a robotic formant voice | Browser prototype (`0.1`) | [site](https://savageperson334.github.io/strata-fm1/babblebeat/) | [manual](https://savageperson334.github.io/strata-fm1/babblebeat/manual/) | [emulator](https://savageperson334.github.io/strata-fm1/babblebeat/emu/) (no hardware installer) |
 
 
 PALINDROME's source, manual and build notes are in [instruments/palindrome](instruments/palindrome). (It was
