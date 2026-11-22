@@ -1,0 +1,1203 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MPL-2.0
+     Copyright (C) 2026 Charles Vestal -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PALINDROME in the browser</title>
+<meta name="description" content="PALINDROME for the M-VAVE FM-1, in the browser: the same code the FM-1 runs.">
+<link rel="stylesheet" href="../fonts/fonts.css">
+<style>
+/* light: --muted, --accent and --teal darkened just enough for 4.5:1 on the cream */
+:root { --ground: #faf4e8; --ink: #48392f; --muted: #6e5c4b; --rule: #e6dccb; --accent: #b84a1e; --teal: #1b776e; --card: #fffaf1;
+        --bad: #a3271b; --focus: #1f6fd1; color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --ground: #1c1814; --ink: #f2e8d8; --muted: #b3a28e; --rule: #3a322a; --accent: #f28a5a; --teal: #4cc3b6; --card: #26201b; --bad: #ff8a73; --focus: #79adff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --ground: #1c1814; --ink: #f2e8d8; --muted: #b3a28e; --rule: #3a322a; --accent: #f28a5a; --teal: #4cc3b6; --card: #26201b; --bad: #ff8a73; --focus: #79adff; color-scheme: dark; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body { background: var(--ground); color: var(--ink); margin: 0; padding-inline: 16px; padding-block: 28px 48px;
+       font: 400 16px/1.55 "Barlow", "Helvetica Neue", Arial, sans-serif; }
+main, body > header { max-width: 1040px; margin: 0 auto; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem 1.2rem; margin: 0 0 1rem; }
+h1 { font: 700 2rem/1.1 "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0; }
+header p { margin: 0; color: var(--muted); }
+header nav { margin-left: auto; display: flex; gap: 1rem; }
+a { color: var(--accent); }
+/* at phone width the drawn panel keeps its controls 24 px or more (WCAG 2.5.8): it keeps a minimum width and
+   scrolls sideways in its own box, not the page */
+.devicebox { overflow-x: auto; overscroll-behavior-x: contain; }
+.device { position: relative; width: 100%; min-width: 560px; aspect-ratio: 1000 / 640; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+.device svg { pointer-events: none; }
+.hit { position: absolute; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 12px; }
+.hit.knob { cursor: ns-resize; border-radius: 50%; }
+.hit:focus-visible { outline: 3px solid #ffb48a; outline-offset: 2px; box-shadow: 0 0 0 6px #1b1d20; }
+.device svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.device canvas { position: absolute; left: 31.8%; top: 9.6875%; width: 20%; height: 31.25%; background: #000; border-radius: 2px; }
+.ctl { cursor: pointer; }
+.ctl.knob { cursor: ns-resize; }
+.held .btnface, .held .keyface { stroke: #f28a5a; stroke-width: 3; }
+.latched .btnface, .latched .keyface { stroke: #6fc3ff; stroke-width: 3; }
+.dim .btnface, .dim .keyface { opacity: var(--dimop, 1); }   /* the dim lights at the app's brightness (APP_DIM_LEVELS, plat_dim_ns): the frames' dimOp */
+.start { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 11, 13, .55); border-radius: 4.4% / 6.9%; }
+.start button { font: 600 1.25rem "Barlow Semi Condensed", "Barlow", sans-serif; letter-spacing: .04em; padding: .7em 1.6em;
+                border-radius: 999px; border: 0; background: #f28a5a; color: #2a140a; cursor: pointer; }
+.start[hidden] { display: none; }
+.turn { display: none; margin: 0 0 .8rem; color: var(--muted); font-size: .92rem; }
+@media (orientation: portrait) and (max-width: 700px) { .turn { display: block; } }
+.start button:disabled { opacity: .6; cursor: progress; }
+.bar { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; align-items: center; margin: .9rem 0 0; color: var(--muted); font-size: .92rem; }
+.bar button, .speak button { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--muted); border-radius: 8px; padding: .3em .8em; cursor: pointer; min-height: 2.2em; }
+.bar button[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
+.speak button:disabled { opacity: .5; cursor: default; }
+#alert { color: var(--bad); font-weight: 600; flex-basis: 100%; }
+#alert:empty { display: none; }
+.speak { margin: 1.4rem 0 0; padding: 1rem 1.2rem; background: var(--card); border: 1px solid var(--rule); border-radius: 14px; }
+.speak summary { cursor: pointer; }
+.speak summary h2 { display: inline; font: 600 1.1rem "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0; }
+.speak[open] summary { margin: 0 0 .6rem; }
+.bar .keys { display: inline-flex; gap: .4rem; align-items: center; }
+.speak fieldset { border: 0; margin: 0 0 .6rem; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem 1.4rem; }
+.speak legend { font-weight: 600; padding: 0; margin: 0 0 .3rem; }
+.speak label { display: inline-flex; gap: .45rem; align-items: center; }
+.speak input { width: 1.1rem; height: 1.1rem; accent-color: var(--teal); }
+.speak .row { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .6rem 0 0; }
+#said { font-size: 1.25rem; margin: .2rem 0 0; min-height: 1.6em; overflow-wrap: anywhere; }
+#said:empty::before { content: "Nothing yet."; color: var(--muted); font-size: 1rem; }
+.speak p.note { color: var(--muted); margin: .4rem 0 0; font-size: .92rem; }
+.bar .cpu { font-variant-numeric: tabular-nums; }
+.help h2 { font: 600 1.1rem "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0 0 .3rem; }
+.help { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem 2rem; margin: 1.6rem 0 0; }
+.help h2 { font: 600 1.1rem "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0 0 .3rem; }
+.help p, .help ul { margin: 0; max-width: 60ch; }
+.help ul { padding-left: 1.1rem; }
+kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 0 .3em; color: var(--ink); }
+</style>
+<style id="fm1tut-style">
+/* the emulator's Play / Tutorial switch, its card and the blueprint over the panel (scripts/tutorial/tutorial.js) */
+#fm1mode{display:inline-flex;margin:0 0 .7rem;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font:600 13px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.07em}
+#fm1mode button{all:unset;cursor:pointer;padding:7px 18px;opacity:.72}
+#fm1mode button:hover{opacity:1}
+#fm1mode button:focus-visible{outline:2px solid currentColor;outline-offset:-4px;border-radius:999px}
+#fm1mode button[aria-pressed="true"]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+#fm1tut-card{box-sizing:border-box;min-height:6.4rem;margin:0 0 .7rem;padding:.7rem .9rem;background:#0e3a73;color:#e6f1ff;
+border:1.5px solid #9cc4f2;border-radius:6px;font:400 15px/1.4 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+background-size:16px 16px}
+#fm1tut-card[hidden]{display:none}
+#fm1tut-card strong{font-weight:700;letter-spacing:.07em;color:#ffd166}
+#fm1tut-card span{margin-left:.7em;font-size:.82em;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+#fm1tut-card p{margin:.25rem 0 0;max-width:70ch}
+#fm1tut-card p.note{color:#9cd3ff}
+#fm1tut{pointer-events:auto;font-family:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;letter-spacing:.06em}
+#fm1tut[hidden]{display:none}
+#fm1tut .sheet{fill:#0e3a73}
+#fm1tut .grid{fill:none;stroke:#fff;stroke-opacity:.07;stroke-width:1}
+#fm1tut .edge{fill:none;stroke:#9cc4f2;stroke-width:2}
+#fm1tut .outline{fill:none;stroke:#cfe6ff;stroke-width:1.5;stroke-opacity:.85}
+#fm1tut .outline.faint{stroke-opacity:.22;stroke-width:1}
+#fm1tut .leader{fill:none;stroke:#cfe6ff;stroke-width:1.2;stroke-opacity:.7}
+#fm1tut .dot{fill:#cfe6ff}
+#fm1tut .box{fill:#0e3a73;stroke:#cfe6ff;stroke-width:1.4}
+#fm1tut text{fill:#e6f1ff;pointer-events:none}
+#fm1tut text.name{font-weight:700}
+#fm1tut text.sub{fill:#a9cdf5;font-weight:600}
+#fm1tut text.title{fill:#ffd166;font-weight:700;letter-spacing:.09em}
+#fm1tut .hit{fill:transparent;stroke:none;cursor:pointer;outline:none}
+#fm1tut .hit:focus-visible{stroke:#ffd166;stroke-width:2;stroke-dasharray:4 3}
+#fm1tut .unused .outline{stroke-dasharray:4 4;stroke-opacity:.4}
+#fm1tut .unused text{fill-opacity:.45}
+#fm1tut .unused .box{stroke-dasharray:4 4;stroke-opacity:.4}
+#fm1tut .held .face{fill:#cfe6ff;fill-opacity:.2}
+#fm1tut .held .box{fill:#17508f}
+#fm1tut .on .outline,#fm1tut .on .box,#fm1tut .on .leader{stroke:#ffd166;stroke-opacity:1;stroke-width:2}
+#fm1tut .on .dot{fill:#ffd166}
+#fm1tut .on text.name{fill:#ffd166}
+/* the guide: the card's buttons, a step done, and the rings round the controls to use (over the live panel) */
+#fm1tut-card .row{display:flex;flex-wrap:wrap;gap:.5rem;margin:.55rem 0 0}
+#fm1tut-card .row button{font:600 14px/1.2 inherit;letter-spacing:.05em;color:#0e3a73;background:#e6f1ff;border:0;border-radius:999px;
+padding:.42rem 1rem;cursor:pointer}
+#fm1tut-card .row button.quiet{background:transparent;color:#e6f1ff;border:1.5px solid #9cc4f2}
+#fm1tut-card .row button:focus-visible{outline:2px solid #ffd166;outline-offset:2px}
+#fm1tut-card.done{border-color:#ffd166;box-shadow:0 0 0 2px #ffd166}
+#fm1guide{pointer-events:none;z-index:3}
+#fm1guide .use{fill:none;stroke:#ffd166;stroke-width:5;animation:fm1use 1.1s ease-in-out infinite}
+@keyframes fm1use{0%,100%{stroke-opacity:1}50%{stroke-opacity:.25}}
+@media (prefers-reduced-motion:reduce){#fm1guide .use{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>PALINDROME</h1>
+</header>
+<main>
+<h2 class="sr">The FM-1</h2>
+<p class="turn">Turn your phone sideways for bigger controls.</p>
+<p id="pal-next-note" style="margin:0 0 .8rem;padding:.5rem .8rem;border:1.5px dashed currentColor;border-radius:6px;font-size:.95rem">Preview of PALINDROME's SILT-first redesign, build b784727: not released, not on any FM-1. <a href="../">About this preview</a> · <a href="../../emu/">The released emulator</a></p>
+<div id="fm1mode" role="group" aria-label="Play the panel, be guided on it, or read what each control does"><button type="button" data-mode="play" aria-pressed="true">Play</button><button type="button" data-mode="guide" aria-pressed="false">Guide</button><button type="button" data-mode="tutorial" aria-pressed="false">Reference</button></div>
+<div id="fm1tut-card" aria-live="polite" hidden></div>
+<div class="devicebox">
+<div class="device" id="device">
+  <svg id="panel" viewBox="0 0 1000 640" aria-hidden="true" focusable="false"></svg>
+  <canvas id="screen" width="240" height="240" role="img" aria-label="The FM-1's screen. Its text is read out: see Screen Reader, below the panel"></canvas>
+  <div id="controls" role="group" aria-label="The FM-1's panel" aria-describedby="panel-keys" inert></div>
+  <div class="start" id="start"><button type="button" id="go">Switch on</button></div>
+</div>
+</div>
+<p id="panel-keys" class="sr">Tab moves through the knobs, the buttons, the black keys and the white keys. Arrow keys turn a knob,
+  Page Up and Page Down faster. Space or Enter holds a button or key down while you hold it; Shift and Enter keeps it down
+  until you press it again (with a mouse: Shift-click or right-click).</p>
+
+<div class="bar">
+  <span id="status" role="status">Off. Sound starts when you switch it on.</span>
+  <span id="alert" role="alert"></span>
+  <button id="mute" type="button" aria-pressed="false">Mute</button>
+  <label class="keys"><input type="checkbox" id="shortcuts" checked> Keyboard shortcuts</label>
+  <span class="cpu" id="cpu"></span>
+  <button id="session" type="button" aria-describedby="session-why">Copy session</button>
+  <span id="session-why" class="sr">Copy what you played as a script for the simulator, to report a problem</span>
+  <button id="reset" type="button" aria-describedby="reset-why">Factory reset</button>
+  <span id="reset-why" class="sr">Forget what was saved and start again from the factory settings</span>
+</div>
+
+<details class="speak" id="speak">
+  <summary><h2>Screen Reader</h2></summary>
+  <fieldset>
+    <legend>Output</legend>
+    <label><input type="radio" name="speak" value="sr" checked> System screen reader</label>
+    <label><input type="radio" name="speak" value="voice"> Built-in voice</label>
+    <label><input type="radio" name="speak" value="off"> Off</label>
+  </fieldset>
+  <p id="said" aria-hidden="true"></p>
+  <div class="row">
+    <button type="button" id="where" disabled>Read whole screen</button>
+    <button type="button" id="again" disabled>Repeat last</button>
+  </div>
+</details>
+<!-- what the screen says, for the computer's screen reader -->
+<div id="live-p" class="sr" aria-live="polite" aria-atomic="true"></div>
+<div id="live-a" class="sr" aria-live="assertive" aria-atomic="true"></div>
+</main>
+
+
+<script>
+"use strict";
+// the panel's drawing and lights: fm1-base's web/fm1panel.js (shared with the mirror page)
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2026 Charles Vestal
+// The FM-1's panel drawn in SVG, and its lights: one drawing for every page that shows the panel (the emulator,
+// web/emu/index.html or an app's own; the mirror, web/mirror/index.html). A page inlines it (its PANEL_JS placeholder:
+// tools/build.py fills it in for the emulator, tools/make_site.py for the mirror) and adds its own controls, held states and names on top.
+//
+//   const P = fm1Panel(svg)      the body, the knobs, the buttons, the keys and the screen's bezel into svg
+//                                (viewBox 0 0 1000 640); the canvas over the bezel is the page's
+//   P.knobs[label]               { g, ind, ring, x, y, r, angle, role, label, name }: MASTER, SELECT, PRESETS,
+//                                ALGORITHM, KNOB1..KNOB4 (role: ENC, or "master"); ring for a page's feedback (class
+//                                "ring", hidden unless the page shows it)
+//   P.byRole[ENC.X]              the same knobs by encoder
+//   P.buttons[B_*]               { g, bit, label ("PLAY STOP"), name ("PLAY", "OCT minus") }; P.buttonsByLabel["OCT-"]
+//   P.keys[k]                    { g, name ("White key 1") }, k = 0 (F3) .. 26
+//   P.lights(b, k, db, dk)       lit (class "lit") and dim (class "dim": plat_lights' dim ones and plat_lights_mid's;
+//                                lit wins) buttons (bit B_*) and keys (bit k)
+//   P.el(tag, attrs, parent)     P.text(parent, x, y, s, size, fill, weight)   (for a page's own marks)
+//
+// The colours of the lights are CSS custom properties with these defaults (fm1-base's coral and teal); a page or an
+// app sets them on :root for its own: --panel-lit, --panel-lit-ink (a lit button's label), --panel-lit-white,
+// --panel-lit-black, --panel-dim, --panel-dim-white, --panel-dim-black. Its rules go first in <head>, so a page's own
+// (held, a green PLAY) win over them.
+const PANEL_BTN = { FX: 0, SEL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7, ARP: 8, SEQ: 9, PLAY: 10, REC: 11,
+                           "OCT-": 12, "OCT+": 13 };
+const PANEL_ENC = { SELECT: 0, ALGORITHM: 1, PRESETS: 2, KNOB1: 3, KNOB2: 4, KNOB3: 5, KNOB4: 6 };
+const PANEL_WHITE_K = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26];
+const PANEL_BLACK_K = [1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25];
+const PANEL_ROW1 = ["FX", "SEL", "ENV", "LFO", "EDIT", "GLO"], PANEL_ROW2 = ["HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC"];
+const PANEL_CSS = `
+.btnface, .keyface { transition: fill .06s; }
+.lit .btnface { fill: var(--panel-lit, #f28a5a); }
+.lit text.btn { fill: var(--panel-lit-ink, #2a140a); }
+.lit .keyface.white { fill: var(--panel-lit-white, #f6b48e); }
+.lit .keyface.black { fill: var(--panel-lit-black, #4cc3b6); }
+.dim .btnface { fill: var(--panel-dim, #6e4636); }
+.dim .keyface.white { fill: var(--panel-dim-white, #e8c9b6); }
+.dim .keyface.black { fill: var(--panel-dim-black, #8ac6bf); }
+@media (prefers-reduced-motion: reduce) { .btnface, .keyface { transition: none; } }`;
+
+function fm1Panel(svg) {
+  const NS = "http://www.w3.org/2000/svg";
+  const BLACK_AFTER = [0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14];
+  const BODY = "#3a3d42", TRAY = "#26282c", KEY_W = "#d9dadc", KEY_B = "#c9cacd", KNOB = "#1f2124", BTNC = "#2e3135",
+        LABEL = "#e8e8ea";
+  if (!document.getElementById("fm1panel-css")) {
+    const st = document.createElement("style");
+    st.id = "fm1panel-css";
+    st.textContent = PANEL_CSS;
+    document.head.prepend(st);
+  }
+  function el(tag, attrs, parent = svg) {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    parent.appendChild(e);
+    return e;
+  }
+  function text(parent, x, y, s, size, fill = LABEL, weight = 600) {
+    const t = el("text", { x, y, "text-anchor": "middle", "font-family": "'Barlow Semi Condensed', 'Arial Narrow', Arial, sans-serif",
+                           "font-size": size, "font-weight": weight, fill, "letter-spacing": ".05em", class: "btn",
+                           "pointer-events": "none" }, parent);
+    t.textContent = s;
+    return t;
+  }
+  el("rect", { x: 4, y: 4, width: 992, height: 632, rx: 44, fill: BODY });
+  const knobs = {}, byRole = [];
+  function knob(x, y, r, label, role, name) {
+    const g = el("g", { class: "ctl knob" });
+    el("circle", { cx: x, cy: y, r: r + 5, fill: TRAY }, g);
+    const ring = el("circle", { cx: x, cy: y, r: r + 9, class: "ring", fill: "none", opacity: 0 }, g);
+    el("circle", { cx: x, cy: y, r, fill: KNOB, stroke: "#44474c", "stroke-width": 2, class: "knobface" }, g);
+    const ind = el("line", { x1: x, y1: y - r + 5, x2: x, y2: y - r + 15, stroke: LABEL, "stroke-width": 3, "stroke-linecap": "round" }, g);
+    text(g, x, y - r - 12, label, 17);
+    el("circle", { cx: x, cy: y, r: r + 14, fill: "transparent" }, g);           // (the knob's target: a finger's size)
+    const k = { g, ind, ring, x, y, r, angle: 0, role, label, name: name || label };
+    knobs[label] = k;
+    if (typeof role === "number") byRole[role] = k;
+    return k;
+  }
+  knob(105, 100, 24, "MASTER", "master");
+  knob(215, 100, 24, "SELECT", PANEL_ENC.SELECT);
+  knob(105, 205, 24, "PRESETS", PANEL_ENC.PRESETS);
+  knob(215, 205, 24, "ALGORITHM", PANEL_ENC.ALGORITHM);
+  for (let i = 0; i < 4; i++) knob(610 + i * 104, 100, 22, `KNOB${i + 1}`, PANEL_ENC[`KNOB${i + 1}`], `KNOB ${i + 1}`);
+
+  const buttons = [], buttonsByLabel = {};
+  function button(x, y, w, h, label, two) {
+    const g = el("g", { class: "ctl" });
+    el("rect", { x, y, width: w, height: h, rx: 9, fill: BTNC, stroke: "#4a4d52", "stroke-width": 1.5, class: "btnface" }, g);
+    if (two) { text(g, x + w / 2, y + h / 2 - 1, label, 12); text(g, x + w / 2, y + h / 2 + 12, two, 12); }
+    else text(g, x + w / 2, y + h / 2 + 5, label, 15);
+    const b = { g, bit: PANEL_BTN[label], label: two ? `${label} ${two}` : label,
+                name: { "OCT-": "OCT minus", "OCT+": "OCT plus" }[label] || label };
+    buttons[b.bit] = buttonsByLabel[label] = b;
+  }
+  el("rect", { x: 58, y: 258, width: 210, height: 58, rx: 14, fill: TRAY });
+  button(72, 268, 82, 38, "OCT-"); button(170, 268, 82, 38, "OCT+");
+  el("rect", { x: 300, y: 44, width: 236, height: 236, rx: 26, fill: "#111214" });
+  el("rect", { x: 568, y: 160, width: 400, height: 140, rx: 18, fill: TRAY });
+  for (let i = 0; i < 6; i++) button(582 + i * 63, 174, 54, 48, PANEL_ROW1[i]);          // row by row: the reading order
+  for (let i = 0; i < 6; i++) button(582 + i * 63, 236, 54, 48, PANEL_ROW2[i], PANEL_ROW2[i] === "PLAY" ? "STOP" : undefined);
+
+  const keys = [];
+  (function keybed(x0, y0, w, h) {
+    el("rect", { x: x0, y: y0, width: w, height: h, rx: 18, fill: TRAY });
+    const pitch = (w - 24) / 16, kw = pitch * 0.78;
+    BLACK_AFTER.forEach((a, k) => {                                                   // the black keys: the upper row
+      const g = el("g", { class: "ctl" });
+      el("rect", { x: x0 + 12 + (a + 1) * pitch - kw / 2, y: y0 + h * 0.06, width: kw, height: h * 0.33, rx: kw / 2, fill: KEY_B,
+                   class: "keyface black" }, g);
+      keys[PANEL_BLACK_K[k]] = { g, name: `Black key ${k + 1}` };
+    });
+    for (let i = 0; i < 16; i++) {
+      const g = el("g", { class: "ctl" });
+      el("rect", { x: x0 + 12 + i * pitch + (pitch - kw) / 2, y: y0 + h * 0.43, width: kw, height: h * 0.52, rx: kw / 2, fill: KEY_W,
+                   class: "keyface white" }, g);
+      keys[PANEL_WHITE_K[i]] = { g, name: `White key ${i + 1}` };
+    }
+  })(36, 340, 928, 270);
+
+  function lights(b, k, db = 0, dk = 0) {
+    for (const x of buttons) {
+      if (!x) continue;
+      const lit = !!(b & (1 << x.bit));
+      x.g.classList.toggle("lit", lit);
+      x.g.classList.toggle("dim", !lit && !!(db & (1 << x.bit)));
+    }
+    keys.forEach((x, i) => {
+      const lit = !!(k & (1 << i));
+      x.g.classList.toggle("lit", lit);
+      x.g.classList.toggle("dim", !lit && !!(dk & (1 << i)));
+    });
+  }
+  return { knobs, byRole, buttons, buttonsByLabel, keys, lights, el, text };
+}
+
+const BTN = PANEL_BTN, ENC = PANEL_ENC, WHITE_K = PANEL_WHITE_K, BLACK_K = PANEL_BLACK_K, ROW1 = PANEL_ROW1, ROW2 = PANEL_ROW2;
+const STORE_KEY = "palindrome-emu-store", PREFS_KEY = "palindrome-emu-prefs";
+const $ = (id) => document.getElementById(id);
+const prefs = (() => { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || "{}"); } catch { return {}; } })();
+const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* private window */ } };
+
+// ---------------------------------------------------------------- the panel (a picture: aria-hidden)
+const svg = $("panel"), panel = fm1Panel(svg);
+const knobs = panel.knobs, buttons = panel.buttonsByLabel, keys = panel.keys;
+
+// ---------------------------------------------------------------- the controls
+// The drawing is only a picture (pointer-events: none). Each control gets an invisible HTML target over it,
+// which is also what the keyboard and a screen reader use: browsers (iOS Safari above all) honour touch-action
+// and touchstart on HTML elements but not on SVG ones, so the controls keep their touches while a finger
+// anywhere else on the device scrolls the page natively.
+const controls = $("controls");
+function group(label) {
+  const d = document.createElement("div");
+  d.setAttribute("role", "group");
+  d.setAttribute("aria-label", label);
+  controls.appendChild(d);
+  return d;
+}
+function hit(c, parent, attrs, cls) {
+  const b = c.g.getBBox(), d = document.createElement("div");
+  d.className = "hit" + (cls ? " " + cls : "");
+  Object.assign(d.style, { left: `${b.x / 10}%`, top: `${b.y / 6.4}%`, width: `${b.width / 10}%`, height: `${b.height / 6.4}%` });
+  d.tabIndex = 0;
+  for (const [k, v] of Object.entries(attrs)) if (v != null) d.setAttribute(k, v);
+  if (attrs["aria-description"]) d.title = attrs["aria-description"];
+  d.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
+  // a click focuses the control (without the ring), so the panel's keyboard shortcuts follow the mouse
+  d.addEventListener("pointerdown", () => d.focus({ preventScroll: true }));
+  parent.appendChild(d);
+  c.hit = d;
+}
+const gKnobs = group("Knobs"), gButtons = group("Buttons"), gBlack = group("Black keys"), gWhite = group("White keys");
+let master = 2800;
+const masterPct = () => Math.round(master * 100 / 4096);
+for (const [label, k] of Object.entries(knobs)) {
+  if (k.role === "master")      // the volume has a value: a slider
+    hit(k, gKnobs, { role: "slider", "aria-label": "MASTER", "aria-description": "Volume", "aria-orientation": "vertical",
+                     "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": masterPct(), "aria-valuetext": `${masterPct()} percent` }, "knob");
+  else                          // an endless encoder has none: the screen says what it changed
+    hit(k, gKnobs, { role: "button", "aria-label": k.name,
+                     "aria-description": "Turn it with the arrow keys, Page Up and Page Down for big steps" }, "knob");
+}
+for (const lbl of ["OCT-", "OCT+", ...ROW1, ...ROW2])
+  hit(buttons[lbl], gButtons, { role: "button", "aria-label": buttons[lbl].name, "aria-pressed": "false"});
+BLACK_K.forEach((n) => hit(keys[n], gBlack, { role: "button", "aria-label": keys[n].name, "aria-pressed": "false" }));
+WHITE_K.forEach((n) => hit(keys[n], gWhite, { role: "button", "aria-label": keys[n].name, "aria-pressed": "false" }));
+
+// ---------------------------------------------------------------- state and input
+let node = null, gain = null, btnMask = 0, keyMask = 0, latched = 0, keyLatched = 0;   // latched: held down until pressed again
+const btnHeldBy = new Map(), keyHeldBy = new Map();      // pointer / key id -> bit
+function send(m) { if (node) node.port.postMessage(m); }
+/* the session as the host simulator's script (base/host/plat_host.c): waits in the device's ms, keys and buttons as
+ * they went down and up, encoders as turned, the share of this computer's time as comments; copied to the clipboard */
+function sessionScript(m) {
+  const BTN = ["FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC", "OCT-", "OCT+"];
+  const ENC = ["SELECT", "ALGO", "PRESET", "K1", "K2", "K3", "K4"];
+  const out = ["# PALINDROME emulator session, " + new Date().toISOString() + ", " + navigator.userAgent];
+  let t = 0, keys = 0, btn = 0;
+  for (const [at, kind, v] of m.log) {
+    if (at > t) { out.push(`wait ${at - t}`); t = at; }
+    if (kind === "k") {
+      for (let k = 0; k < 32; k++) if (((keys ^ v) >>> k) & 1) out.push(`key ${k} ${(v >>> k) & 1 ? "down" : "up"}`);
+      keys = v;
+    } else if (kind === "b") {
+      for (let b = 0; b < BTN.length; b++) if (((btn ^ v) >>> b) & 1) out.push(`${(v >>> b) & 1 ? "press" : "release"} ${BTN[b]}`);
+      btn = v;
+    } else if (kind === "e") out.push(`spin ${ENC[v[0]] || v[0]} ${v[1]}`);
+    else if (kind === "m") out.push(`master ${v}`);
+    else if (kind === "l") out.push(`# load ${v}%`);
+  }
+  if (m.now > t) out.push(`wait ${m.now - t}`);
+  const text = out.join("\n") + "\n";
+  const done = (how) => { $("session").textContent = how; setTimeout(() => { $("session").textContent = "Copy session"; }, 2500); };
+  navigator.clipboard.writeText(text).then(() => done("Copied"), () => {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.rows = 8; ta.style.width = "100%";
+    $("session").after(ta); ta.select(); done("Select and copy below");
+  });
+}
+function syncButtons() {
+  let m = latched;
+  for (const b of btnHeldBy.values()) m |= 1 << b;
+  if (m !== btnMask) { btnMask = m; send({ type: "buttons", mask: m }); }
+  for (const b of Object.values(buttons)) {
+    b.g.classList.toggle("held", !!(m & (1 << b.bit)));
+    b.g.classList.toggle("latched", !!(latched & (1 << b.bit)));
+    b.hit.classList.toggle("latched", !!(latched & (1 << b.bit)));
+    const pressed = m & (1 << b.bit) ? "true" : "false";
+    if (b.hit.getAttribute("aria-pressed") !== pressed) b.hit.setAttribute("aria-pressed", pressed);
+  }
+}
+function syncKeys() {
+  let m = keyLatched;
+  for (const k of keyHeldBy.values()) m |= 1 << k;
+  if (m !== keyMask) { keyMask = m; send({ type: "keys", mask: m }); }
+  keys.forEach((k, i) => {
+    k.g.classList.toggle("held", !!(m & (1 << i)));
+    k.g.classList.toggle("latched", !!(keyLatched & (1 << i)));
+    const pressed = m & (1 << i) ? "true" : "false";
+    if (k.hit && k.hit.getAttribute("aria-pressed") !== pressed) k.hit.setAttribute("aria-pressed", pressed);
+  });
+}
+
+for (const b of Object.values(buttons)) {
+  b.hit.addEventListener("contextmenu", (e) => e.preventDefault());
+  b.hit.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (e.shiftKey || e.button === 2) { latched ^= 1 << b.bit; syncButtons(); return; }
+    if (latched & (1 << b.bit)) { latched &= ~(1 << b.bit); syncButtons(); return; }
+    b.hit.setPointerCapture(e.pointerId);
+    btnHeldBy.set("p" + e.pointerId, b.bit);
+    syncButtons();
+  });
+}
+keys.forEach((k, i) => {
+  k.hit.addEventListener("contextmenu", (e) => e.preventDefault());
+  k.hit.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    // Shift-click or right-click holds a key down until it is clicked again: chords with a mouse
+    if (e.shiftKey || e.button === 2) { keyLatched ^= 1 << i; syncKeys(); return; }
+    if (keyLatched & (1 << i)) { keyLatched &= ~(1 << i); syncKeys(); return; }
+    k.hit.setPointerCapture(e.pointerId);
+    keyHeldBy.set("p" + e.pointerId, i);
+    syncKeys();
+  });
+  // the strum plate: a finger that went down on a key moves the held key as it slides, over the black keys and the
+  // white (a glissando)
+  k.hit.addEventListener("pointermove", (e) => {
+    const id = "p" + e.pointerId;
+    if (!keyHeldBy.has(id)) return;
+    for (const b of BLACK_K) {                     // the black keys first: the white keys' 40 px reach up among them
+      const r = keys[b].hit.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top && e.clientY < r.bottom) {
+        if (keyHeldBy.get(id) !== b) { keyHeldBy.set(id, b); syncKeys(); }
+        return;
+      }
+    }
+    for (const w of WHITE_K) {
+      const r = keys[w].hit.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top - 40 && e.clientY < r.bottom + 40) {
+        if (keyHeldBy.get(id) !== w) { keyHeldBy.set(id, w); syncKeys(); }
+        return;
+      }
+    }
+  });
+});
+function pointerUp(e) {
+  const id = "p" + e.pointerId;
+  if (btnHeldBy.delete(id)) syncButtons();
+  if (keyHeldBy.delete(id)) syncKeys();
+}
+const device = $("device");
+device.addEventListener("pointerup", pointerUp);
+device.addEventListener("pointercancel", pointerUp);
+device.addEventListener("lostpointercapture", pointerUp);
+
+function drawKnob(k) {
+  k.ind.setAttribute("transform", `rotate(${k.angle} ${k.x} ${k.y})`);
+}
+function turn(k, n) {
+  if (!n) return;
+  if (k.role === "master") {
+    master = Math.max(0, Math.min(4096, master + n * 64));
+    k.angle = -135 + 270 * master / 4096;
+    k.hit.setAttribute("aria-valuenow", masterPct());
+    k.hit.setAttribute("aria-valuetext", `${masterPct()} percent`);
+    send({ type: "master", value: master });
+  } else {
+    k.angle = (k.angle + n * 18) % 360;
+    send({ type: "enc", role: k.role, n });
+  }
+  drawKnob(k);
+}
+for (const k of Object.values(knobs)) {
+  if (k.role === "master") { k.angle = -135 + 270 * master / 4096; drawKnob(k); }
+  let drag = null, wheel = 0;
+  k.hit.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    k.hit.setPointerCapture(e.pointerId);
+    drag = { y: e.clientY, acc: 0 };
+  });
+  k.hit.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    drag.acc += drag.y - e.clientY;
+    drag.y = e.clientY;
+    const step = k.role === "master" ? 3 : 7;
+    const n = Math.trunc(drag.acc / step);
+    if (n) { drag.acc -= n * step; turn(k, n); }
+  });
+  const end = () => { drag = null; };
+  k.hit.addEventListener("pointerup", end);
+  k.hit.addEventListener("pointercancel", end);
+  k.hit.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+    if (Math.abs(dy) >= 50) { turn(k, dy < 0 ? 1 : -1); wheel = 0; return; }   // a mouse wheel notch: one detent
+    wheel -= dy;                                                                   // a trackpad: by distance
+    const n = Math.trunc(wheel / 25);
+    if (n) { wheel -= n * 25; turn(k, n); }
+  }, { passive: false });
+  k.hit.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const big = k.role === "master" ? 8 : 5;
+    const n = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: big, PageDown: -big }[e.key];
+    if (n) turn(k, n);
+    else if (k.role === "master" && (e.key === "Home" || e.key === "End")) turn(k, e.key === "End" ? 64 : -64);
+    else return;
+    e.preventDefault(); e.stopPropagation();
+  });
+}
+
+// a press from the keyboard lasts at least 50 ms: the firmware reads the buttons every 16 ms, and a quick tap must
+// not fall between two reads
+const downAt = new Map();
+function holdDown(id, kind, v) {
+  downAt.set(id, performance.now());
+  if (kind === "btn") { btnHeldBy.set(id, v); syncButtons(); } else { keyHeldBy.set(id, v); syncKeys(); }
+}
+function letGo(id) {
+  if (!btnHeldBy.has(id) && !keyHeldBy.has(id)) return;
+  const at = downAt.get(id), go = () => {
+    if (downAt.get(id) !== at) return;                // pressed again meanwhile
+    downAt.delete(id);
+    if (btnHeldBy.delete(id)) syncButtons();
+    if (keyHeldBy.delete(id)) syncKeys();
+  };
+  const wait = 50 - (performance.now() - (at ?? 0));
+  if (wait > 0) setTimeout(go, wait); else go();
+}
+// the keyboard on a focused button or key: Space or Enter holds it down while held; Shift+Enter keeps it down.
+// A screen reader's "activate" is a click with no pointer and no key before it: a short press
+for (const [c, kind] of [...Object.values(buttons).map((b) => [b, "btn"]), ...keys.map((k, i) => [k, i])]) {
+  c.hit.addEventListener("pointerdown", () => { c.pointerAt = performance.now(); });
+  c.hit.addEventListener("click", (e) => {
+    if (!node || performance.now() - (c.pointerAt || -1e9) < 2000) return;
+    if (kind === "btn" && latched & (1 << c.bit)) { latched &= ~(1 << c.bit); syncButtons(); return; }
+    if (kind !== "btn" && keyLatched & (1 << kind)) { keyLatched &= ~(1 << kind); syncKeys(); return; }
+    holdDown("t", kind === "btn" ? "btn" : "key", kind === "btn" ? c.bit : kind);
+    setTimeout(() => letGo("t"), 80);
+  });
+  c.hit.addEventListener("keydown", (e) => {
+    if ((e.key !== " " && e.key !== "Enter") || e.metaKey || e.ctrlKey || e.altKey) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.repeat || !node) return;
+    if (kind === "btn" && e.key === "Enter" && e.shiftKey) { latched ^= 1 << c.bit; syncButtons(); return; }
+    if (kind !== "btn" && e.key === "Enter" && e.shiftKey) { keyLatched ^= 1 << kind; syncKeys(); return; }
+    if (kind === "btn") {
+      if (latched & (1 << c.bit)) { latched &= ~(1 << c.bit); syncButtons(); return; }
+      holdDown("f" + e.key, "btn", c.bit);
+    } else {
+      if (keyLatched & (1 << kind)) { keyLatched &= ~(1 << kind); syncKeys(); return; }
+      holdDown("f" + e.key, "key", kind);
+    }
+  });
+  c.hit.addEventListener("keyup", (e) => letGo("f" + e.key));
+  c.hit.addEventListener("blur", () => {
+    let b = false, k = false;
+    for (const id of ["f ", "fEnter"]) { b = btnHeldBy.delete(id) || b; k = keyHeldBy.delete(id) || k; }
+    if (b) syncButtons();
+    if (k) syncKeys();
+  });
+}
+
+// shortcuts: single letters, only while the panel has focus, and they can be turned off
+const KEYMAP = {};
+"qwertyui".split("").forEach((c, i) => KEYMAP["Key" + c.toUpperCase()] = { key: WHITE_K[i] });
+"asdfghjk".split("").forEach((c, i) => KEYMAP["Key" + c.toUpperCase()] = { key: WHITE_K[8 + i] });
+"1234567890".split("").forEach((c, i) => KEYMAP["Digit" + c] = { key: BLACK_K[i] });
+KEYMAP.Minus = { key: BLACK_K[10] };
+Object.assign(KEYMAP, { KeyP: { btn: BTN.PLAY }, KeyO: { btn: BTN.REC }, Escape: { btn: BTN.HOME }, KeyZ: { btn: BTN["OCT-"] }, KeyX: { btn: BTN["OCT+"] } });
+const shortcuts = $("shortcuts");
+if (prefs.shortcuts === false) shortcuts.checked = false;
+shortcuts.addEventListener("change", () => { prefs.shortcuts = shortcuts.checked; savePrefs(); });
+controls.addEventListener("keydown", (e) => {
+  if (!node || !shortcuts.checked || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.code === "ArrowUp" || e.code === "ArrowDown") { turn(knobs.SELECT, e.code === "ArrowUp" ? 1 : -1); e.preventDefault(); return; }
+  const m = KEYMAP[e.code];
+  if (!m) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  if (m.key !== undefined) holdDown("k" + e.code, "key", m.key);
+  else holdDown("k" + e.code, "btn", m.btn);
+});
+addEventListener("keyup", (e) => letGo("k" + e.code));
+function letGoKeys() {
+  for (const id of [...btnHeldBy.keys()]) if (id[0] === "k" || id[0] === "f") btnHeldBy.delete(id);
+  for (const id of [...keyHeldBy.keys()]) if (id[0] === "k" || id[0] === "f") keyHeldBy.delete(id);
+  syncButtons(); syncKeys();
+}
+addEventListener("blur", letGoKeys);
+controls.addEventListener("focusout", (e) => { if (!controls.contains(e.relatedTarget)) letGoKeys(); });
+
+// ---------------------------------------------------------------- screen and lights
+// The LCD's 240 x 240 picture is drawn into a hidden canvas, then into the visible one enlarged by a whole number
+// with no blending (every LCD pixel the same size), just past the size it is shown at in device pixels; the browser
+// blends that down to the screen. A plain stretch to a size that is not a multiple of 240 makes some pixel columns
+// wider than others.
+const screenEl = $("screen"), ctx = screenEl.getContext("2d");
+const lcd = document.createElement("canvas");
+lcd.width = lcd.height = 240;
+const lctx = lcd.getContext("2d"), img = lctx.createImageData(240, 240);
+function blitScreen() {
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(lcd, 0, 0, screenEl.width, screenEl.height);
+}
+function fitScreen() {
+  const px = screenEl.getBoundingClientRect().width * (window.devicePixelRatio || 1);
+  const n = 240 * Math.max(1, Math.ceil(px / 240 - 0.001));
+  if (screenEl.width !== n) { screenEl.width = screenEl.height = n; blitScreen(); }
+}
+new ResizeObserver(fitScreen).observe(screenEl);
+matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`).addEventListener("change", fitScreen);   // another display
+function drawScreen(fb) {
+  const d = img.data;
+  for (let i = 0; i < 240 * 240; i++) {
+    const v = fb[i], p = ((v >> 8) | (v << 8)) & 0xFFFF;
+    d[i * 4] = ((p >> 11) & 31) * 255 / 31;
+    d[i * 4 + 1] = ((p >> 5) & 63) * 255 / 63;
+    d[i * 4 + 2] = (p & 31) * 255 / 31;
+    d[i * 4 + 3] = 255;
+  }
+  lctx.putImageData(img, 0, 0);
+  blitScreen();
+}
+// a light's state in the control's name: "lit", or "blinking" when it changed three times in the last 2 s (PLAY
+// while the rhythm runs; a key pressed and let go is not blinking); the white keys light as their strings ring, which the ear says better
+function lightName(c, lit, now) {
+  if (c.wasLit === undefined) c.wasLit = lit;
+  if (lit !== c.wasLit) { c.wasLit = lit; c.changes = [...(c.changes || []).filter((t) => now - t < 2000), now]; }
+  const recent = (c.changes || []).filter((t) => now - t < 2000).length;
+  const state = recent >= 3 ? "blinking" : lit ? "lit" : "";
+  if (state !== c.light) { c.light = state; c.hit.setAttribute("aria-label", c.name + (state ? `, ${state}` : "")); }
+}
+function drawLights(b, k, db = 0, dk = 0) {
+  const now = performance.now();
+  panel.lights(b, k, db, dk);
+  for (const x of Object.values(buttons)) lightName(x, !!(b & (1 << x.bit)), now);
+  BLACK_K.forEach((i) => lightName(keys[i], !!(k & (1 << i)), now));
+}
+
+// ---------------------------------------------------------------- the screen in words (fm1-reader)
+// The firmware tells a reader what its screen shows (fm1-reader's PROTOCOL.md: SysEx F0 7D 53 52 cmd ... F7). Here
+// the reader is this page: HELLO every 2 s through the emulator (web_sysex), SAY frames back (web_said_buf), put in
+// words with fm1-reader's words.js and the app's words file, then read by the computer's screen reader (a live region)
+// or by the built-in voice (tts.js, eSpeak NG).
+const SR_HELLO = [0x7d, 0x53, 0x52, 1, 1], SR_BYE = [0x7d, 0x53, 0x52, 2], SR_WHERE = [0x7d, 0x53, 0x52, 3];
+const speakMode = () => document.querySelector('input[name="speak"]:checked').value;
+if (prefs.speakOpen) $("speak").open = true;
+$("speak").addEventListener("toggle", () => { prefs.speakOpen = $("speak").open; savePrefs(); });
+if (["sr", "voice", "off"].includes(prefs.speak)) document.querySelector(`input[name="speak"][value="${prefs.speak}"]`).checked = true;
+let helloTimer = null, heard = false, said = false, words = [], wordsReady = null, chain = Promise.resolve();
+let spoken = (s) => s, tts = null, ttsReady = null, last = null, liveFlip = false, keeping = 0;
+const wordsLib = import("./reader/words.js").then((m) => { spoken = m.spoken; return m; }).catch(() => null);
+function sysex(bytes) { send({ type: "sysex", bytes }); }
+function readerOn() {
+  if (!node || helloTimer || speakMode() === "off") return;
+  heard = said = false;
+  sysex(SR_HELLO);
+  helloTimer = setInterval(() => sysex(SR_HELLO), 2000);
+}
+function readerOff() {
+  if (!helloTimer) return;
+  clearInterval(helloTimer);
+  helloTimer = null;
+  sysex(SR_BYE);
+  $("where").disabled = $("again").disabled = true;
+  $("said").textContent = "";
+}
+// the words file: the one the firmware names, from this site (../words/, the same file the link points at)
+async function loadWords(link) {
+  const file = (link.match(/[^/]+\.json$/) || [""])[0];
+  const lib = await wordsLib;
+  if (!lib || !file) return [];
+  for (const url of [`../words/${file}`, link]) {
+    try {
+      const r = await fetch(url);
+      if (r.ok) return lib.wordsOf(await r.json());
+    } catch { /* offline, or not published yet: the next */ }
+  }
+  return [];
+}
+function speak(text, now, keep) {
+  last = { text, now, keep };
+  $("said").textContent = text;
+  $("again").disabled = false;
+  if (speakMode() === "voice") {
+    if (!tts) return;
+    const p = tts.speak(text, { interrupt: now && !keeping });
+    if (keep) { keeping++; p.then(() => keeping--); }
+  } else if (speakMode() === "sr") {
+    // the same words twice in a row are not read again by some screen readers: alternate the text
+    liveFlip = !liveFlip;
+    (now || keep ? $("live-a") : $("live-p")).textContent = text + (liveFlip ? "" : " ");
+  }
+}
+function onSaid(bytes) {
+  for (let i = 0; i < bytes.length; i++) {
+    if (bytes[i] !== 0xf0) continue;
+    const end = bytes.indexOf(0xf7, i);
+    if (end < 0) break;
+    const f = bytes.subarray(i + 1, end);
+    i = end;
+    if (f[0] !== 0x7d || f[1] !== 0x53 || f[2] !== 0x52) continue;
+    const str = (d) => String.fromCharCode(...d.filter((b) => b < 128));
+    if (f[3] === 1 && !heard) {                                     // HELLO: the name, and the words file's link
+      heard = true;
+      const [name, link = ""] = str(f.subarray(5)).split("\0");
+      wordsReady = loadWords(link).then((w) => { words = w; });
+      $("where").disabled = false;
+      // the first HELLO brings the whole screen by itself; if it doesn't come, ask for it
+      setTimeout(() => { if (!said && helloTimer) sysex(SR_WHERE); }, 400);
+    } else if (f[3] === 16) {                                       // SAY: flags, the screen's text
+      said = true;
+      const flags = f[4], screen = str(f.subarray(5));
+      chain = chain.then(() => wordsReady).then(() => speak(spoken(screen, words), !!(flags & 1), !!(flags & 2)));
+    }
+  }
+}
+async function voiceOn() {
+  if (!ttsReady) ttsReady = import("./reader/tts.js").then((m) => m.createTTS()).then((t) => (tts = t))
+    .catch(() => { showAlert("The built-in voice could not start in this browser. Choose System screen reader."); ttsReady = null; });
+  const t = await ttsReady;
+  if (t) t.unlock();
+}
+document.querySelectorAll('input[name="speak"]').forEach((r) => r.addEventListener("change", () => {
+  prefs.speak = speakMode(); savePrefs();
+  if (tts && speakMode() !== "voice") tts.stop();
+  if (speakMode() === "voice") voiceOn().then(() => tts && tts.speak("Voice on"));
+  if (speakMode() === "off") readerOff(); else readerOn();
+}));
+$("where").addEventListener("click", () => sysex(SR_WHERE));
+$("again").addEventListener("click", () => last && speak(last.text, true, last.keep));
+
+// ---------------------------------------------------------------- storage
+function loadStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}"), out = {};
+    for (const [o, b64] of Object.entries(raw)) out[o] = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+    return out;
+  } catch { return {}; }
+}
+function saveStore(store) {
+  try {
+    const raw = {};
+    for (const [o, u8] of Object.entries(store)) { let s = ""; for (const c of u8) s += String.fromCharCode(c); raw[o] = btoa(s); }
+    localStorage.setItem(STORE_KEY, JSON.stringify(raw));
+  } catch { /* storage unavailable: this session only */ }
+}
+
+// ---------------------------------------------------------------- switching on
+const status = $("status"), cpu = $("cpu");
+let appPart = null;
+function showAlert(t) { $("alert").textContent = t; }
+async function switchOn() {
+  const go = $("go");
+  go.disabled = true;
+  go.textContent = "Starting…";
+  status.textContent = "Starting…";
+  try {
+    const ac = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" });
+    if (speakMode() === "voice") voiceOn();
+    const [wasm] = await Promise.all([fetch("app.wasm").then((r) => { if (!r.ok) throw new Error(`app.wasm: ${r.status}`); return r.arrayBuffer(); }),
+                                      ac.audioWorklet.addModule("app_worklet.js").catch(() => {})
+                                        .then(() => ac.audioWorklet.addModule("worklet.js"))]);
+    node = new AudioWorkletNode(ac, "fm1", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    gain = ac.createGain();
+    gain.gain.value = $("mute").getAttribute("aria-pressed") === "true" ? 0 : 1;
+    node.connect(gain).connect(ac.destination);
+    const ready = new Promise((res) => {
+      node.port.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === "ready") res();
+        else if (m.type === "frame") {
+          if (m.fb) drawScreen(m.fb);
+          drawLights(m.buttons, m.keys, m.dimButtons, m.dimKeys);
+          if (m.dimOp !== undefined) document.documentElement.style.setProperty("--dimop", m.dimOp);   // APP_DIM_LEVELS
+          if (m.said) onSaid(m.said);
+          window.emuLast = m;
+          if (m.load !== undefined) cpu.textContent = `PALINDROME uses ${m.load}% of this computer's time`;
+          if (m.store) saveStore(m.store);
+        } else if (m.type === "log") {
+          sessionScript(m);
+        } else if (m.type === "app" && appPart && appPart.message) appPart.message(m);
+      };
+    });
+    // the app's own part of the page (APP_DIR/web/emu/app.js), if it has one: attach({ node, ac, status }), and
+    // message(m) for the worklet's { type: "app" } messages
+    appPart = await import("./app.js").catch(() => null);
+    if (appPart && appPart.attach) appPart.attach({ node, ac, status: (t) => showAlert(t) });
+    node.port.postMessage({ type: "load", wasm, store: loadStore(), master }, [wasm]);
+    await ready;
+    await ac.resume();
+    $("start").hidden = true;
+    controls.inert = false;
+    status.textContent = ac.sampleRate === 44100 ? "On." : `On (the browser runs audio at ${ac.sampleRate} Hz).`;
+    syncButtons(); syncKeys();
+    readerOn();
+    knobs.MASTER.hit.focus();                  // the switch is gone: on to the panel
+  } catch (err) {
+    node = null;
+    go.disabled = false;
+    go.textContent = "Switch on";
+    status.textContent = "Off.";
+    showAlert("Could not start: " + (err && err.message || err) + ". Chrome, Edge, Firefox and Safari should all work.");
+  }
+}
+$("go").addEventListener("click", switchOn);
+$("mute").addEventListener("click", () => {
+  const on = $("mute").getAttribute("aria-pressed") !== "true";
+  $("mute").setAttribute("aria-pressed", on ? "true" : "false");
+  if (gain) gain.gain.value = on ? 0 : 1;
+});
+$("session").addEventListener("click", () => send({ type: "log" }));
+$("reset").addEventListener("click", () => {
+  if ($("reset").dataset.armed) {
+    try { localStorage.removeItem(STORE_KEY); } catch {}
+    location.reload();
+  } else {
+    $("reset").dataset.armed = "1";
+    $("reset").textContent = "Press again to forget everything";
+  }
+});
+</script>
+<script id="fm1tut-js">
+// SPDX-License-Identifier: MPL-2.0
+// The emulator's Play / Tutorial switch (scripts/site_nav.py puts this, tutorial.css and one firmware's
+// tutorial JSON into the emulator's page).
+//
+//   Play      the panel as it is: buttons, knobs and keys play the instrument.
+//   Guide     (a firmware whose JSON has "guide") the panel still plays; a card says what to do next and the control
+//             to use is ringed. A step is done when the instrument itself says so: its lights (the page's frames:
+//             window.emuLast) and, for PALINDROME, its rings (window.palState, from its web/emu/app.js). Back, Next
+//             and Exit are always there: nothing depends on a step being noticed.
+//   Tutorial  ("Reference" where the JSON says so) a blueprint drawn over the panel: every control outlined, a line
+//             from each one to a box that says what it does in this firmware. Tapping a control here does not play
+//             it: it shows what it does in the card over the panel. A button that changes what the knobs or keys do
+//             (a page; in STRATA a layer held: one tap for held, another to let go) changes the boxes too.
+//
+// The drawing takes its geometry from the panel fm1-base drew (svg#panel, viewBox 0 0 1000 640), so the two agree.
+(function () {
+  "use strict";
+  var T = {"start": "silt", "tutorial_label": "Reference", "intro": "Reference: tap any button, knob or key to read what it does. A button that opens a page changes the knob labels here to that page's. Nothing is ever held. Switch to Play or Guide to use the panel.", "master": ["VOLUME", "Output volume. MASTER is always the volume, whatever the other knobs are doing."], "screen": "The screen shows the rings as concentric circles, the oldest innermost, each one its own recording; the selected ring is the bright one, and grains ride the ring they play. MORPH is the small square in the middle. The top line names the page, the keys' job and the selected ring; under the rings are the SOURCE that REC would capture and REC's state; the boxes at the foot name what each knob sets now.", "keys": ["GRAIN PITCH", "Each key latches a pitch for the grains, up to four; the grains take them in turn. C (the fifth white key) is the recorded pitch. A new key also plays its grains at once, even with PLAY off."], "select": ["RING", "Selects the ring that SILT plays and the knobs edit, on every page. Each ring keeps its own settings; selecting never changes a recording."], "pages": {"silt": {"title": "SILT", "how": "EDIT or HOME", "knobs": {"KNOB1": ["POSITION", "Where grains start, round the selected ring."], "KNOB2": ["SIZE", "Grain length, 20 to 500 ms."], "KNOB3": ["DENSITY", "1 to 40 grain starts a second."], "KNOB4": ["SPRAY", "Random scatter of each grain's start around POSITION."], "ALGORITHM": ["REVERSE", "The chance a grain plays backward."], "PRESETS": ["PITCH", "Shifts every grain, 24 semitones down to 24 up, on top of the held keys."]}}, "morph": {"title": "MORPH SOURCE", "how": "FX", "keys": ["NOTES", "On MORPH's page each key latches a synth note, up to four. Tap a lit key again to release it."], "knobs": {"KNOB1": ["X", "Moves the sound left and right across the square, between its corners' ways of making sound."], "KNOB2": ["Y", "Moves the sound up and down the square."], "KNOB3": ["COMPLEX", "Harmonic richness of each corner's sound."], "KNOB4": ["TONE", "Low-pass filter: dark to bright."], "ALGORITHM": ["MOVE", "Carries the sound round a circle in the square by itself."], "PRESETS": ["EXCITE", "How long the struck MODAL corner rings."]}}, "rings": {"title": "RINGS", "how": "SEL", "knobs": {"KNOB1": ["CARRY", "How much of the selected ring is copied under the next capture. At 0 a capture is the source alone."], "KNOB4": ["DELETE", "Turn right once to arm deleting the selected ring, twice to arm clearing everything. SEL confirms; any other button calls it off."]}}, "shape": {"title": "SILT SHAPE", "how": "ENV", "knobs": {"KNOB1": ["SHAPE", "Each grain's envelope: 0 struck (fast attack), 50 a bell, 100 a slow swell."], "KNOB2": ["VARY", "Random grain length, up to a quarter to four times SIZE."], "KNOB3": ["SCATTER", "The chance a grain jumps an octave; higher adds fifths and two octaves."], "KNOB4": ["DETUNE", "Each grain slightly off pitch, up to 50 cents either way."], "ALGORITHM": ["CLUSTER", "1 to 4 grains started together, each on the next held key: low values play the keys in turn, high values as a chord."]}}, "motion": {"title": "SILT MOTION", "how": "LFO", "knobs": {"KNOB1": ["SCAN", "Moves POSITION back and forth by itself."], "KNOB2": ["TIMING", "When grains start: an even pulse at 0, irregular at 100."]}}, "mix": {"title": "MIX", "how": "GLO", "knobs": {"KNOB1": ["MIX", "Balance between MORPH and SILT's grains."], "KNOB2": ["FADE", "How slowly MORPH's notes come and go."], "KNOB3": ["SPREAD", "How far apart MORPH's four voices sit in stereo."], "KNOB4": ["STEREO", "How wide the grains are scattered left to right."], "PRESETS": ["LEVEL", "Overall output level."]}}, "recfx": {"title": "REC FX", "how": "GLO, twice", "knobs": {"KNOB1": ["NOISE", "Hiss recorded into the next capture. With no notes held it captures noise alone."], "KNOB2": ["COLOR", "The hiss's tone: low rumble to bright hiss."], "KNOB3": ["CRUSH", "Reduces the next capture's resolution: grit, then a few hard steps."], "KNOB4": ["GATE", "Only sound louder than this is captured; quieter stretches become silence."], "ALGORITHM": ["DROP", "Random gaps in the next capture."], "PRESETS": ["DAMP", "Darkens what is captured."]}}}, "buttons": {"EDIT": {"label": "SILT", "sub": "the grains", "base": "silt", "text": "Opens SILT, the instrument: the grains of the selected ring. REC here captures SILT's own grains into a new ring."}, "HOME": {"label": "SILT HOME", "sub": "back to SILT", "base": "silt", "text": "Returns to SILT from anywhere. It clears nothing."}, "FX": {"label": "MORPH", "sub": "the source", "base": "morph", "text": "Opens MORPH, the four-corner synth that makes the sound to capture. The keys are its notes here. REC here captures MORPH into a new ring."}, "SEL": {"label": "RINGS", "sub": "list, delete", "base": "rings", "text": "Opens the list of rings: which there are and what each was made from. KNOB4 arms a delete there and SEL confirms it."}, "ENV": {"label": "SHAPE", "sub": "grain shape", "base": "shape", "text": "Opens SILT SHAPE: each grain's envelope and how the grains differ from one another."}, "LFO": {"label": "MOTION", "sub": "scan, timing", "base": "motion", "text": "Opens SILT MOTION: POSITION moving by itself, and regular or irregular grain timing."}, "GLO": {"label": "MIX / REC FX", "sub": "press again", "pages": ["mix", "recfx"], "text": "Opens MIX. Pressed again it opens REC FX, what a capture does to the sound it records; again, MIX. The screen names both and lights the one that is open."}, "REC": {"label": "NEW RING", "sub": "one press", "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. It runs for one ring's length and finishes by itself. It never overwrites a ring: with no room left it says RINGS FULL."}, "PLAY": {"label": "GRAINS", "sub": "start / stop", "text": "Starts and stops the continuous stream of grains. Keys still play grains by hand while it is stopped."}, "OCT-": {"label": "KEYS DOWN", "text": "Shifts the keys down an octave. Notes and pitches already held stay where they are."}, "OCT+": {"label": "KEYS UP", "text": "Shifts the keys up an octave. Notes and pitches already held stay where they are."}, "SAVE": {"unused": "SAVE is not available: there is no saving yet, and the rings are lost at power-off."}, "ARP": {"unused": "ARP is not used."}, "SEQ": {"unused": "SEQ is not used."}}, "guide": {"label": "Guide", "done": "That's the whole loop: MORPH makes a sound, REC captures it as a ring, SILT plays the ring, and REC makes the next ring from what you hear. HOME always brings you back to SILT. Reference says what every control does.", "steps": [{"title": "Switch on", "text": "Press Switch on, on the panel. Sound starts and the screen shows SILT with no rings yet.", "done": {"on": true}}, {"title": "SILT home", "text": "Nothing is captured yet. Press FX to open MORPH, the sound source.", "show": ["FX"], "done": {"lit": "FX"}}, {"title": "MORPH", "text": "Tap two or three keys: each one latches a note. Turn KNOB1 and KNOB2 to move between the four ways of making sound.", "show": ["keys", "KNOB1", "KNOB2"], "done": {"keys": true}}, {"title": "Capture", "text": "Press REC once. Watch RING 01 fill on the screen; it finishes by itself.", "show": ["REC"], "done": {"rings": 1}}, {"title": "Play SILT", "text": "The new ring is selected and you are back on SILT. Press PLAY, then turn KNOB1 (POSITION) and KNOB2 (SIZE).", "show": ["PLAY", "KNOB1", "KNOB2"], "done": {"lit": "PLAY"}}, {"title": "Second generation", "text": "Change the grains (PRESETS is PITCH), then press REC again. RING 02 appears around RING 01, which stays as it was.", "show": ["PRESETS", "REC"], "done": {"rings": 2}}, {"title": "Rings", "text": "Press SEL to see the rings, then turn SELECT one step left to go back to RING 01. Its sound and its settings are still there.", "show": ["SEL", "SELECT"], "done": {"lit": "SEL", "ring": 1}}]}};
+  var NS = "http://www.w3.org/2000/svg";
+  var device = document.getElementById("device"), panel = document.getElementById("panel");
+  var pill = document.getElementById("fm1mode"), card = document.getElementById("fm1tut-card");
+  if (!device || !panel || !pill || !card) return;
+  var svg = null, tries = 0, base = T.start, hold = null, picked = null;
+  var knobs = {}, buttons = {}, parts = {};          // by name: geometry and the overlay's elements
+  var KNOB_ORDER = ["MASTER", "SELECT", "PRESETS", "ALGORITHM", "KNOB1", "KNOB2", "KNOB3", "KNOB4"];
+
+  function el(tag, attrs, parent, text) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  function label(parent, x, y, s, size, cls) {
+    return el("text", { x: x, y: y, "text-anchor": "middle", "font-size": size, class: cls || "" }, parent, s);
+  }
+  function fit(t, max) {                             // a line wider than its box: squeezed to it
+    try {
+      t.removeAttribute("textLength");
+      if (t.getComputedTextLength() > max) { t.setAttribute("textLength", max); t.setAttribute("lengthAdjust", "spacingAndGlyphs"); }
+    } catch (e) { /* (not drawn yet) */ }
+  }
+  function page() { return T.pages[hold || base]; }
+  function keysNow() { return page().keys || T.pages[base].keys || T.keys; }
+  function knobNow(name) { return name === "MASTER" ? T.master : name === "SELECT" && T.select ? T.select : page().knobs[name]; }
+
+  // --- the panel's geometry -----------------------------------------------------------------------------------
+  function measure() {
+    var faces = panel.querySelectorAll("rect.btnface");
+    if (!faces.length) return false;
+    faces.forEach(function (f) {
+      var t = f.parentNode.querySelector("text");
+      if (!t) return;
+      buttons[t.textContent] = { x: +f.getAttribute("x"), y: +f.getAttribute("y"), w: +f.getAttribute("width"), h: +f.getAttribute("height") };
+    });
+    panel.querySelectorAll("g.knob").forEach(function (g) {
+      var c = g.querySelector("circle.knobface"), t = g.querySelector("text");
+      if (c && t) knobs[t.textContent] = { x: +c.getAttribute("cx"), y: +c.getAttribute("cy"), r: +c.getAttribute("r") };
+    });
+    return true;
+  }
+
+  // --- the blueprint ------------------------------------------------------------------------------------------
+  function hit(shape, kind, name, say) {             // a control, or its box: tap it (or Enter) to read about it
+    shape.setAttribute("class", "hit");
+    shape.setAttribute("tabindex", "0");
+    shape.setAttribute("role", "button");
+    shape.setAttribute("aria-label", say);
+    shape.addEventListener("click", function () { choose(kind, name); });
+    shape.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(kind, name); }
+    });
+  }
+  function build() {
+    if (!measure()) { if (++tries < 200) setTimeout(build, 50); return; }
+    svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("id", "fm1tut");
+    svg.setAttribute("viewBox", "0 0 1000 640");
+    svg.setAttribute("hidden", "");
+    device.appendChild(svg);
+    var defs = el("defs", {});
+    var grid = el("pattern", { id: "fm1tut-grid", width: 20, height: 20, patternUnits: "userSpaceOnUse" }, defs);
+    el("path", { d: "M20 0H0V20", class: "grid" }, grid);
+    var mask = el("mask", { id: "fm1tut-mask" }, defs);          // (the screen stays the live one: a hole for it)
+    el("rect", { x: 4, y: 4, width: 992, height: 632, rx: 44, fill: "#fff" }, mask);
+    el("rect", { x: 316, y: 60, width: 204, height: 204, rx: 4, fill: "#000" }, mask);
+    el("rect", { x: 0, y: 0, width: 1000, height: 640, class: "sheet", mask: "url(#fm1tut-mask)" });
+    el("rect", { x: 0, y: 0, width: 1000, height: 640, fill: "url(#fm1tut-grid)", mask: "url(#fm1tut-mask)" });
+    el("rect", { x: 4, y: 4, width: 992, height: 632, rx: 44, class: "edge" });
+    el("rect", { x: 300, y: 44, width: 236, height: 236, rx: 26, class: "outline" });
+    parts.title = el("text", { x: 44, y: 38, "font-size": 16, class: "title" }, svg, "");
+
+    // the keys: faint, under everything else
+    panel.querySelectorAll("rect.keyface").forEach(function (k) {
+      el("rect", { x: k.getAttribute("x"), y: k.getAttribute("y"), width: k.getAttribute("width"), height: k.getAttribute("height"),
+                   rx: k.getAttribute("rx"), class: "outline faint" });
+    });
+    var kg = el("g", { class: "part", "data-part": "keys:keys" });
+    el("path", { d: "M380 546H300", class: "leader" }, kg);
+    el("circle", { cx: 300, cy: 546, r: 3.2, class: "dot" }, kg);
+    el("rect", { x: 380, y: 520, width: 240, height: 52, rx: 3, class: "box" }, kg);
+    label(kg, 500, 541, "KEYS", 13, "sub");
+    parts.keys = label(kg, 500, 562, "", 18, "name");
+    hit(el("rect", { x: 36, y: 340, width: 928, height: 270, rx: 18 }, kg), "keys", "keys", "The keys");
+
+    // the knobs: each one's name over it, what it sets now in a box under it
+    KNOB_ORDER.forEach(function (name) {
+      var k = knobs[name];
+      if (!k) return;
+      var g = el("g", { class: "part", "data-part": "knob:" + name }), top = k.y + k.r + 7;
+      el("circle", { cx: k.x, cy: k.y, r: k.r, class: "outline" }, g);
+      el("path", { d: "M" + k.x + " " + (k.y - k.r + 4) + "V" + (k.y - k.r + 14), class: "outline" }, g);
+      label(g, k.x, k.y - k.r - 12, name, 14, "sub");
+      el("path", { d: "M" + k.x + " " + (k.y + k.r) + "V" + top, class: "leader" }, g);
+      el("rect", { x: k.x - 50, y: top, width: 100, height: 24, rx: 3, class: "box" }, g);
+      parts["knob:" + name] = label(g, k.x, top + 17.5, "", 16, "name");
+      hit(el("rect", { x: k.x - 52, y: k.y - k.r - 28, width: 104, height: 2 * k.r + 62, rx: 6 }, g), "knob", name, name);
+    });
+
+    // the buttons: outlined with their names; those that do something get a line to a box
+    var used = [];
+    Object.keys(buttons).forEach(function (name) {
+      var b = buttons[name], d = T.buttons[name], oct = name.indexOf("OCT") === 0;
+      var g = el("g", { class: "part" + (d && !d.unused ? "" : " unused"), "data-part": "button:" + name });
+      el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 9, class: "outline face" }, g);
+      label(g, b.x + b.w / 2, b.y + b.h / 2 + 5, name, 14, "sub");
+      b.g = g;
+      if (d && !d.unused) {
+        if (oct) {                                   // straight down to its box
+          var cx = b.x + b.w / 2;
+          el("path", { d: "M" + cx + " " + (b.y + b.h) + "V336", class: "leader" }, g);
+          el("circle", { cx: cx, cy: b.y + b.h, r: 3.2, class: "dot" }, g);
+          el("rect", { x: cx - 47, y: 336, width: 94, height: 30, rx: 3, class: "box" }, g);
+          fitLater(label(g, cx, 357, d.label, 15, "name"), 86);
+          hit(el("rect", { x: cx - 47, y: 336, width: 94, height: 30 }, g), "button", name, name + ": " + d.label);
+        } else {
+          // (the top row's lines come down the gap to the right of the button, the bottom row's from under it)
+          b.sx = b.y < 230 ? b.x + b.w + 4.5 : b.x + b.w / 2;
+          b.top = b.y < 230;
+          used.push(name);
+        }
+      }
+      hit(el("rect", { x: b.x - 3, y: b.y - 3, width: b.w + 6, height: b.h + 6, rx: 9 }, g), "button", name, name);
+    });
+    used.sort(function (a, c) { return buttons[a].sx - buttons[c].sx; });   // (in order: no two lines cross)
+    var n = used.length, pitch = Math.min(144, 860 / Math.max(n, 1)), w = pitch - 8, x0 = 990 - n * pitch;
+    used.forEach(function (name, i) {
+      var b = buttons[name], d = T.buttons[name], g = b.g, bx = x0 + i * pitch + pitch / 2, by = 404;
+      var path = b.top ? "M" + (b.x + b.w) + " " + (b.y + b.h / 2) + "H" + b.sx + "V296L" + bx + " " + by
+                       : "M" + b.sx + " " + (b.y + b.h) + "V296L" + bx + " " + by;
+      el("path", { d: path, class: "leader" }, g);
+      el("circle", { cx: b.top ? b.x + b.w : b.sx, cy: b.top ? b.y + b.h / 2 : b.y + b.h, r: 3.2, class: "dot" }, g);
+      el("rect", { x: bx - w / 2, y: by, width: w, height: 50, rx: 3, class: "box" }, g);
+      fitLater(label(g, bx, by + 22, d.label, 18, "name"), w - 10);
+      if (d.sub) fitLater(label(g, bx, by + 40, d.sub, 12.5, "sub"), w - 10);
+      hit(el("rect", { x: bx - w / 2, y: by, width: w, height: 50 }, g), "button", name, name + ": " + d.label);
+    });
+    // the screen
+    var sg = el("g", { class: "part", "data-part": "screen:screen" });
+    hit(el("rect", { x: 316, y: 60, width: 204, height: 204, rx: 4 }, sg), "screen", "screen", "The screen");
+    refresh();
+  }
+  var later = [];
+  function fitLater(t, max) { later.push([t, max]); }
+
+  // --- what the knobs and keys do now, and what is picked ------------------------------------------------------
+  function refresh() {
+    var p = page();
+    parts.title.textContent = "KNOBS: " + p.title + " · " + p.how.toUpperCase();
+    KNOB_ORDER.forEach(function (name) {
+      var t = parts["knob:" + name];
+      if (!t) return;
+      var k = knobNow(name);
+      t.textContent = k ? k[0] : "—";
+      t.parentNode.classList.toggle("unused", !k);
+      fit(t, 92);
+    });
+    parts.keys.textContent = keysNow()[0];
+    svg.querySelectorAll(".part").forEach(function (g) {
+      var id = g.getAttribute("data-part"), name = id.split(":")[1], d = T.buttons[name];
+      g.classList.toggle("on", id === picked);
+      g.classList.toggle("held", id.indexOf("button:") === 0 && !!d &&
+                         ((hold && d.hold === hold) || (!hold && (d.base === base || (d.pages && d.pages.indexOf(base) >= 0)))));
+    });
+    later.forEach(function (x) { fit(x[0], x[1]); });
+  }
+  function say(title, where, text, note) {
+    card.textContent = "";
+    var h = document.createElement("strong");
+    h.textContent = title;
+    card.appendChild(h);
+    if (where) { var s = document.createElement("span"); s.textContent = where; card.appendChild(s); }
+    var p = document.createElement("p");
+    p.textContent = text;
+    card.appendChild(p);
+    if (note) { var q = document.createElement("p"); q.className = "note"; q.textContent = note; card.appendChild(q); }
+  }
+  function choose(kind, name) {
+    var p, d, k, note = "";
+    picked = kind + ":" + name;
+    if (kind === "button") {
+      d = T.buttons[name];
+      if (!d || d.unused) say(name, "", (d && d.unused) || "Does nothing in this firmware.");
+      else {
+        var before = hold || base;
+        if (d.pages) { base = d.pages[(d.pages.indexOf(base) + 1) % d.pages.length]; hold = null; }   // (a button with two pages: the next)
+        else if (d.base && base !== d.base) { base = d.base; hold = null; }
+        else if (d.hold) hold = hold === d.hold ? null : d.hold;
+        else if (d.base) hold = null;
+        p = page();
+        if ((hold || base) !== before || d.base || d.hold || d.pages) {
+          note = "The knobs here now show " + p.title + " (" + p.how + ").";
+          if (hold && d.hold === hold) note += " Tap " + name + " again to let go.";
+          else if (d.hold && d.base === base && !hold) note += " Tap " + name + " again for its held set.";
+          else if (d.pages) note += " Tap " + name + " again for " + T.pages[d.pages[(d.pages.indexOf(base) + 1) % d.pages.length]].title + ".";
+        }
+        say(name + " · " + d.label, d.sub || "", d.text, note);
+      }
+    } else if (kind === "knob") {
+      p = page();
+      k = knobNow(name);
+      if (k) say(name + " · " + k[0], name === "MASTER" || (name === "SELECT" && T.select) ? "on every page" : p.title + " (" + p.how + ")", k[1]);
+      else say(name, p.title + " (" + p.how + ")", "Sets nothing on this page.");
+    } else if (kind === "keys") {
+      k = keysNow();
+      say("KEYS · " + k[0], page().keys || T.pages[base].keys ? T.pages[base].title + " (" + T.pages[base].how + ")" : "", k[1]);
+    } else say("SCREEN", "", T.screen);
+    refresh();
+  }
+
+  // --- the guide: the panel plays; a card says what to do next, and the control to use is ringed ---------------
+  var BIT = { FX: 0, SEL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7, ARP: 8, SEQ: 9, PLAY: 10, REC: 11 };
+  var G = T.guide, gi = 0, gtimer = null, gwait = 0, rings = null;
+  function met(c) {                                  // a step's "done", against what the instrument says of itself
+    var f = window.emuLast, st = window.palState;
+    if (!c) return false;
+    if (c.on && !f) return false;
+    if (c.lit) {
+      if (!f) return false;
+      var m = f.buttons >>> 0;
+      if (!(m & (1 << BIT[c.lit])) && !(c.lit === "PLAY" && (m & (1 << 14)))) return false;   // (PLAY's green: bit 14)
+    }
+    if (c.keys && !(f && (f.keys >>> 0))) return false;
+    if (c.rings !== undefined && !(st && st.rings >= c.rings)) return false;
+    if (c.ring !== undefined && !(st && st.ring === c.ring)) return false;
+    return true;
+  }
+  function ring(show) {                              // the controls a step uses, ringed on the live panel
+    if (!rings) {
+      rings = document.createElementNS(NS, "svg");
+      rings.setAttribute("id", "fm1guide");
+      rings.setAttribute("viewBox", "0 0 1000 640");
+      rings.setAttribute("aria-hidden", "true");
+      device.appendChild(rings);
+    }
+    rings.textContent = "";
+    (show || []).forEach(function (name) {
+      var b = buttons[name], k = knobs[name];
+      if (name === "keys") el("rect", { x: 40, y: 344, width: 920, height: 262, rx: 16, class: "use" }, rings);
+      else if (b) el("rect", { x: b.x - 5, y: b.y - 5, width: b.w + 10, height: b.h + 10, rx: 12, class: "use" }, rings);
+      else if (k) el("circle", { cx: k.x, cy: k.y, r: k.r + 12, class: "use" }, rings);
+    });
+  }
+  function gbutton(text, fn, cls) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = text;
+    if (cls) b.className = cls;
+    b.addEventListener("click", fn);
+    return b;
+  }
+  function gshow() {
+    var st = G.steps[gi], row = document.createElement("div"), h = document.createElement("strong"),
+        s = document.createElement("span"), p = document.createElement("p");
+    card.textContent = "";
+    gwait = 0;
+    row.className = "row";
+    if (!st) {                                       // through
+      p.textContent = G.done;
+      card.appendChild(p);
+      row.appendChild(gbutton("Start again", function () { gi = 0; gshow(); }));
+      row.appendChild(gbutton("Play", function () { mode("play"); }));
+      if (svg) row.appendChild(gbutton(T.tutorial_label || "Tutorial", function () { mode("tutorial"); }));
+      card.appendChild(row);
+      ring([]);
+      return;
+    }
+    h.textContent = st.title;
+    s.textContent = "Step " + (gi + 1) + " of " + G.steps.length;
+    p.textContent = st.text;
+    card.appendChild(h); card.appendChild(s); card.appendChild(p);
+    if (gi > 0) row.appendChild(gbutton("Back", function () { gi--; gshow(); }));
+    row.appendChild(gbutton(gi === G.steps.length - 1 ? "Finish" : "Next", function () { gi++; gshow(); }));
+    row.appendChild(gbutton("Exit", function () { mode("play"); }, "quiet"));
+    card.appendChild(row);
+    ring(st.show);
+  }
+  function gtick() {                                 // the step done on the instrument itself: a moment, then on
+    var st = G.steps[gi];
+    if (!st) return;
+    if (gwait) { if (Date.now() >= gwait) { gi++; gshow(); } return; }
+    if (met(st.done)) {
+      gwait = Date.now() + 900;
+      card.classList.add("done");
+      setTimeout(function () { card.classList.remove("done"); }, 900);
+    }
+  }
+
+  // --- the switch ---------------------------------------------------------------------------------------------
+  var controls = document.getElementById("controls"), wasInert = null, now = "play";
+  function mode(m) {
+    if (m === "guide" && !G) m = "play";
+    if (m === "tutorial" && !svg) return;
+    pill.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.mode === m)); });
+    // out of the mode that was
+    if (now === "tutorial" && m !== "tutorial") {
+      svg.setAttribute("hidden", "");
+      if (controls && wasInert !== null) controls.inert = wasInert;
+      wasInert = null;
+    }
+    if (now === "guide" && m !== "guide") {
+      if (gtimer) { clearInterval(gtimer); gtimer = null; }
+      if (rings) rings.textContent = "";
+    }
+    now = m;
+    card.hidden = m === "play";
+    card.classList.toggle("guide", m === "guide");
+    device.classList.toggle("fm1tut-on", m === "tutorial");
+    if (m === "tutorial") {
+      svg.removeAttribute("hidden");
+      card.textContent = "";
+      var p = document.createElement("p");
+      p.textContent = T.intro;
+      card.appendChild(p);
+      picked = null;
+      if (controls) { wasInert = controls.inert; controls.inert = true; }      // (the real controls: out of reach)
+      refresh();
+    } else if (m === "guide") {
+      gshow();
+      gtimer = setInterval(gtick, 150);
+    }
+  }
+  pill.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (b) mode(b.dataset.mode);
+  });
+  build();
+})();
+</script>
+</body>
+</html>
