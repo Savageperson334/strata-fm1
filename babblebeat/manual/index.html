@@ -44,8 +44,7 @@ body:has(.devicebox) > header h1 { color: var(--accent); }
 
 </style>
 </head><body style="background:#111b1b;color:#e6f1df;font:16px/1.5 system-ui;max-width:760px;margin:1rem auto;padding:1rem">
-<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav>
-<main><h1>BabbleBeat — grammar-driven robotic speech</h1>
+<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav><main><h1>BabbleBeat — grammar-driven robotic speech</h1>
 <p>A third independent FM-1 firmware, alongside STRATA and PALINDROME. A sentence
 is assembled by grammar rules first, then optionally rewritten or damaged.
 The voice is a simple formant robot, not general text-to-speech.</p>
@@ -139,7 +138,7 @@ The voice is a simple formant robot, not general text-to-speech.</p>
 <tr>
 <td>KNOB4</td>
 <td><strong>DAMAGE</strong></td>
-<td>Probability of applying automatic structural mutation</td>
+<td>How often a new sentence is mutated as it is made (GRAMMAR decides how gently)</td>
 </tr>
 <tr>
 <td>SELECT</td>
@@ -181,12 +180,12 @@ The voice is a simple formant robot, not general text-to-speech.</p>
 <tr>
 <td>KNOB3</td>
 <td><strong>TONE</strong></td>
-<td>Formant brightness</td>
+<td>A darker, larger voice to a brighter, smaller one</td>
 </tr>
 <tr>
 <td>KNOB4</td>
 <td><strong>BREATH</strong></td>
-<td>Noise mixed into consonants</td>
+<td>Breath noise in the voiced sounds</td>
 </tr>
 <tr>
 <td>SELECT</td>
@@ -201,7 +200,7 @@ The voice is a simple formant robot, not general text-to-speech.</p>
 <tr>
 <td>PRESETS</td>
 <td><strong>INFLECT</strong></td>
-<td>Pitch change between successive words</td>
+<td>How much the pitch moves: a lift on each word, a fall at the end, a rise for a question</td>
 </tr>
 </tbody>
 </table>
@@ -241,9 +240,10 @@ remain valid before mutation.</p>
 <p>The four themed banks loosely echo the previous Python WordNet/Dracula
 experiment. BabbleBeat does not yet include WordNet, a full novel, the
 desktop program's advanced oracle, or live dictionary downloads.</p>
-<h2>Early voice limitations</h2>
-<p>This first voice uses a small hand-phonemized word list, a pulse/noise
-source and three resonators. It is an intentionally mechanical prototype,
+<h2>Voice limitations</h2>
+<p>The voice is a small formant synthesizer with a hand-phonemized word list:
+a glottal pulse and breath noise through four gliding formants, with shaped
+noise for hisses and stops. It is robotic on purpose, and it is
 not a general English TTS engine or CHIMERA's modeled vocal tract.
 There is no text input, no recording, no save/load of patches, no MIDI
 support in the app yet, and no tested hardware release. The browser
