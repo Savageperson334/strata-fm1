@@ -4,6 +4,22 @@
 **Baseline:** STRATA v0.3 (six latched FM drone voices, ARP, eight synthesized drum grooves)  
 **Scope:** Standalone performance on the M-VAVE FM-1 and its browser emulator.
 
+## Implementation status
+
+**0.4** ships stage 1 and the first part of stage 2:
+
+- The beat's clock is now a shared transport: it runs while the beat or any lane needs it, starts from step one when
+  the first of them starts, and the other joins without a restart. The arp locks to it whenever it runs.
+- Four Euclidean lanes on EDIT (tap: on / off; hold: edit). Per lane: steps 1–32, pulses, rotation, chance, step
+  length (1/1 to 1/16) and a target. Masks are precomputed; `E(p, n)` puts a hit on step `i` when
+  `(i * p) mod n < p`, so rotation 0 has a hit on step one, and rotation moves the pattern later.
+- Targets: a drum (kick, snare, closed hat, open hat, perc) in **Replace** mode only, or the arp's step (advance on
+  each accepted hit; one voice alone pulses for half a lane step).
+- The hit on a lane's first step is accented. Chance uses a per-lane generator, reseeded at each transport start.
+
+Not yet: Add and Mask drum modes, accent patterns and strength, gate length, invert, per-lane swing, quantized edits,
+lane-to-LFO triggers, and stages 3–5. Nothing here has been measured on hardware yet (section 11).
+
 ## 1. Vision
 
 STRATA should evolve from a drone synthesizer with an arpeggiator and drum machine into a generative performance instrument: an interconnected sound, modulation and rhythm system that can produce evolving music while the player casually turns knobs.
