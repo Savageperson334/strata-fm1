@@ -1,23 +1,70 @@
 # PALINDROME
 
-Two instruments, one audio memory. **MORPH generates sound. SILT plays it back as grains.** Both keep running when you switch modes.
+**SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.** One press does everything: nothing is held.
 
 [Play in the browser](../emu/) · [Install firmware](../install/)
 
 ## Quick start
 
-1. **FX:** raise MASTER, latch two or three notes, and turn KNOB1/2 to blend the synthesis engines.
-2. Wait two seconds. **EDIT:** switch to SILT. Tap **REC** once to freeze the memory.
-3. Tap **PLAY** for continuous grains, or tap keys to play them yourself.
-4. Explore POSITION, SIZE and DENSITY. Return to FX at any time.
+1. The FM-1 starts on **SILT** with no rings. Press **FX** for MORPH, raise MASTER and latch two or three notes.
+2. Press **REC** once. RING 01 fills on the screen and finishes by itself; you are back on SILT with it selected.
+3. Press **PLAY** for grains, or tap keys to play them yourself. Turn POSITION, SIZE and DENSITY.
+4. Press **REC** again. What SILT is playing becomes RING 02; RING 01 stays as it was.
+5. Turn **SELECT** to go between the rings. Each one keeps its own sound and its own settings.
+
+## Buttons
+
+Every button is one press. A page stays open until you open another.
+
+| Button | Does |
+| --- | --- |
+| EDIT | Opens **SILT** |
+| HOME | Back to **SILT** from anywhere; clears nothing |
+| FX | Opens **MORPH SOURCE**; the keys become its notes |
+| SEL | Opens **RINGS**; confirms a delete armed there |
+| ENV | Opens **SILT SHAPE** |
+| LFO | Opens **SILT MOTION** |
+| GLO | Opens **MIX**; pressed again, **REC FX**; again, MIX |
+| REC | Captures the SOURCE into a **new ring** |
+| PLAY | Grains on / off |
+| OCT− / OCT+ | Shift the keys an octave; held notes and pitches stay |
+| SAVE, ARP, SEQ | Not used; the screen says so |
+
+**SELECT** chooses the ring on every page. **MASTER** is always volume.
+
+## SILT
+
+**EDIT or HOME — granular playback of the selected ring**
+
+![SILT: two rings, the selected one bright, grains riding it](img/silt.png "SILT · EDIT")
+
+Plays up to 16 grains from the selected ring. Each grain has a position, length, pitch and direction, and stays on the ring it started on.
+
+| Knob | Control | Function |
+| --- | --- | --- |
+| KNOB1 | **POSITION** | Where grains start, round the ring |
+| KNOB2 | **SIZE** | 20–500 ms |
+| KNOB3 | **DENSITY** | 1–40 starts/sec |
+| KNOB4 | **SPRAY** | Random start position |
+| SELECT | **RING** | Which ring plays and is edited |
+| ALGORITHM | **REVERSE** | Reverse probability |
+| PRESETS | **PITCH** | −24 to +24 semitones |
+
+### Grain keys
+
+Everywhere except MORPH's page the keys are grain pitches. Tap up to four to latch them; tap again to release. A new key triggers grains at once, even with PLAY off. C is the recorded pitch at the default octave. CLUSTER (SILT SHAPE) sets whether pitches play in turn or together. The top line shows them: `KEYS: 0 +7`.
+
+### The screen
+
+Rings are concentric circles, the oldest innermost, each drawn from its own recording. The selected ring is bright and dense. The tick outside it is POSITION and the dotted arc is SPRAY; moving dots are grains. The small square in the middle is MORPH. Under the rings: **SOURCE** (what REC would capture) and **REC** (READY, a percentage while capturing, or FULL).
 
 ## MORPH
 
-**FX — sound generation**
+**FX — the sound source**
 
-![MORPH: vector square and sound controls](img/morph.png "MORPH · FX")
+![MORPH: the vector square, the rings dim behind it](img/morph.png "MORPH SOURCE · FX")
 
-Four synthesis methods blend across the XY square. Up to four notes latch; tap a note again to release it.
+Four synthesis methods blend across the XY square. Up to four notes latch; tap a note again to release it. MORPH keeps sounding on every page, and SILT keeps playing here.
 
 | Knob | Control | Function |
 | --- | --- | --- |
@@ -25,7 +72,7 @@ Four synthesis methods blend across the XY square. Up to four notes latch; tap a
 | KNOB2 | **Y** | Bottom ↔ top |
 | KNOB3 | **COMPLEX** | Harmonic richness |
 | KNOB4 | **TONE** | Dark ↔ bright low-pass |
-| SELECT | **SPREAD** | Voice stereo width |
+| SELECT | **RING** | Which ring plays and is edited |
 | ALGORITHM | **MOVE** | Automatic XY orbit |
 | PRESETS | **EXCITE** | Modal ringing time |
 
@@ -38,114 +85,104 @@ Four synthesis methods blend across the XY square. Up to four notes latch; tap a
 | Bottom left · ADD | Added harmonics |
 | Bottom right · FOLD | Wavefolding |
 
-The white dot is the current mix; the waveform surrounds it. The dotted orbit shows MOVE. Four pips below show voice positions in stereo.
+The white dot is the current mix; the waveform surrounds it. The dotted orbit shows MOVE. Four pips below show the voices. SPREAD (their stereo width) is on MIX.
 
-## SILT
+## Rings and capture
 
-**EDIT — granular playback**
+**REC — one press, one new ring**
 
-![SILT: grain playback around the frozen recording ring](img/silt.png "SILT · EDIT")
+![A capture: RING 01 filling as the next circle](img/capture.png "REC")
 
-Plays up to 16 grains from a 1.49-second circular recording of MORPH. Each grain has a position, duration, pitch and direction.
+A ring is 1.49 seconds of sound. There is room for three. A capture never writes into a ring that exists.
+
+| SOURCE | When | What is recorded |
+| --- | --- | --- |
+| **MORPH** | On MORPH's page, and whenever there are no rings | MORPH alone |
+| **SILT 02** | Everywhere else, once a ring exists | SILT's grains of the selected ring alone |
+
+- The capture runs for one ring's length and **ends by itself**. Pressing REC meanwhile does nothing.
+- The new ring appears only when it is complete, evened in level, and is then selected. Its number never changes.
+- A ring made from SILT starts with PITCH, REVERSE, SCATTER and DETUNE at rest, so they are not applied twice.
+- **Nothing to record** (no notes, or no grains): no ring is made and the screen says why.
+- **RINGS FULL**: REC opens RINGS. Nothing is deleted for you.
+- Go back to an older ring, change it and press REC: that is a new branch. The rings made before are untouched.
+
+### RINGS
+
+**SEL — the rings and where they came from**
+
+![RINGS: three rings, the second selected](img/rings.png "RINGS · SEL")
 
 | Knob | Control | Function |
 | --- | --- | --- |
-| KNOB1 | **POSITION** | Newest ↔ oldest audio |
-| KNOB2 | **SIZE** | 20–500 ms |
-| KNOB3 | **DENSITY** | 1–40 starts/sec |
-| KNOB4 | **SPRAY** | Random start position |
-| SELECT | **PITCH** | −24 to +24 semitones |
-| ALGORITHM | **REVERSE** | Reverse probability |
-| PRESETS | **SHAPE** | Struck → bell → swell |
+| SELECT | **RING** | Choose a ring |
+| KNOB1 | **CARRY** | How much of the selected ring is copied under the next capture |
+| KNOB4 | **DELETE** | One step right: arm deleting the selected ring. Two: arm clearing everything |
 
-### Grain keys
+A delete happens only when **SEL** is pressed while it is armed. Any other button calls it off.
 
-Tap up to four pitches to latch them; tap again to release. A new key triggers grains immediately, even with PLAY off. C is the original pitch at the default octave. With no keys latched, grains use the PITCH offset alone. CLUSTER controls whether pitches play in turn or together.
+## SILT SHAPE and MOTION
 
-The ring is recorded audio; the outer mark is POSITION and its dotted arc is SPRAY. Moving dots are grains: outside = forward, inside = reverse. Numbers below the square show latched pitch offsets.
+**ENV — how grains differ**
 
-## SILT — extended controls
-
-**Hold EDIT** to adjust variation between grains.
-
-![SILT extended controls](img/more.png "Hold EDIT")
+![SILT SHAPE](img/shape.png "SILT SHAPE · ENV")
 
 | Knob | Control | Function |
 | --- | --- | --- |
-| KNOB1 | **TIMING** | Regular → irregular starts |
+| KNOB1 | **SHAPE** | Struck → bell → swell |
 | KNOB2 | **VARY** | Random length, up to ¼–4× SIZE |
 | KNOB3 | **SCATTER** | Random octave and interval jumps |
 | KNOB4 | **DETUNE** | Up to ±50 cents per grain |
-| SELECT | **STEREO** | Random stereo placement |
 | ALGORITHM | **CLUSTER** | 1–4 simultaneous grains |
-| PRESETS | **SCAN** | Automatic POSITION movement |
 
-SHAPE at 0 is a fast attack, 50 a bell envelope, 100 a slow swell. CLUSTER at 0 cycles pitches one by one; higher values layer them.
-
-## Recording
-
-**Tap REC** to cycle the recording mode. The ring's write head indicates its state.
-
-| Mode | Write head | Behavior |
-| --- | --- | --- |
-| LIVE | Moving tick | Replace oldest audio with MORPH |
-| FREEZE | Two stationary marks | Keep the captured sound |
-| OVERDUB | Two moving ticks | Layer new sound over memory |
-| RESAMPLE | Tick + block | Record processed grains back in |
-
-**Hold REC** to shape what gets recorded. Release after turning a knob to keep the current mode.
-
-![Recording controls](img/rec.png "Hold REC")
+**LFO — movement**
 
 | Knob | Control | Function |
 | --- | --- | --- |
-| KNOB1 | **NOISE** | Add hiss (even without notes) |
-| KNOB2 | **COLOR** | Low rumble → bright hiss |
-| KNOB3 | **CRUSH** | Reduce amplitude resolution |
-| KNOB4 | **GATE** | Preserve memory below threshold |
-| SELECT | **DROP** | Random recording gaps |
-| ALGORITHM | **DAMP** | Darken recorded audio |
-| PRESETS | **FEEDBACK** | Retention in overdub / resample |
+| KNOB1 | **SCAN** | Automatic POSITION movement |
+| KNOB2 | **TIMING** | Regular → irregular starts |
 
-These effects are written into the audio memory and can accumulate on each pass. FREEZE prevents changes to memory. A dim head means recording is gated or dropped; specks indicate noise. For clean capture, set NOISE, CRUSH and DROP to zero.
+Every SILT setting on SILT, SHAPE and MOTION, and STEREO on MIX, belongs to the selected ring.
 
-## Shared controls
+## MIX and REC FX
 
-**Hold SEL** for the three shared knobs.
+**GLO — MIX; GLO again — REC FX.** The top line names both and lights the open one.
 
-| Knob | Control | Function |
+| Knob | MIX | Function |
 | --- | --- | --- |
 | KNOB1 | **MIX** | MORPH ↔ SILT balance |
 | KNOB2 | **FADE** | MORPH note attack/release |
+| KNOB3 | **SPREAD** | MORPH voice stereo width |
+| KNOB4 | **STEREO** | Grain stereo placement |
 | PRESETS | **LEVEL** | Overall output level |
 
-| Button | Action |
-| --- | --- |
-| MASTER | Output volume, always active |
-| FX | MORPH knobs and note keys |
-| EDIT | SILT knobs and pitch keys; hold for more |
-| REC | Cycle recording; hold for recording controls |
-| PLAY | Continuous grains on/off |
-| OCT− / OCT+ | Shift keyboard octave; held pitches stay |
-| HOME | Hold 1 s: release notes and stop grains; tap: version |
-| SAVE | Not implemented |
+![REC FX](img/recfx.png "REC FX · GLO twice")
 
-The screen mirrors the physical knob layout. Its corner labels show the current mode; turning a knob shows its value (0–100). Held layers change the knobs, not the audio routing.
+REC FX shapes what the **next capture** records. Rings that exist are never changed.
+
+| Knob | REC FX | Function |
+| --- | --- | --- |
+| KNOB1 | **NOISE** | Add hiss (captures noise alone with no notes) |
+| KNOB2 | **COLOR** | Low rumble → bright hiss |
+| KNOB3 | **CRUSH** | Reduce amplitude resolution |
+| KNOB4 | **GATE** | Silence below a threshold |
+| ALGORITHM | **DROP** | Random gaps |
+| PRESETS | **DAMP** | Darken the capture |
 
 ## Patch ideas
 
-Capture one or two notes and FREEZE before trying these. Values are displayed knob percentages unless stated otherwise.
+Capture one or two MORPH notes as RING 01 first. Values are displayed knob percentages.
 
 | Patch | Settings |
 | --- | --- |
-| Chord cloud | C/G/C; CLUSTER 100, SHAPE 50, SIZE 70, DENSITY 40 |
-| Plucked arp | 3–4 pitches; CLUSTER 0, TIMING 0, SHAPE 0, SIZE 30, DENSITY 60 |
+| Chord cloud | Keys C/G/C; CLUSTER 100, SHAPE 50, SIZE 70, DENSITY 40 |
+| Plucked arp | 3–4 keys; CLUSTER 0, TIMING 0, SHAPE 0, SIZE 30, DENSITY 60 |
 | Shimmer | SCATTER 40, DETUNE 60, REVERSE 50, SIZE 70, STEREO 100 |
 | Rain | TIMING 100, VARY 80, SIZE 20, SPRAY 100, DENSITY 80 |
-| Hand-played | PLAY off; SHAPE 0, SIZE 60, CLUSTER 50; tap keys |
-
-For a new texture, switch REC to RESAMPLE and let the grains rewrite their own source.
+| Generations | Play a patch above, REC, change PITCH, REC again: three rings, each a step further |
+| Worn copy | REC FX: NOISE 30, CRUSH 40, DROP 30; REC from SILT; repeat for more wear |
+| Layered | RINGS: CARRY 60; FX, play new notes, REC: the new ring is the old one with MORPH on top |
 
 ## Notes
 
-Experimental firmware. Simulator-tested, not yet validated on physical FM-1 hardware. Try the browser before installing. No MIDI input or saved patches; audio memory is volatile. New grains are skipped when all 16 slots are occupied. The installer can restore stock firmware or switch instruments without overwriting STRATA's saved sound.
+Experimental firmware. Simulator-tested, not yet validated on physical FM-1 hardware. Try the browser before installing. Three rings of 1.49 s; they and all settings live in memory only and are lost at power-off (SAVE is not available). No MIDI input. New grains are skipped when all 16 are in use. The installer can restore stock firmware or switch instruments without overwriting STRATA's saved sound.
