@@ -31,12 +31,12 @@ The screen is a picture of what the instrument is doing, with the buttons and kn
 - **The dotted circle** in the square is the path MOVE carries the spot on. The **four pips** under the square
   are the voices, as far apart as SPREAD has them.
 - **The four corners of the screen** name the buttons and show how they stand. Top: **FX: MORPH** and
-  **EDIT: SILT**, with the one whose knobs are in use lit (holding SEL shows SEL: SHARED). Bottom left: **REC:** and
+  **EDIT: SILT**, with the one whose knobs are in use lit (holding SEL shows SEL: SHARED, holding REC shows REC: RECORDING). Bottom left: **REC:** and
   how the memory is being written. Bottom right: **PLAY: GRAINS**, lit while the grains run.
 - **The eight boxes at the foot** name what each knob sets right now, with a bar for its value. They sit as the
   knobs do on the FM-1: MASTER and SELECT over PRESETS and ALGORITHM on the left, KNOB1 and KNOB2 over KNOB3 and
   KNOB4 on the right. Turn a knob and its box turns white and shows the number.
-- **A hint** appears across the middle until you've done the thing once: tap keys, then PLAY, then REC.
+- **A hint** appears across the middle until you've done the thing once: tap keys, then PLAY, then REC, then hold REC.
 
 Whichever half the knobs are on is drawn bright; the other is dim but still moving.
 
@@ -48,6 +48,9 @@ How the write head looks:
 | FREEZE | Two short marks, still | Nothing is written; the memory is safe |
 | OVERDUB | Two ticks, moving | New sound is mixed onto what's there |
 | RESAMPLE | A tick with a block, moving | The grains themselves are recorded back in |
+
+The head's tick turns **dim** whenever GATE or DROP has lifted it off the memory, and **specks trail it** while
+NOISE is going in.
 
 ![SILT: the memory frozen, grains riding the ring](img/silt.png)
 
@@ -78,8 +81,29 @@ Keys latch notes and unlatch them one by one. OCT− and OCT+ move the keys; not
 | PRESETS | FEEDBACK | How much of the old sound survives in OVERDUB and RESAMPLE |
 
 - **PLAY** starts and stops the stream of grains. PLAY is lit while it runs.
-- **REC** steps through LIVE, FREEZE, OVERDUB, RESAMPLE.
+- **REC, tapped,** steps through LIVE, FREEZE, OVERDUB, RESAMPLE. Held, it turns the knobs into the recording's own
+  (below).
 - **In SILT, a key** jumps POSITION to that point of the memory and fires a burst of grains.
+
+## Recording — hold REC
+
+Hold REC and the knobs set what goes into the memory. Letting go after a turn doesn't change the REC mode.
+
+| Knob | Control | What it does |
+| --- | --- | --- |
+| KNOB1 | NOISE | Hiss recorded along with the sound. With no notes held it records noise alone |
+| KNOB2 | COLOR | The hiss's tone: a low rumble, through even, to a bright fizz |
+| KNOB3 | CRUSH | Fewer and fewer levels: grit, then a few hard steps |
+| KNOB4 | GATE | Only records while the sound is louder than this, so quiet hiss and tails stay out |
+| SELECT | DROP | The head lifts off at random, leaving holes where the old sound shows through |
+| ALGORITHM | DAMP | Dulls what is recorded |
+| PRESETS | FEEDBACK | How much of the old sound survives in OVERDUB and RESAMPLE |
+
+- All of this is printed into the memory as it is written. FREEZE writes nothing, so it changes nothing there.
+- In OVERDUB and RESAMPLE the noise and crush pile up with every pass. FEEDBACK sets how fast.
+- For a clean loop: NOISE, CRUSH and DROP at zero, GATE a little up.
+
+![Holding REC: the recording's knobs](img/rec.png)
 
 ## Shared — hold SEL
 

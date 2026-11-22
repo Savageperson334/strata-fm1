@@ -29,6 +29,20 @@ wait 700
 wavstop
 expect peak_db_min -45
 shot silt.png
+# REC held: the recording's knobs (KNOB1 is NOISE); letting go after a turn does not step the mode
+press REC
+wait 100
+turn K1 8
+wait 200
+shot rec.png
+release REC
+wait 100
+expect recording 1
+expect noise 13
+# a tap still steps it
+tap REC
+wait 100
+expect recording 2
 # HOME: a tap clears nothing; held a second, every voice and the grains off
 tap HOME
 wait 100

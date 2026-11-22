@@ -53,6 +53,8 @@ This is the one that matters most: it loads the chip as hard as STRATA can.
 - [ ] Tap three keys, wait two seconds, tap EDIT, tap REC, tap PLAY. **Note:** do you hear grains, and does the ring
       on the screen move smoothly or in jerks?
 - [ ] Hold SEL and turn KNOB1 (MIX) up, then tap FX and EDIT a few times. **Note:** any clicks when switching?
+- [ ] Tap REC until the corner says LIVE, then hold REC and turn KNOB1 (NOISE) up. **Note:** do the grains turn to
+      hiss, and did letting go of REC leave the mode on LIVE?
 - [ ] Install STRATA again and press PLAY. **Note:** did STRATA's saved sound survive?
 
 ## What to send back

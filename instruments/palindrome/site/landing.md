@@ -11,6 +11,7 @@ blend with two knobs; SILT records that sound into a loop and plays it back in g
 2. Wait two seconds for the ring to fill, then tap EDIT. The knobs are now SILT's.
 3. Tap REC to freeze the loop and PLAY to start the grains.
 4. Turn KNOB1 to choose where the grains start, KNOB2 for their length, KNOB3 for how many.
+5. Hold REC and turn KNOB1 to record hiss into the loop, KNOB3 to crush it, KNOB4 to gate quiet sound out.
 
 ## Get it
 

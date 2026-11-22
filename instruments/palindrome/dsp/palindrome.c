@@ -24,10 +24,14 @@ static volatile float target[PM_PARAMS];
 static float p[PM_PARAMS];
 static float mx,my;
 static volatile float position_now;
+static float gate_env,noise_lp;          /* the gate's ear on the sound; the hiss's low part */
+static volatile float write_amt;         /* the head on the memory: 1 writing, 0 lifted (eased over ~2 ms) */
+static int dropping;
 static const float defaults[PM_PARAMS]={
  .35f,.65f,.35f,.5f,.4f,0,.55f,
  .20f,.35f,.35f,.20f,.5f,0,.25f,
- .65f,.20f,0,.4f,.65f,.35f,.75f};
+ .65f,.20f,0,.4f,.65f,.35f,.75f,
+ 0,.5f,0,0,0};                           /* a clean recording: no hiss, no crush, no gate, no dropouts */
 static float fclamp(float x,float a,float b){return x<a?a:x>b?b:x;}
 static float wrap(float x){return x-fm_floorf(x);}
 static float rnd(void){rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return (float)(rng>>8)*(1.0f/16777216.0f);}
@@ -55,6 +59,7 @@ void pm_init(void){
     rng=0x9f26ad31u;half_sample=clock_phase=scan_phase=launch=0;
     capture=PM_LIVE;pm_panic();
     for(int i=0;i<PM_PARAMS;i++)p[i]=target[i]=defaults[i];
+    gate_env=noise_lp=0;write_amt=1;dropping=0;
     mx=p[M_X];my=p[M_Y];
 }
 float pm_fill(void){return (float)filled/PM_BUFFER;}
@@ -81,6 +86,7 @@ void pm_memory(float *lo,float *hi,uint32_t n){
     }
 }
 float pm_head(void){return (float)wr*(1.0f/PM_BUFFER);}
+float pm_writing(void){return capture==PM_FREEZE?0.f:write_amt;}
 float pm_position(void){return position_now;}
 /* The memory where it lies (not by age): a picture that stays put while the head writes over it. */
 void pm_ring(float *lo,float *hi,uint32_t n){
@@ -148,6 +154,11 @@ void pm_render(float *left,float *right,uint32_t n){
     float rate=1.f+39.f*p[S_DENSITY]*p[S_DENSITY];
     float modal_decay=1.f-1.f/(2205.f+132300.f*p[M_EXCITE]*p[M_EXCITE]);
     int mode=capture,on=grains_on;
+    /* the recording's noise: put in (NOISE, COLOR, CRUSH), kept out (GATE), and the head's skips (DROP) */
+    float hiss=p[R_NOISE]*p[R_NOISE]*.5f,color=p[R_COLOR];
+    float gate_at=p[R_GATE]*p[R_GATE]*.25f;
+    float steps=p[R_CRUSH]>.01f?fm_exp2f(14.f-12.f*p[R_CRUSH]):0.f;     /* 16384 .. 4 steps a side; 0: untouched */
+    float drop_p=p[R_DROP]*p[R_DROP]*.5f;
     uint32_t br=burst_request;
     if(br!=burst_seen){burst_seen=br;for(int j=0;j<3;j++)spawn(position,.75f);}
     int sounding=0;
@@ -225,10 +236,21 @@ void pm_render(float *left,float *right,uint32_t n){
         else{
             half=0;
             if(mode!=PM_FREEZE){
-                float in=(half_sample+capture_lp)*.5f;
+                float in=(half_sample+capture_lp)*.5f,old=(float)memory[wr]*(1.f/32768.f);
+                float loud=in<0?-in:in,n=rnd()*2.f-1.f,want;
+                /* GATE listens to the sound itself (not the hiss): quick to open, about 75 ms to close */
+                gate_env+=(loud-gate_env)*(loud>gate_env?.2f:.0006f);
+                if((wr&255u)==0)dropping=rnd()<drop_p;          /* DROP: every 12 ms the head may skip the next 12 */
+                want=(gate_at<=0||gate_env>gate_at)&&!dropping?1.f:0.f;
+                write_amt+=(want-write_amt)*.02f;
+                noise_lp+=(n-noise_lp)*.04f;                     /* NOISE: a rumble (COLOR 0) .. a hiss (COLOR 100) */
+                in+=hiss*((1.f-color)*noise_lp*5.f+color*(n-noise_lp));
                 if(mode==PM_OVERDUB)
-                    in=.25f*in+(float)memory[wr]*(1.f/32768.f)*(.55f+.40f*p[S_FEEDBACK]);
-                memory[wr]=(int16_t)(fclamp(in,-.999f,.999f)*32767.f);
+                    in=.25f*in+old*(.55f+.40f*p[S_FEEDBACK]);
+                if(steps>0)in=fm_floorf(in*steps+.5f)/steps;      /* CRUSH */
+                in=fclamp(in,-.999f,.999f);
+                /* where the head is lifted, what was there stays */
+                memory[wr]=(int16_t)((old+(in-old)*write_amt)*32767.f);
                 wr=(wr+1u)&MASK;if(filled<PM_BUFFER)filled++;
             }
         }
