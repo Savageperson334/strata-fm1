@@ -44,21 +44,18 @@ body:has(.devicebox) > header h1 { color: var(--accent); }
 
 </style>
 </head><body style="background:#111b1b;color:#e6f1df;font:16px/1.5 system-ui;max-width:760px;margin:1rem auto;padding:1rem">
-<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav>
-<main><h1>BabbleBeat — grammar-driven robotic speech</h1>
+<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav><main><h1>BabbleBeat — grammar-driven robotic speech</h1>
 <p>A third independent FM-1 firmware, alongside STRATA and PALINDROME. A sentence
 is assembled by grammar rules first, then optionally rewritten or damaged.
 The voice is a simple formant robot, not general text-to-speech.</p>
 <h2>Quick start</h2>
 <ol>
-<li>Press <strong>SEQ</strong> to make and speak a sentence. The sentence appears on screen.</li>
-<li>Press <strong>ARP</strong> to mutate it, then hear the changed sentence.</li>
-<li>Press <strong>REC</strong> to remember a noun; future sentences may return to it.</li>
-<li>Press <strong>PLAY</strong> to start or stop continuous, autonomous babbling.</li>
-<li>Press <strong>EDIT</strong> for WORDS knobs, <strong>FX</strong> for VOICE knobs. Both select pages
-   with a single press; there are no held-button layers.</li>
-<li>Press a key to speak the next word at that key's pitch. OCT changes
-   the keyboard register.</li>
+<li>Press a few <strong>white keys</strong>. Each one makes its own phrase and says it; press one again to hear it again.</li>
+<li>Press <strong>black keys</strong> to mutate the phrase you played last: negate it, ask it, swap its nouns.</li>
+<li>Press <strong>REC</strong> to remember a noun; later phrases may return to it.</li>
+<li>Press <strong>PLAY</strong> to start or stop continuous, autonomous babbling; <strong>SEQ</strong> for a new phrase on the key.</li>
+<li>Press <strong>EDIT</strong> for WORDS knobs, <strong>FX</strong> for VOICE knobs. Both select pages with a single press.</li>
+<li>Lost? Hold <strong>GLO</strong>: the screen shows what every button and key does.</li>
 </ol>
 <h2>Buttons</h2>
 <table>
@@ -99,18 +96,86 @@ The voice is a simple formant robot, not general text-to-speech.</p>
 </tr>
 <tr>
 <td>OCT- / OCT+</td>
-<td>Keyboard pitch octave</td>
+<td>The whole voice down or up an octave</td>
 </tr>
 <tr>
-<td>SAVE</td>
-<td>Not supported yet; shows a message</td>
+<td>GLO (hold)</td>
+<td>The guide: what every button does, on the screen</td>
 </tr>
 <tr>
-<td>Keys</td>
-<td>Play the next word of the current phrase at the key's pitch</td>
+<td>SAVE, SEL, ENV, LFO</td>
+<td>Not used; the screen says so</td>
+</tr>
+<tr>
+<td>White keys</td>
+<td>Sixteen phrases, one a key</td>
+</tr>
+<tr>
+<td>Black keys</td>
+<td>Eleven mutators of the phrase last played</td>
 </tr>
 </tbody>
 </table>
+<h2>Keys</h2>
+<p><strong>White keys are phrases.</strong> Each of the sixteen holds its own. Press one and it says its phrase; the first press
+makes it. Lower keys speak in a lower voice. The key last played is the phrase SEQ, ARP, REC and the black keys
+work on, and its mark is the tall one in the row on the screen.</p>
+<p><strong>Black keys are mutators.</strong> Each changes the phrase last played in its own way and says the result:</p>
+<table>
+<thead>
+<tr>
+<th>Black key, left to right</th>
+<th>Mutation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>NEW NOUN</strong> — one noun replaced</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>SWAP NOUNS</strong> — two nouns change places</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>NEW ADJECTIVE</strong> — the adjective replaced (or the phrase rebuilt with one)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>REBUILD</strong> — another sentence pattern around the same first noun</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>NEGATE</strong> — "does not" / "did not"</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>TENSE</strong> — will / was / used to</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>ASK</strong> — turned into a question</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>ADD CLAUSE</strong> — ", and the … "</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>RECALL</strong> — the remembered noun put in (remembers one if none is)</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>STUTTER</strong> — a word doubled</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>DROP</strong> — a word dropped</td>
+</tr>
+</tbody>
+</table>
+<p>Every other key's phrase stays as you left it, so you can go back to it.</p>
 <h2>WORDS — EDIT</h2>
 <table>
 <thead>
