@@ -90,17 +90,47 @@ font-size:12px;letter-spacing:.07em}
 #fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
 @media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
 </style>
-<style id="fm1labels-style">
-#fm1labels{display:inline-flex;margin:0 0 .7rem;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
-font:600 12px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.07em}
-#fm1labels button{all:unset;cursor:pointer;padding:6px 14px;opacity:.72}
-#fm1labels button:hover{opacity:1}
-#fm1labels button:focus-visible{outline:2px solid currentColor;outline-offset:-4px;border-radius:999px}
-#fm1labels button[aria-pressed="true"]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
-#panel text.fnl{display:none}
-#panel.fn text.fnl{display:inline}
-#panel.fn g.hasfn>text.nml{display:none}
-#panel.fn g.nofn{opacity:.4}
+<style id="fm1tut-style">
+/* the emulator's Play / Tutorial switch, its card and the blueprint over the panel (scripts/tutorial/tutorial.js) */
+#fm1mode{display:inline-flex;margin:0 0 .7rem;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font:600 13px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.07em}
+#fm1mode button{all:unset;cursor:pointer;padding:7px 18px;opacity:.72}
+#fm1mode button:hover{opacity:1}
+#fm1mode button:focus-visible{outline:2px solid currentColor;outline-offset:-4px;border-radius:999px}
+#fm1mode button[aria-pressed="true"]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+#fm1tut-card{box-sizing:border-box;min-height:6.4rem;margin:0 0 .7rem;padding:.7rem .9rem;background:#0e3a73;color:#e6f1ff;
+border:1.5px solid #9cc4f2;border-radius:6px;font:400 15px/1.4 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+background-size:16px 16px}
+#fm1tut-card[hidden]{display:none}
+#fm1tut-card strong{font-weight:700;letter-spacing:.07em;color:#ffd166}
+#fm1tut-card span{margin-left:.7em;font-size:.82em;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+#fm1tut-card p{margin:.25rem 0 0;max-width:70ch}
+#fm1tut-card p.note{color:#9cd3ff}
+#fm1tut{pointer-events:auto;font-family:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;letter-spacing:.06em}
+#fm1tut[hidden]{display:none}
+#fm1tut .sheet{fill:#0e3a73}
+#fm1tut .grid{fill:none;stroke:#fff;stroke-opacity:.07;stroke-width:1}
+#fm1tut .edge{fill:none;stroke:#9cc4f2;stroke-width:2}
+#fm1tut .outline{fill:none;stroke:#cfe6ff;stroke-width:1.5;stroke-opacity:.85}
+#fm1tut .outline.faint{stroke-opacity:.22;stroke-width:1}
+#fm1tut .leader{fill:none;stroke:#cfe6ff;stroke-width:1.2;stroke-opacity:.7}
+#fm1tut .dot{fill:#cfe6ff}
+#fm1tut .box{fill:#0e3a73;stroke:#cfe6ff;stroke-width:1.4}
+#fm1tut text{fill:#e6f1ff;pointer-events:none}
+#fm1tut text.name{font-weight:700}
+#fm1tut text.sub{fill:#a9cdf5;font-weight:600}
+#fm1tut text.title{fill:#ffd166;font-weight:700;letter-spacing:.09em}
+#fm1tut .hit{fill:transparent;stroke:none;cursor:pointer;outline:none}
+#fm1tut .hit:focus-visible{stroke:#ffd166;stroke-width:2;stroke-dasharray:4 3}
+#fm1tut .unused .outline{stroke-dasharray:4 4;stroke-opacity:.4}
+#fm1tut .unused text{fill-opacity:.45}
+#fm1tut .unused .box{stroke-dasharray:4 4;stroke-opacity:.4}
+#fm1tut .held .face{fill:#cfe6ff;fill-opacity:.2}
+#fm1tut .held .box{fill:#17508f}
+#fm1tut .on .outline,#fm1tut .on .box,#fm1tut .on .leader{stroke:#ffd166;stroke-opacity:1;stroke-width:2}
+#fm1tut .on .dot{fill:#ffd166}
+#fm1tut .on text.name{fill:#ffd166}
 </style>
 </head>
 <body>
@@ -111,7 +141,8 @@ font:600 12px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Ar
 <main>
 <h2 class="sr">The FM-1</h2>
 <p class="turn">Turn your phone sideways for bigger controls.</p>
-<div id="fm1labels" role="group" aria-label="What is written on the buttons"><button type="button" data-fn="0" aria-pressed="true">Names</button><button type="button" data-fn="1" aria-pressed="false">What they do</button></div>
+<div id="fm1mode" role="group" aria-label="Play the panel, or read what each control does"><button type="button" data-mode="play" aria-pressed="true">Play</button><button type="button" data-mode="tutorial" aria-pressed="false">Tutorial</button></div>
+<div id="fm1tut-card" aria-live="polite" hidden></div>
 <div class="devicebox">
 <div class="device" id="device">
   <svg id="panel" viewBox="0 0 1000 640" aria-hidden="true" focusable="false"></svg>
@@ -822,47 +853,251 @@ $("reset").addEventListener("click", () => {
   }
 });
 </script>
-<script id="fm1labels-js">
-(function(){
-  var FN={"FX": null, "SEL": ["HOLD:", "MORE"], "ENV": null, "LFO": null, "EDIT": ["LANES", "HOLD: SET"], "GLO": null, "HOME": ["HOLD:", "RESET"], "SAVE": ["SAVE", "SOUND"], "ARP": ["ARP", "HOLD: SET"], "SEQ": ["BEAT", "HOLD: SET"], "PLAY": ["FADE OUT", "/ BACK"], "REC": ["MUTATE"], "OCT-": ["KEYS DOWN"], "OCT+": ["KEYS UP"]},panel=document.getElementById("panel"),pill=document.getElementById("fm1labels"),tries=0;
-  if(!panel||!pill)return;
-  function build(){
-    var faces=panel.querySelectorAll("rect.btnface");
-    if(!faces.length){if(++tries<200)setTimeout(build,50);return;}
-    faces.forEach(function(face){
-      var g=face.parentNode,texts=g.querySelectorAll("text"),name=texts.length?texts[0].textContent:"";
-      if(!(name in FN))return;
-      var lines=FN[name],x=+face.getAttribute("x"),y=+face.getAttribute("y"),w=+face.getAttribute("width"),h=+face.getAttribute("height");
-      if(!lines){g.classList.add("nofn");return;}
-      g.classList.add("hasfn");
-      texts.forEach(function(t){t.classList.add("nml");});
-      lines.forEach(function(s,i){
-        var t=texts[0].cloneNode(false);
-        t.classList.remove("nml");t.classList.add("fnl");
-        t.setAttribute("font-size",lines.length>1?10.5:12);
-        t.setAttribute("letter-spacing",".02em");
-        t.setAttribute("x",x+w/2);
-        t.setAttribute("y",lines.length>1?y+h/2-1+i*12:y+h/2+4);
-        t.textContent=s;
-        t.dataset.max=w-5;
-        g.appendChild(t);
-      });
+<script id="fm1tut-js">
+// SPDX-License-Identifier: MPL-2.0
+// The emulator's Play / Tutorial switch (scripts/site_nav.py puts this, tutorial.css and one firmware's
+// tutorial JSON into the emulator's page).
+//
+//   Play      the panel as it is: buttons, knobs and keys play the instrument.
+//   Tutorial  a blueprint drawn over the panel: every control outlined, a line from each one to a box that says
+//             what it does in this firmware. Tapping a control here does not play it: it shows what it does in the
+//             card over the panel. A button that changes what the knobs or keys do (a mode, or a layer held)
+//             changes the boxes too: tap it once for "held", again to let go.
+//
+// The drawing takes its geometry from the panel fm1-base drew (svg#panel, viewBox 0 0 1000 640), so the two agree.
+(function () {
+  "use strict";
+  var T = {"start": "main", "intro": "Tutorial: tap any button, knob or key to read what it does. SEL, ARP, SEQ and EDIT change what the knobs do while held, so tapping them changes the labels here too. Switch back to Play to use the panel.", "master": ["VOLUME", "Output volume. MASTER is always the volume, whatever the other knobs are doing."], "screen": "The screen shows the wave, the six voices and the notes they hold. Its eight boxes at the foot sit as the knobs do on the panel and name what each one sets right now.", "pages": {"main": {"title": "MAIN", "how": "no button held", "keys": ["NOTES", "Tap a key to latch a note; tap it again to release it. Six voices: a seventh note replaces the oldest."], "knobs": {"KNOB1": ["TONE", "Brightness of the FM: pure sine to glassy and buzzy."], "KNOB2": ["RATIO", "The FM ratio, 0.5 to 7. Whole numbers sound harmonic; in between turns to bells and clangs."], "KNOB3": ["MOTION", "Speed of the slow LFO that makes the sound breathe, 0.01 to 3 Hz."], "KNOB4": ["SPACE", "How much reverb."], "SELECT": ["FILTER", "Low-pass cutoff: dark and muffled to fully open."], "ALGORITHM": ["DRIFT", "Detunes each voice, lets pitch and level wander, widens the stereo."], "PRESETS": ["GRIT", "Feedback in the FM: smooth at 0, rough and noisy near the top."]}}, "sel": {"title": "MORE", "how": "SEL held", "knobs": {"KNOB1": ["DEPTH", "How far MOTION moves the tone and the filter."], "KNOB2": ["SHIMMER", "A slow beating shimmer between the voice's two halves, 0 to 3 Hz."], "KNOB3": ["FADE", "How long voices take to fade in and out, 0.1 to 20 s."], "KNOB4": ["DECAY", "How long the reverb rings, 1.5 to 60 s."], "SELECT": ["RESO", "Filter resonance: a singing peak at the cutoff."], "ALGORITHM": ["AIR", "Breathy noise, tuned to each voice's pitch."], "PRESETS": ["SUB", "A sine one octave below each voice."]}}, "arp": {"title": "ARP", "how": "ARP held", "knobs": {"KNOB1": ["RATE", "How fast the arpeggiator steps, 0.1 to 8 steps a second."], "KNOB2": ["SHAPE", "Sharp steps at 0, slow swells that blend into each other near 100."], "KNOB3": ["ORDER", "UP, DOWN, UP-DN (up and back) or RND (random)."], "KNOB4": ["FLOOR", "How loud the voices off the step stay: silent at 0, nearly full at 100."]}}, "seq": {"title": "BEAT", "how": "SEQ held", "knobs": {"KNOB1": ["TEMPO", "60 to 160 beats a minute. The lanes share it."], "KNOB2": ["GROOVE", "The drum pattern: PULSE, DUB, BREAK, HALF, TOMS, TICK, HEART or DRIVE."], "KNOB3": ["SWING", "Straight at 50 %, heavy shuffle at 75 %."], "KNOB4": ["LEVEL", "How loud the drums are."], "SELECT": ["KIT", "Dark and low with long tails at 0, bright and snappy at 100."], "ALGORITHM": ["ROOM", "How much of the drums goes into the reverb."], "PRESETS": ["DUCK", "How far the drone dips on each kick: none at 0, deep pumping at 100."]}}, "edit": {"title": "LANES", "how": "EDIT held", "knobs": {"SELECT": ["LANE", "Which of the four lanes the other knobs set."], "KNOB1": ["STEPS", "How long the lane is, 1 to 32 steps."], "KNOB2": ["PULSES", "How many hits are spread evenly over the lane."], "KNOB3": ["ROTATE", "Moves the whole pattern later, a step at a time."], "KNOB4": ["CHANCE", "How likely each hit is to play."], "ALGORITHM": ["EVERY", "How long one step is: 1/1, 1/2, 1/4, 1/8 or 1/16."], "PRESETS": ["PLAYS", "What the lane plays: OFF, KICK, SNARE, HAT, OPEN, PERC or ARP."]}}}, "buttons": {"SEL": {"label": "MORE", "sub": "hold", "hold": "sel", "text": "Held down, the seven knobs become seven more: DEPTH, SHIMMER, FADE, DECAY, RESO, AIR and SUB."}, "ARP": {"label": "ARP", "sub": "hold: set", "hold": "arp", "text": "A tap switches the arpeggiator on or off. Held down, KNOB1 to KNOB4 set its RATE, SHAPE, ORDER and FLOOR."}, "SEQ": {"label": "BEAT", "sub": "hold: set", "hold": "seq", "text": "A tap starts or stops the drum beat under the drone. Held down, the knobs set its tempo, groove, swing, level, kit, room and ducking."}, "EDIT": {"label": "LANES", "sub": "hold: set", "hold": "edit", "text": "A tap switches the four Euclidean lanes on or off. Held down, SELECT picks a lane and the other knobs set it."}, "PLAY": {"label": "FADE", "sub": "out / back", "text": "Fades every voice out and remembers the chord. Press it again to bring the same notes back."}, "REC": {"label": "MUTATE", "sub": "tap", "text": "Nudges the seven main controls a little in random directions. Press it a few times to wander somewhere new."}, "HOME": {"label": "RESET", "sub": "hold 1 s", "text": "Held for a second: resets the sound to how it started. A tap only shows the version."}, "SAVE": {"label": "SAVE", "sub": "tap", "text": "Keeps the sound, the octave and the chord that's playing, through power-off. Lit while there is something new to save."}, "OCT-": {"label": "KEYS DOWN", "text": "Shifts the keys down an octave. Voices already playing keep their pitch."}, "OCT+": {"label": "KEYS UP", "text": "Shifts the keys up an octave. Voices already playing keep their pitch."}}};
+  var NS = "http://www.w3.org/2000/svg";
+  var device = document.getElementById("device"), panel = document.getElementById("panel");
+  var pill = document.getElementById("fm1mode"), card = document.getElementById("fm1tut-card");
+  if (!device || !panel || !pill || !card) return;
+  var svg = null, tries = 0, base = T.start, hold = null, picked = null;
+  var knobs = {}, buttons = {}, parts = {};          // by name: geometry and the overlay's elements
+  var KNOB_ORDER = ["MASTER", "SELECT", "PRESETS", "ALGORITHM", "KNOB1", "KNOB2", "KNOB3", "KNOB4"];
+
+  function el(tag, attrs, parent, text) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  function label(parent, x, y, s, size, cls) {
+    return el("text", { x: x, y: y, "text-anchor": "middle", "font-size": size, class: cls || "" }, parent, s);
+  }
+  function fit(t, max) {                             // a line wider than its box: squeezed to it
+    try {
+      t.removeAttribute("textLength");
+      if (t.getComputedTextLength() > max) { t.setAttribute("textLength", max); t.setAttribute("lengthAdjust", "spacingAndGlyphs"); }
+    } catch (e) { /* (not drawn yet) */ }
+  }
+  function page() { return T.pages[hold || base]; }
+  function keysNow() { return page().keys || T.pages[base].keys; }
+
+  // --- the panel's geometry -----------------------------------------------------------------------------------
+  function measure() {
+    var faces = panel.querySelectorAll("rect.btnface");
+    if (!faces.length) return false;
+    faces.forEach(function (f) {
+      var t = f.parentNode.querySelector("text");
+      if (!t) return;
+      buttons[t.textContent] = { x: +f.getAttribute("x"), y: +f.getAttribute("y"), w: +f.getAttribute("width"), h: +f.getAttribute("height") };
     });
-    set(saved());
+    panel.querySelectorAll("g.knob").forEach(function (g) {
+      var c = g.querySelector("circle.knobface"), t = g.querySelector("text");
+      if (c && t) knobs[t.textContent] = { x: +c.getAttribute("cx"), y: +c.getAttribute("cy"), r: +c.getAttribute("r") };
+    });
+    return true;
   }
-  function fit(){                               /* a line wider than its button: squeezed to it */
-    panel.querySelectorAll("text.fnl").forEach(function(t){
-      try{if(t.getComputedTextLength()>+t.dataset.max){t.setAttribute("textLength",t.dataset.max);t.setAttribute("lengthAdjust","spacingAndGlyphs");}}catch(e){}
+
+  // --- the blueprint ------------------------------------------------------------------------------------------
+  function hit(shape, kind, name, say) {             // a control, or its box: tap it (or Enter) to read about it
+    shape.setAttribute("class", "hit");
+    shape.setAttribute("tabindex", "0");
+    shape.setAttribute("role", "button");
+    shape.setAttribute("aria-label", say);
+    shape.addEventListener("click", function () { choose(kind, name); });
+    shape.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(kind, name); }
     });
   }
-  function saved(){try{return localStorage.getItem("fm1labels")==="1";}catch(e){return false;}}
-  function set(on){
-    panel.classList.toggle("fn",on);
-    pill.querySelectorAll("button").forEach(function(b){b.setAttribute("aria-pressed",String((b.dataset.fn==="1")===on));});
-    if(on)fit();
-    try{localStorage.setItem("fm1labels",on?"1":"0");}catch(e){}
+  function build() {
+    if (!measure()) { if (++tries < 200) setTimeout(build, 50); return; }
+    svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("id", "fm1tut");
+    svg.setAttribute("viewBox", "0 0 1000 640");
+    svg.setAttribute("hidden", "");
+    device.appendChild(svg);
+    var defs = el("defs", {});
+    var grid = el("pattern", { id: "fm1tut-grid", width: 20, height: 20, patternUnits: "userSpaceOnUse" }, defs);
+    el("path", { d: "M20 0H0V20", class: "grid" }, grid);
+    var mask = el("mask", { id: "fm1tut-mask" }, defs);          // (the screen stays the live one: a hole for it)
+    el("rect", { x: 4, y: 4, width: 992, height: 632, rx: 44, fill: "#fff" }, mask);
+    el("rect", { x: 316, y: 60, width: 204, height: 204, rx: 4, fill: "#000" }, mask);
+    el("rect", { x: 0, y: 0, width: 1000, height: 640, class: "sheet", mask: "url(#fm1tut-mask)" });
+    el("rect", { x: 0, y: 0, width: 1000, height: 640, fill: "url(#fm1tut-grid)", mask: "url(#fm1tut-mask)" });
+    el("rect", { x: 4, y: 4, width: 992, height: 632, rx: 44, class: "edge" });
+    el("rect", { x: 300, y: 44, width: 236, height: 236, rx: 26, class: "outline" });
+    parts.title = el("text", { x: 44, y: 38, "font-size": 16, class: "title" }, svg, "");
+
+    // the keys: faint, under everything else
+    panel.querySelectorAll("rect.keyface").forEach(function (k) {
+      el("rect", { x: k.getAttribute("x"), y: k.getAttribute("y"), width: k.getAttribute("width"), height: k.getAttribute("height"),
+                   rx: k.getAttribute("rx"), class: "outline faint" });
+    });
+    var kg = el("g", { class: "part", "data-part": "keys:keys" });
+    el("path", { d: "M380 546H300", class: "leader" }, kg);
+    el("circle", { cx: 300, cy: 546, r: 3.2, class: "dot" }, kg);
+    el("rect", { x: 380, y: 520, width: 240, height: 52, rx: 3, class: "box" }, kg);
+    label(kg, 500, 541, "KEYS", 13, "sub");
+    parts.keys = label(kg, 500, 562, "", 18, "name");
+    hit(el("rect", { x: 36, y: 340, width: 928, height: 270, rx: 18 }, kg), "keys", "keys", "The keys");
+
+    // the knobs: each one's name over it, what it sets now in a box under it
+    KNOB_ORDER.forEach(function (name) {
+      var k = knobs[name];
+      if (!k) return;
+      var g = el("g", { class: "part", "data-part": "knob:" + name }), top = k.y + k.r + 7;
+      el("circle", { cx: k.x, cy: k.y, r: k.r, class: "outline" }, g);
+      el("path", { d: "M" + k.x + " " + (k.y - k.r + 4) + "V" + (k.y - k.r + 14), class: "outline" }, g);
+      label(g, k.x, k.y - k.r - 12, name, 14, "sub");
+      el("path", { d: "M" + k.x + " " + (k.y + k.r) + "V" + top, class: "leader" }, g);
+      el("rect", { x: k.x - 50, y: top, width: 100, height: 24, rx: 3, class: "box" }, g);
+      parts["knob:" + name] = label(g, k.x, top + 17.5, "", 16, "name");
+      hit(el("rect", { x: k.x - 52, y: k.y - k.r - 28, width: 104, height: 2 * k.r + 62, rx: 6 }, g), "knob", name, name);
+    });
+
+    // the buttons: outlined with their names; those that do something get a line to a box
+    var used = [];
+    Object.keys(buttons).forEach(function (name) {
+      var b = buttons[name], d = T.buttons[name], oct = name.indexOf("OCT") === 0;
+      var g = el("g", { class: "part" + (d && !d.unused ? "" : " unused"), "data-part": "button:" + name });
+      el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 9, class: "outline face" }, g);
+      label(g, b.x + b.w / 2, b.y + b.h / 2 + 5, name, 14, "sub");
+      b.g = g;
+      if (d && !d.unused) {
+        if (oct) {                                   // straight down to its box
+          var cx = b.x + b.w / 2;
+          el("path", { d: "M" + cx + " " + (b.y + b.h) + "V336", class: "leader" }, g);
+          el("circle", { cx: cx, cy: b.y + b.h, r: 3.2, class: "dot" }, g);
+          el("rect", { x: cx - 47, y: 336, width: 94, height: 30, rx: 3, class: "box" }, g);
+          fitLater(label(g, cx, 357, d.label, 15, "name"), 86);
+          hit(el("rect", { x: cx - 47, y: 336, width: 94, height: 30 }, g), "button", name, name + ": " + d.label);
+        } else {
+          // (the top row's lines come down the gap to the right of the button, the bottom row's from under it)
+          b.sx = b.y < 230 ? b.x + b.w + 4.5 : b.x + b.w / 2;
+          b.top = b.y < 230;
+          used.push(name);
+        }
+      }
+      hit(el("rect", { x: b.x - 3, y: b.y - 3, width: b.w + 6, height: b.h + 6, rx: 9 }, g), "button", name, name);
+    });
+    used.sort(function (a, c) { return buttons[a].sx - buttons[c].sx; });   // (in order: no two lines cross)
+    var n = used.length, pitch = Math.min(144, 860 / Math.max(n, 1)), w = pitch - 8, x0 = 990 - n * pitch;
+    used.forEach(function (name, i) {
+      var b = buttons[name], d = T.buttons[name], g = b.g, bx = x0 + i * pitch + pitch / 2, by = 404;
+      var path = b.top ? "M" + (b.x + b.w) + " " + (b.y + b.h / 2) + "H" + b.sx + "V296L" + bx + " " + by
+                       : "M" + b.sx + " " + (b.y + b.h) + "V296L" + bx + " " + by;
+      el("path", { d: path, class: "leader" }, g);
+      el("circle", { cx: b.top ? b.x + b.w : b.sx, cy: b.top ? b.y + b.h / 2 : b.y + b.h, r: 3.2, class: "dot" }, g);
+      el("rect", { x: bx - w / 2, y: by, width: w, height: 50, rx: 3, class: "box" }, g);
+      fitLater(label(g, bx, by + 22, d.label, 18, "name"), w - 10);
+      if (d.sub) fitLater(label(g, bx, by + 40, d.sub, 12.5, "sub"), w - 10);
+      hit(el("rect", { x: bx - w / 2, y: by, width: w, height: 50 }, g), "button", name, name + ": " + d.label);
+    });
+    // the screen
+    var sg = el("g", { class: "part", "data-part": "screen:screen" });
+    hit(el("rect", { x: 316, y: 60, width: 204, height: 204, rx: 4 }, sg), "screen", "screen", "The screen");
+    refresh();
   }
-  pill.addEventListener("click",function(e){var b=e.target.closest("button");if(b)set(b.dataset.fn==="1");});
+  var later = [];
+  function fitLater(t, max) { later.push([t, max]); }
+
+  // --- what the knobs and keys do now, and what is picked ------------------------------------------------------
+  function refresh() {
+    var p = page();
+    parts.title.textContent = "KNOBS: " + p.title + " · " + p.how.toUpperCase();
+    KNOB_ORDER.forEach(function (name) {
+      var t = parts["knob:" + name];
+      if (!t) return;
+      var k = name === "MASTER" ? T.master : p.knobs[name];
+      t.textContent = k ? k[0] : "—";
+      t.parentNode.classList.toggle("unused", !k);
+      fit(t, 92);
+    });
+    parts.keys.textContent = keysNow()[0];
+    svg.querySelectorAll(".part").forEach(function (g) {
+      var id = g.getAttribute("data-part"), name = id.split(":")[1], d = T.buttons[name];
+      g.classList.toggle("on", id === picked);
+      g.classList.toggle("held", id.indexOf("button:") === 0 && !!d && ((hold && d.hold === hold) || (!hold && d.base === base)));
+    });
+    later.forEach(function (x) { fit(x[0], x[1]); });
+  }
+  function say(title, where, text, note) {
+    card.textContent = "";
+    var h = document.createElement("strong");
+    h.textContent = title;
+    card.appendChild(h);
+    if (where) { var s = document.createElement("span"); s.textContent = where; card.appendChild(s); }
+    var p = document.createElement("p");
+    p.textContent = text;
+    card.appendChild(p);
+    if (note) { var q = document.createElement("p"); q.className = "note"; q.textContent = note; card.appendChild(q); }
+  }
+  function choose(kind, name) {
+    var p, d, k, note = "";
+    picked = kind + ":" + name;
+    if (kind === "button") {
+      d = T.buttons[name];
+      if (!d || d.unused) say(name, "", (d && d.unused) || "Does nothing in this firmware.");
+      else {
+        var before = hold || base;
+        if (d.base && base !== d.base) { base = d.base; hold = null; }
+        else if (d.hold) hold = hold === d.hold ? null : d.hold;
+        else if (d.base) hold = null;
+        p = page();
+        if ((hold || base) !== before || d.base || d.hold) {
+          note = "The knobs here now show " + p.title + " (" + p.how + ").";
+          if (hold && d.hold === hold) note += " Tap " + name + " again to let go.";
+          else if (d.hold && d.base === base && !hold) note += " Tap " + name + " again for its held set.";
+        }
+        say(name + " · " + d.label, d.sub || "", d.text, note);
+      }
+    } else if (kind === "knob") {
+      p = page();
+      k = name === "MASTER" ? T.master : p.knobs[name];
+      if (k) say(name + " · " + k[0], name === "MASTER" ? "always" : p.title + " (" + p.how + ")", k[1]);
+      else say(name, p.title + " (" + p.how + ")", "Sets nothing on this page.");
+    } else if (kind === "keys") {
+      k = keysNow();
+      say("KEYS · " + k[0], T.pages[base].title + " (" + T.pages[base].how + ")", k[1]);
+    } else say("SCREEN", "", T.screen);
+    refresh();
+  }
+
+  // --- the switch ---------------------------------------------------------------------------------------------
+  var controls = document.getElementById("controls"), wasInert = false;
+  function mode(tutorial) {
+    if (!svg) return;
+    pill.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String((b.dataset.mode === "tutorial") === tutorial)); });
+    if (tutorial) {
+      svg.removeAttribute("hidden");
+      card.hidden = false;
+      if (!picked) { card.textContent = ""; var p = document.createElement("p"); p.textContent = T.intro; card.appendChild(p); }
+      if (controls) { wasInert = controls.inert; controls.inert = true; }      // (the real controls: out of reach)
+      refresh();
+    } else {
+      svg.setAttribute("hidden", "");
+      card.hidden = true;
+      if (controls) controls.inert = wasInert;
+    }
+    device.classList.toggle("fm1tut-on", tutorial);
+  }
+  pill.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (b) mode(b.dataset.mode === "tutorial");
+  });
   build();
 })();
 </script>
