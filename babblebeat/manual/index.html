@@ -44,19 +44,18 @@ body:has(.devicebox) > header h1 { color: var(--accent); }
 
 </style>
 </head><body style="background:#111b1b;color:#e6f1df;font:16px/1.5 system-ui;max-width:760px;margin:1rem auto;padding:1rem">
-<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav>
-<main><h1>BabbleBeat — grammar-driven robotic speech</h1>
+<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav><main><h1>BabbleBeat — grammar-driven robotic speech</h1>
 <p>A third independent FM-1 firmware, alongside STRATA and PALINDROME. A sentence
 is assembled by grammar rules first, then optionally rewritten or damaged.
 The voice is a simple formant robot, not general text-to-speech.</p>
 <h2>Quick start</h2>
 <ol>
-<li>Press a few <strong>white keys</strong>. Each one makes its own phrase and says it; press one again to hear it again.</li>
-<li>Press <strong>black keys</strong> to mutate the phrase you played last: negate it, ask it, swap its nouns.</li>
-<li>Press <strong>REC</strong> to remember a noun; later phrases may return to it.</li>
-<li>Press <strong>PLAY</strong> to start or stop continuous, autonomous babbling; <strong>SEQ</strong> for a new phrase on the key.</li>
-<li>Press <strong>EDIT</strong> for WORDS knobs, <strong>FX</strong> for VOICE knobs. Both select pages with a single press.</li>
-<li>Lost? Hold <strong>GLO</strong>: the screen shows what every button and key does.</li>
+<li>Press a <strong>white key</strong>. It has a word, and says a phrase about it. Press it again: the same phrase, now and then a new one.</li>
+<li>Press the <strong>black key</strong> to its right: the same word in another kind of phrase (a question, a "not", a "was").</li>
+<li>Keep playing keys. A word stays on its key; now and then it moves to the next word of its world.</li>
+<li><strong>SEQ</strong> puts a new word on the key. <strong>REC</strong> remembers the key's word; RECALL brings it back into other phrases.</li>
+<li><strong>PLAY</strong> babbles about the key's word; <strong>HOME</strong> stops.</li>
+<li><strong>SEL</strong> steps through the three sets of knobs: VOICE, MOUTH, WORDS. Lost? Hold <strong>GLO</strong>.</li>
 </ol>
 <h2>Buttons</h2>
 <table>
@@ -69,31 +68,35 @@ The voice is a simple formant robot, not general text-to-speech.</p>
 <tbody>
 <tr>
 <td>PLAY</td>
-<td>Toggle automatic phrase generation and playback</td>
+<td>Babble: one phrase after another about the key's word</td>
 </tr>
 <tr>
 <td>SEQ</td>
-<td>New grammatically structured sentence, spoken immediately</td>
+<td>A new word on the key, and a phrase about it</td>
 </tr>
 <tr>
 <td>ARP</td>
-<td>Mutate the current sentence and speak the result</td>
+<td>The key's phrase made again</td>
 </tr>
 <tr>
 <td>REC</td>
-<td>Remember one noun from this sentence for later reuse</td>
+<td>Remember the key's word</td>
 </tr>
 <tr>
-<td>EDIT</td>
-<td>WORDS page</td>
+<td>SEL</td>
+<td>The next set of knobs: VOICE → MOUTH → WORDS</td>
 </tr>
 <tr>
 <td>FX</td>
-<td>VOICE page</td>
+<td>VOICE knobs</td>
+</tr>
+<tr>
+<td>EDIT</td>
+<td>WORDS knobs</td>
 </tr>
 <tr>
 <td>HOME</td>
-<td>Stop speaking and turn off automatic speech</td>
+<td>Stop speaking and turn off the babble</td>
 </tr>
 <tr>
 <td>OCT- / OCT+</td>
@@ -104,79 +107,104 @@ The voice is a simple formant robot, not general text-to-speech.</p>
 <td>The guide: what every button does, on the screen</td>
 </tr>
 <tr>
-<td>SAVE, SEL, ENV, LFO</td>
+<td>SAVE, ENV, LFO</td>
 <td>Not used; the screen says so</td>
-</tr>
-<tr>
-<td>White keys</td>
-<td>Sixteen phrases, one a key</td>
-</tr>
-<tr>
-<td>Black keys</td>
-<td>Eleven mutators of the phrase last played</td>
 </tr>
 </tbody>
 </table>
 <h2>Keys</h2>
-<p><strong>White keys are phrases.</strong> Each of the sixteen holds its own. Press one and it says its phrase; the first press
-makes it. Lower keys speak in a lower voice. The key last played is the phrase SEQ, ARP, REC and the black keys
-work on, and its mark is the tall one in the row on the screen.</p>
-<p><strong>Black keys are mutators.</strong> Each changes the phrase last played in its own way and says the result:</p>
+<p><strong>A white key is a word.</strong> The sixteen take the nouns of the WORLD in order, so neighbouring keys are neighbouring words. A key says a plain statement about its word and keeps it, so you can come back to it. Lower keys speak in a lower voice. The screen shows <code>WORD:</code> and a row of sixteen marks, the tall one the key in use.</p>
+<p><strong>A black key is a kind of phrase.</strong> It uses the word of the white key on its left:</p>
 <table>
 <thead>
 <tr>
 <th>Black key, left to right</th>
-<th>Mutation</th>
+<th>Kind</th>
+<th>Example with <em>mirror</em></th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>1</td>
-<td><strong>NEW NOUN</strong> — one noun replaced</td>
+<td><strong>WHY?</strong></td>
+<td>why does the mirror remember the static?</td>
 </tr>
 <tr>
 <td>2</td>
-<td><strong>SWAP NOUNS</strong> — two nouns change places</td>
+<td><strong>NOT</strong></td>
+<td>the mirror does not corrupt the filter.</td>
 </tr>
 <tr>
 <td>3</td>
-<td><strong>NEW ADJECTIVE</strong> — the adjective replaced (or the phrase rebuilt with one)</td>
+<td><strong>WAS</strong></td>
+<td>the mirror was ancient.</td>
 </tr>
 <tr>
 <td>4</td>
-<td><strong>REBUILD</strong> — another sentence pattern around the same first noun</td>
+<td><strong>IF</strong></td>
+<td>if the mirror shivers, the antenna haunts the signal.</td>
 </tr>
 <tr>
 <td>5</td>
-<td><strong>NEGATE</strong> — "does not" / "did not"</td>
+<td><strong>WILL</strong></td>
+<td>the mirror will return.</td>
 </tr>
 <tr>
 <td>6</td>
-<td><strong>TENSE</strong> — will / was / used to</td>
+<td><strong>IS IT?</strong></td>
+<td>is the mirror crooked?</td>
 </tr>
 <tr>
 <td>7</td>
-<td><strong>ASK</strong> — turned into a question</td>
+<td><strong>DID NOT</strong></td>
+<td>the mirror did not forget the engine.</td>
 </tr>
 <tr>
 <td>8</td>
-<td><strong>ADD CLAUSE</strong> — ", and the … "</td>
+<td><strong>USED TO</strong></td>
+<td>the mirror used to vanish.</td>
 </tr>
 <tr>
 <td>9</td>
-<td><strong>RECALL</strong> — the remembered noun put in (remembers one if none is)</td>
+<td><strong>BECAUSE</strong></td>
+<td>the mirror opens the static because the robot waits.</td>
 </tr>
 <tr>
 <td>10</td>
-<td><strong>STUTTER</strong> — a word doubled</td>
+<td><strong>MAY</strong></td>
+<td>the mirror may swallow the engine.</td>
 </tr>
 <tr>
 <td>11</td>
-<td><strong>DROP</strong> — a word dropped</td>
+<td><strong>WHEN</strong></td>
+<td>when the mirror dreams, the signal will return.</td>
 </tr>
 </tbody>
 </table>
-<p>Every other key's phrase stays as you left it, so you can go back to it.</p>
+<p><strong>What changes, and how fast</strong></p>
+<table>
+<thead>
+<tr>
+<th>Knob (WORDS)</th>
+<th>Sets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WANDER</strong></td>
+<td>How often a key's word moves when you play it. It moves one step, to the next word of its world, never a jump. At 0 it never moves</td>
+</tr>
+<tr>
+<td><strong>DAMAGE</strong></td>
+<td>How often a key's phrase is made again when you play it. At 0 a phrase stays until you change it</td>
+</tr>
+<tr>
+<td><strong>GRAMMAR</strong></td>
+<td>Low: a changed phrase may be broken instead (a word doubled, dropped, an "again")</td>
+</tr>
+</tbody>
+</table>
+<p>When a white key's word moves, the black key beside it follows the next time it is played.</p>
 <h2>WORDS — EDIT</h2>
 <table>
 <thead>
@@ -195,22 +223,22 @@ work on, and its mark is the tall one in the row on the screen.</p>
 <tr>
 <td>KNOB2</td>
 <td><strong>WANDER</strong></td>
-<td>Chance of borrowing nouns from outside the selected world</td>
+<td>How often a key's word moves a step; also, other nouns borrowed from outside the world</td>
 </tr>
 <tr>
 <td>KNOB3</td>
 <td><strong>RECALL</strong></td>
-<td>Chance of using the remembered noun</td>
+<td>How often the remembered word returns. Past 70 the phrases fix on it and loop back on themselves: "the mirror was, the mirror was pale."</td>
 </tr>
 <tr>
 <td>KNOB4</td>
 <td><strong>DAMAGE</strong></td>
-<td>How often a new sentence is mutated as it is made (GRAMMAR decides how gently)</td>
+<td>How often a key's phrase is made again as it is played (GRAMMAR decides how gently)</td>
 </tr>
 <tr>
 <td>SELECT</td>
 <td><strong>WORLD</strong></td>
-<td>Machine, Dream, Body or Gothic/Dracula vocabulary</td>
+<td>Machine, Dream, Body or Gothic/Dracula vocabulary, for keys that have no word yet</td>
 </tr>
 <tr>
 <td>ALGORITHM</td>
@@ -268,6 +296,39 @@ work on, and its mark is the tall one in the row on the screen.</p>
 <td>PRESETS</td>
 <td><strong>INFLECT</strong></td>
 <td>How much the pitch moves: a lift on each word, a fall at the end, a rise for a question</td>
+</tr>
+</tbody>
+</table>
+<h2>MOUTH — SEL</h2>
+<p>SEL steps VOICE → MOUTH → WORDS. The middle of each MOUTH knob is the voice as it is made.</p>
+<table>
+<thead>
+<tr>
+<th>Knob</th>
+<th>Control</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KNOB1</td>
+<td><strong>SIZE</strong></td>
+<td>A small mouth (every resonance higher) to a large one</td>
+</tr>
+<tr>
+<td>KNOB2</td>
+<td><strong>SLUR</strong></td>
+<td>Crisp, to sliding lazily from sound to sound</td>
+</tr>
+<tr>
+<td>KNOB3</td>
+<td><strong>GAP</strong></td>
+<td>The quiet between words: run together, to spaced out</td>
+</tr>
+<tr>
+<td>KNOB4</td>
+<td><strong>WAVER</strong></td>
+<td>How much the pitch trembles</td>
 </tr>
 </tbody>
 </table>
