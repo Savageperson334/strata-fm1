@@ -1,5 +1,7 @@
 # STRATA, PALINDROME and BABBLEBEAT
 
+**[Project scope and instrument identities](docs/FIRMWARE_SCOPE.md)** — what STRATA, PALINDROME and BabbleBeat are, their internal modes/pages, current features, future directions, and boundaries.
+
 Three custom firmwares for the M-VAVE FM-1 live in this repository. They are separate instruments with separate
 source trees and independent versioning; the FM-1 holds one at a time.
 STRATA and PALINDROME provide firmware installers. BabbleBeat is a browser-first prototype; no hardware
