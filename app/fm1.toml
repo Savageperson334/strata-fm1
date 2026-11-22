@@ -17,7 +17,7 @@ credits = "Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by 
 
 # firmware.json, for firmware hubs (base/docs/FIRMWARE-JSON.md)
 author = "Savageperson334"
-description = "STRATA turns the M-VAVE FM-1 into a drone and texture synth with one mode and no menus. Tap keys to start long, slowly moving voices (up to six) and tap again to let them fade. All seven knobs are live: tone, FM ratio, motion, space, filter, drift and grit, with seven more under SEL, a slow arpeggiator ripples through the voices, a drum groove with sidechain ducking can play underneath, and four Euclidean lanes of different lengths can play the drums or step the arp. Each voice is two detuned FM pairs with a sub and tuned noise, through a resonant filter and a long stereo reverb. MIDI notes and CCs come in over USB and TRS."
+description = "STRATA turns the M-VAVE FM-1 into a drone and texture synth with no menus. Tap keys to start long, slowly moving voices (up to six); tap again to let them fade. Seven live knobs shape tone, FM ratio, motion, space, filter, drift and grit, with seven more under SEL. Each voice is two detuned FM pairs with a sub and tuned noise, through a resonant filter and a long stereo reverb. A slow arpeggiator, a drum groove with sidechain ducking and four Euclidean lanes can run on a shared clock. MIDI in over USB and TRS."
 tags = ["synth", "fm", "ambient", "drum-machine"]
 install = "https://savageperson334.github.io/strata-fm1/install/"
 site = "https://savageperson334.github.io/strata-fm1/"
