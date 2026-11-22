@@ -7,7 +7,7 @@ name: Site
 on:
   push:
     branches: [main]
-    paths: ['app/docs/**', 'app/site/**', '.github/workflows/site.yml', 'scripts/publish-instrument-site.sh', 'scripts/site_nav.py']
+    paths: ['app/docs/**', 'app/site/**', '.github/workflows/site.yml', 'scripts/publish-instrument-site.sh', 'scripts/site_nav.py', 'scripts/tutorial/**']
   workflow_dispatch:
 
 permissions:

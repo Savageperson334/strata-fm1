@@ -13,8 +13,9 @@ Each of those four pages gets the same block at its top right:
 fm1-base's own header on the front page and the manual (the firmware's name and its links) is replaced by it; the
 installer and the emulator had none. Run again on a page that has it: the block is replaced, not doubled.
 
-The emulator also gets a small switch over the panel, [ Names | What they do ]: the second writes on each button
-what it does in this firmware in place of the name printed on the FM-1 (a button that does nothing is dimmed)."""
+The emulator also gets a switch over the panel, [ Play | Tutorial ]: Tutorial draws a blueprint over the panel, a line
+from each control to a box that says what it does in this firmware; a tap there reads about a control instead of
+playing it (scripts/tutorial/)."""
 import re
 import sys
 from pathlib import Path
@@ -43,91 +44,29 @@ font-size:12px;letter-spacing:.07em}
 </style>"""
 
 
-# what each button does, in a line or two that fit on it (None: nothing in this firmware)
-BUTTONS = {
-    "strata": {"FX": None, "SEL": ["HOLD:", "MORE"], "ENV": None, "LFO": None, "EDIT": ["LANES", "HOLD: SET"],
-               "GLO": None, "HOME": ["HOLD:", "RESET"], "SAVE": ["SAVE", "SOUND"], "ARP": ["ARP", "HOLD: SET"],
-               "SEQ": ["BEAT", "HOLD: SET"], "PLAY": ["FADE OUT", "/ BACK"], "REC": ["MUTATE"],
-               "OCT-": ["KEYS DOWN"], "OCT+": ["KEYS UP"]},
-    "palindrome": {"FX": ["MORPH", "KNOBS"], "SEL": ["HOLD:", "MIX"], "ENV": None, "LFO": None,
-                   "EDIT": ["SILT", "HOLD: MORE"], "GLO": None, "HOME": ["HOLD:", "CLEAR"], "SAVE": None, "ARP": None,
-                   "SEQ": None, "PLAY": ["GRAINS", "ON / OFF"], "REC": ["REC MODE", "HOLD: NOISE"],
-                   "OCT-": ["KEYS DOWN"], "OCT+": ["KEYS UP"]},
-}
-LABELS_STYLE = """<style id="fm1labels-style">
-#fm1labels{display:inline-flex;margin:0 0 .7rem;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
-font:600 12px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.07em}
-#fm1labels button{all:unset;cursor:pointer;padding:6px 14px;opacity:.72}
-#fm1labels button:hover{opacity:1}
-#fm1labels button:focus-visible{outline:2px solid currentColor;outline-offset:-4px;border-radius:999px}
-#fm1labels button[aria-pressed="true"]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
-#panel text.fnl{display:none}
-#panel.fn text.fnl{display:inline}
-#panel.fn g.hasfn>text.nml{display:none}
-#panel.fn g.nofn{opacity:.4}
-</style>"""
-LABELS_HTML = ('<div id="fm1labels" role="group" aria-label="What is written on the buttons">'
-               '<button type="button" data-fn="0" aria-pressed="true">Names</button>'
-               '<button type="button" data-fn="1" aria-pressed="false">What they do</button></div>')
-# (the panel is drawn by the page's own script, a module, after this one: wait for its buttons)
-LABELS_JS = """<script id="fm1labels-js">
-(function(){
-  var FN=__FN__,panel=document.getElementById("panel"),pill=document.getElementById("fm1labels"),tries=0;
-  if(!panel||!pill)return;
-  function build(){
-    var faces=panel.querySelectorAll("rect.btnface");
-    if(!faces.length){if(++tries<200)setTimeout(build,50);return;}
-    faces.forEach(function(face){
-      var g=face.parentNode,texts=g.querySelectorAll("text"),name=texts.length?texts[0].textContent:"";
-      if(!(name in FN))return;
-      var lines=FN[name],x=+face.getAttribute("x"),y=+face.getAttribute("y"),w=+face.getAttribute("width"),h=+face.getAttribute("height");
-      if(!lines){g.classList.add("nofn");return;}
-      g.classList.add("hasfn");
-      texts.forEach(function(t){t.classList.add("nml");});
-      lines.forEach(function(s,i){
-        var t=texts[0].cloneNode(false);
-        t.classList.remove("nml");t.classList.add("fnl");
-        t.setAttribute("font-size",lines.length>1?10.5:12);
-        t.setAttribute("letter-spacing",".02em");
-        t.setAttribute("x",x+w/2);
-        t.setAttribute("y",lines.length>1?y+h/2-1+i*12:y+h/2+4);
-        t.textContent=s;
-        t.dataset.max=w-5;
-        g.appendChild(t);
-      });
-    });
-    set(saved());
-  }
-  function fit(){                               /* a line wider than its button: squeezed to it */
-    panel.querySelectorAll("text.fnl").forEach(function(t){
-      try{if(t.getComputedTextLength()>+t.dataset.max){t.setAttribute("textLength",t.dataset.max);t.setAttribute("lengthAdjust","spacingAndGlyphs");}}catch(e){}
-    });
-  }
-  function saved(){try{return localStorage.getItem("fm1labels")==="1";}catch(e){return false;}}
-  function set(on){
-    panel.classList.toggle("fn",on);
-    pill.querySelectorAll("button").forEach(function(b){b.setAttribute("aria-pressed",String((b.dataset.fn==="1")===on));});
-    if(on)fit();
-    try{localStorage.setItem("fm1labels",on?"1":"0");}catch(e){}
-  }
-  pill.addEventListener("click",function(e){var b=e.target.closest("button");if(b)set(b.dataset.fn==="1");});
-  build();
-})();
-</script>"""
+TUTORIAL = Path(__file__).resolve().parent / "tutorial"
+MODE_HTML = ('<div id="fm1mode" role="group" aria-label="Play the panel, or read what each control does">'
+             '<button type="button" data-mode="play" aria-pressed="true">Play</button>'
+             '<button type="button" data-mode="tutorial" aria-pressed="false">Tutorial</button></div>\n'
+             '<div id="fm1tut-card" aria-live="polite" hidden></div>')
 
 
-def emu_labels(html, instrument):
-    """the emulator's switch between the buttons' names and what they do"""
+def emu_tutorial(html, instrument):
+    """the emulator's Play / Tutorial switch: scripts/tutorial/ (tutorial.js, tutorial.css, INSTRUMENT.json)"""
     import json
-    html = re.sub(r'<style id="fm1labels-style">.*?</style>\s*', "", html, flags=re.S)   # (run again: replaced)
-    html = re.sub(r'<div id="fm1labels".*?</div>\s*', "", html, flags=re.S)
-    html = re.sub(r'<script id="fm1labels-js">.*?</script>\s*', "", html, flags=re.S)
-    html, n = re.subn(r'(<div class="devicebox">)', lambda m: LABELS_HTML + "\n" + m.group(1), html, count=1)
+    for old in (r'<style id="fm1labels-style">.*?</style>\s*', r'<div id="fm1labels".*?</div>\s*',       # (0.5's switch)
+                r'<script id="fm1labels-js">.*?</script>\s*', r'<style id="fm1tut-style">.*?</style>\s*',
+                r'<div id="fm1mode".*?</div>\s*<div id="fm1tut-card"[^>]*></div>\s*', r'<script id="fm1tut-js">.*?</script>\s*'):
+        html = re.sub(old, "", html, flags=re.S)                     # (run again: replaced)
+    html, n = re.subn(r'(<div class="devicebox">)', lambda m: MODE_HTML + "\n" + m.group(1), html, count=1)
     if not n:
         raise SystemExit("site_nav: no panel in the emulator's page")
-    js = LABELS_JS.replace("__FN__", json.dumps(BUTTONS[instrument]))
-    html = html.replace("</head>", LABELS_STYLE + "\n</head>", 1)
-    return html.replace("</body>", js + "\n</body>", 1) if "</body>" in html else html + js
+    data = json.loads((TUTORIAL / f"{instrument}.json").read_text(encoding="utf-8"))
+    js = (TUTORIAL / "tutorial.js").read_text(encoding="utf-8").replace("__TUTORIAL__", json.dumps(data).replace("</", "<\\/"))
+    css = (TUTORIAL / "tutorial.css").read_text(encoding="utf-8")
+    html = html.replace("</head>", f'<style id="fm1tut-style">\n{css}</style>\n</head>', 1)
+    block = f'<script id="fm1tut-js">\n{js}</script>'
+    return html.replace("</body>", block + "\n</body>", 1) if "</body>" in html else html + block
 
 
 def nav(instrument, section):
@@ -218,7 +157,7 @@ def main(site, instrument):
         if f.is_file():
             html = apply(f.read_text(encoding="utf-8"), instrument, section)
             if section == "emu":
-                html = emu_labels(html, instrument)
+                html = emu_tutorial(html, instrument)
             if section == "manual" and instrument == "palindrome":
                 html = palindrome_manual(html)
             f.write_text(html, encoding="utf-8")

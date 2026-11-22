@@ -1,0 +1,83 @@
+{
+  "start": "morph",
+  "intro": "Tutorial: tap any button, knob or key to read what it does. FX, EDIT, REC and SEL change what the knobs do, so tapping them changes the labels here too. Switch back to Play to use the panel.",
+  "master": ["VOLUME", "Output volume. MASTER is always the volume, whatever the other knobs are doing."],
+  "screen": "The screen is a picture of the engine: MORPH's square in the middle, SILT's memory as a ring around it, grains as moving dots. Its corners name the buttons and the boxes at the foot name what each knob sets right now.",
+  "pages": {
+    "morph": {
+      "title": "MORPH", "how": "tap FX",
+      "keys": ["NOTES", "Each key latches a MORPH note, up to four. Tap a lit key again to release it."],
+      "knobs": {
+        "KNOB1": ["X", "Moves the sound left and right across the square, between its corners' ways of making sound."],
+        "KNOB2": ["Y", "Moves the sound up and down the square."],
+        "KNOB3": ["COMPLEX", "Harmonic richness of each corner's sound."],
+        "KNOB4": ["TONE", "Low-pass filter: dark to bright."],
+        "SELECT": ["SPREAD", "How far apart the four voices sit in stereo."],
+        "ALGORITHM": ["MOVE", "Carries the sound round a circle in the square by itself."],
+        "PRESETS": ["EXCITE", "How long the struck MODAL corner rings."]
+      }
+    },
+    "silt": {
+      "title": "SILT", "how": "tap EDIT",
+      "keys": ["GRAIN PITCH", "Each key latches a pitch for the grains, up to four; the grains take them in turn. C (the fifth white key) is the recorded pitch. A new key also plays its grains at once, even with PLAY off."],
+      "knobs": {
+        "KNOB1": ["POSITION", "Where grains start in the recording: newest to oldest audio."],
+        "KNOB2": ["SIZE", "Grain length, 20 to 500 ms."],
+        "KNOB3": ["DENSITY", "1 to 40 grain starts a second."],
+        "KNOB4": ["SPRAY", "Random scatter of each grain's start around POSITION."],
+        "SELECT": ["PITCH", "Shifts every grain, 24 semitones down to 24 up, on top of the held keys."],
+        "ALGORITHM": ["REVERSE", "The chance a grain plays backward."],
+        "PRESETS": ["SHAPE", "Each grain's envelope: 0 struck (fast attack), 50 a bell, 100 a slow swell."]
+      }
+    },
+    "more": {
+      "title": "SILT MORE", "how": "EDIT held",
+      "knobs": {
+        "KNOB1": ["TIMING", "When grains start: an even pulse at 0, irregular at 100."],
+        "KNOB2": ["VARY", "Random grain length, up to a quarter to four times SIZE."],
+        "KNOB3": ["SCATTER", "The chance a grain jumps an octave; higher adds fifths and two octaves."],
+        "KNOB4": ["DETUNE", "Each grain slightly off pitch, up to 50 cents either way."],
+        "SELECT": ["STEREO", "How wide the grains are scattered left to right."],
+        "ALGORITHM": ["CLUSTER", "1 to 4 grains started together, each on the next held key: low values play the keys in turn, high values as a chord."],
+        "PRESETS": ["SCAN", "Moves POSITION back and forth by itself."]
+      }
+    },
+    "rec": {
+      "title": "RECORDING", "how": "REC held",
+      "knobs": {
+        "KNOB1": ["NOISE", "Hiss recorded along with the sound. With no notes held it records noise alone."],
+        "KNOB2": ["COLOR", "The hiss's tone: low rumble to bright hiss."],
+        "KNOB3": ["CRUSH", "Reduces the recording's resolution: grit, then a few hard steps."],
+        "KNOB4": ["GATE", "Only records sound louder than this; below it the memory is left as it was."],
+        "SELECT": ["DROP", "Random gaps in the recording, where the old sound shows through."],
+        "ALGORITHM": ["DAMP", "Darkens what is recorded."],
+        "PRESETS": ["FEEDBACK", "How much of the old sound survives in OVERDUB and RESAMPLE."]
+      }
+    },
+    "mix": {
+      "title": "SHARED", "how": "SEL held",
+      "knobs": {
+        "KNOB1": ["MIX", "Balance between MORPH and SILT's grains."],
+        "KNOB2": ["FADE", "How slowly MORPH's notes come and go."],
+        "PRESETS": ["LEVEL", "Overall output level."]
+      }
+    }
+  },
+  "buttons": {
+    "FX": {"label": "MORPH", "sub": "knobs + keys", "base": "morph",
+           "text": "Gives the knobs and keys to MORPH, the half that makes the sound. SILT keeps running."},
+    "EDIT": {"label": "SILT", "sub": "hold: more", "base": "silt", "hold": "more",
+             "text": "Gives the knobs and keys to SILT, the half that records MORPH and plays it back as grains. Held down, the knobs become SILT's second set."},
+    "REC": {"label": "REC MODE", "sub": "hold: noise", "hold": "rec",
+            "text": "A tap steps how the memory is written: LIVE, FREEZE, OVERDUB, RESAMPLE. Held down, the knobs shape what gets recorded: noise, crush, gate and dropouts."},
+    "SEL": {"label": "SHARED", "sub": "hold", "hold": "mix",
+            "text": "Held down, three knobs are shared by both halves: MIX, FADE and LEVEL."},
+    "PLAY": {"label": "GRAINS", "sub": "start / stop",
+             "text": "Starts and stops the continuous stream of grains. Keys still play grains by hand while it is stopped."},
+    "HOME": {"label": "CLEAR", "sub": "hold 1 s",
+             "text": "Held for a second: releases every note and grain pitch and stops the grains. A tap only shows the version."},
+    "OCT-": {"label": "KEYS DOWN", "text": "Shifts the keys down an octave. Notes and pitches already held stay where they are."},
+    "OCT+": {"label": "KEYS UP", "text": "Shifts the keys up an octave. Notes and pitches already held stay where they are."},
+    "SAVE": {"unused": "SAVE does nothing yet: the sound and the memory are lost at power-off."}
+  }
+}
