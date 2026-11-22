@@ -36,7 +36,7 @@ static double sum_of(int slot){
 int main(void){
  int slot=-1,id,parent,source;
  /* Nothing captured: no rings, silence, and PLAY has nothing to play. */
- pm_init();assert(run(20)<.00001);
+ pm_init();pm_set(M_SUSTAIN,1);assert(run(20)<.00001);
  assert(pm_ring_count()==0&&pm_ring_selected()==-1);
  pm_set(G_MIX,1);pm_grains(1);run(40);assert(pm_active_grains()==0);pm_grains(0);
  assert(pm_capture(PM_SRC_SILT)==PM_ERR_NOSRC);
@@ -100,20 +100,31 @@ int main(void){
  assert(capture(PM_SRC_SILT,&slot)==PM_EV_COMMITTED);
  int r3=slot;assert(pm_ring_count()==3&&pm_ring_info(r3,&id,&parent,&source)&&id==3&&parent==1);
  assert(sum_of(r1)==sum1&&sum_of(r2)==sum2);
- /* Full: nothing is captured and nothing is deleted to make room. */
- assert(pm_capture(PM_SRC_SILT)==PM_ERR_FULL&&pm_capture(PM_SRC_MORPH)==PM_ERR_FULL);
- assert(pm_capture_state()==PM_CAP_IDLE&&pm_ring_count()==3);
- assert(sum_of(r1)==sum1&&sum_of(r2)==sum2);
- /* A ring deleted on purpose: its grains fade, the others stay, and the next capture takes the room with a new
-  * number; 03 still says it came from 01. */
  double sum3=sum_of(r3);
+ /* Full: the oldest ring, the first recording, makes room for the new one. The others are as they were; the new
+  * ring, 04, has 01's place. */
+ assert(pm_ring_selected()==r3);
+ assert(capture(PM_SRC_SILT,&slot)==PM_EV_COMMITTED);
+ assert(pm_capture_dropped()==1&&slot==r1&&pm_ring_count()==3);
+ assert(pm_ring_info(slot,&id,&parent,&source)&&id==4&&parent==3);
+ assert(sum_of(r2)==sum2&&sum_of(r3)==sum3);
+ /* ...but never the selected ring, which the capture reads while it writes: with the oldest (02) selected, it is
+  * the next oldest, 03, that goes. */
+ assert(pm_ring_select(r2)==0);run(60);
+ assert(capture(PM_SRC_SILT,&slot)==PM_EV_COMMITTED);
+ assert(pm_capture_dropped()==3&&slot==r3&&pm_ring_count()==3);
+ assert(pm_ring_info(slot,&id,&parent,&source)&&id==5&&parent==2);
+ assert(sum_of(r2)==sum2);
+ /* A ring deleted on purpose: its grains fade, the others stay, and the next capture takes the room with a new
+  * number and gives nothing up. */
+ sum1=sum_of(r1);sum3=sum_of(r3);
  assert(pm_ring_select(r2)==0);run(40);assert(pm_ring_delete(r2)==0);
- assert(pm_ring_count()==2&&pm_ring_selected()==r3);          /* (the newest left) */
+ assert(pm_ring_count()==2&&pm_ring_selected()==r3);          /* (the newest left: 05) */
  run(4);{float at,e;int gs;for(int k=0;k<PM_GRAINS;k++)if(pm_grain(k,&at,&e,&gs))assert(gs!=r2);}
  assert(!pm_ring_info(r2,&id,&parent,&source));
  assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
- assert(slot==r2&&pm_ring_info(slot,&id,&parent,&source)&&id==4&&parent==0);
- assert(pm_ring_info(r3,&id,&parent,&source)&&id==3&&parent==1);
+ assert(pm_capture_dropped()==0&&slot==r2&&pm_ring_info(slot,&id,&parent,&source)&&id==6&&parent==0);
+ assert(pm_ring_info(r3,&id,&parent,&source)&&id==5&&parent==2);
  assert(sum_of(r1)==sum1&&sum_of(r3)==sum3);
  /* A panic in the middle of a capture: the capture is gone, the rings are not. */
  assert(pm_ring_delete(r2)==0);pm_note(0,48);run(30);
@@ -137,23 +148,23 @@ int main(void){
  pm_panic();assert(run(30)<.00001);
 
  /* What a capture does to its sound. NOISE alone: no note played, yet there is a ring of hiss, and it plays. */
- pm_init();pm_set(R_NOISE,1);pm_set(G_MIX,1);pm_set(S_DENSITY,1);
+ pm_init();pm_set(M_SUSTAIN,1);pm_set(R_NOISE,1);pm_set(G_MIX,1);pm_set(S_DENSITY,1);
  assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
  pm_grains(1);run(100);assert(run(200)>.003);
  /* GATE: with it up and nothing played, the hiss is kept out, so there is nothing to keep. */
- pm_init();pm_set(R_NOISE,1);pm_set(R_GATE,1);
+ pm_init();pm_set(M_SUSTAIN,1);pm_set(R_NOISE,1);pm_set(R_GATE,1);
  assert(capture(PM_SRC_MORPH,&slot)==PM_EV_SILENT);
  /* ...and a note opens it. */
  pm_set(R_GATE,.5f);pm_set(R_NOISE,0);pm_note(0,48);run(100);
  assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
  /* DROP all the way up: stretches of the ring are left out, others are there. */
- pm_init();pm_set(R_DROP,1);pm_note(0,48);run(100);
+ pm_init();pm_set(M_SUSTAIN,1);pm_set(R_DROP,1);pm_note(0,48);run(100);
  assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
  {float lo[128],hi[128];int gaps=0,sound=0;pm_ring_wave(slot,lo,hi,128);
   for(int k=1;k<127;k++){if(hi[k]-lo[k]<.01f)gaps++;if(hi[k]-lo[k]>.2f)sound++;}
   assert(gaps>8&&sound>8);}
  /* CRUSH: the ring holds only a few levels. */
- pm_init();pm_set(R_CRUSH,1);pm_note(0,48);run(100);
+ pm_init();pm_set(M_SUSTAIN,1);pm_set(R_CRUSH,1);pm_note(0,48);run(100);
  assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
  {float lo[128],hi[128],seen[16];int n=0;pm_ring_wave(slot,lo,hi,128);
   for(int k=2;k<126;k++)for(int e=0;e<2;e++){float v=e?hi[k]:lo[k];int j;
@@ -162,7 +173,7 @@ int main(void){
   assert(n>=2&&n<=9);}
  /* CARRY: the selected ring copied under the next capture. With nothing else to record, the new ring is the old
   * one again (and without CARRY there would have been nothing). */
- pm_init();pm_note(0,48);run(100);assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
+ pm_init();pm_set(M_SUSTAIN,1);pm_note(0,48);run(100);assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
  pm_note(0,-1);run(600);
  assert(capture(PM_SRC_MORPH,&slot)==PM_EV_SILENT);
  pm_set(R_CARRY,1);run(40);
@@ -174,7 +185,7 @@ int main(void){
   assert(hi[0]-lo[0]<.02f&&hi[4095]-lo[4095]<.02f);}
 
  /* SILT's keys. A key played sounds its grains whether PLAY runs or not; CLUSTER starts that many together. */
- pm_init();pm_note(0,48);run(100);assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);pm_note(0,-1);
+ pm_init();pm_set(M_SUSTAIN,1);pm_note(0,48);run(100);assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);pm_note(0,-1);
  pm_set(G_MIX,1);pm_set(S_SIZE,1);pm_set(S_SPRAY,0);pm_set(S_REVERSE,0);run(200);
  assert(pm_active_grains()==0);
  pm_grain_pitch(0,0);pm_strike(0);run(1);assert(pm_active_grains()==2);assert(run(40)>.001);
@@ -207,5 +218,21 @@ int main(void){
  pm_grain_pitch(0,-12);pm_grain_pitch(1,7);pm_grain_pitch(2,19);pm_grains(1);
  for(int k=0;k<400;k++){run(1);assert(pm_active_grains()<=PM_GRAINS);}
  assert(pm_active_grains()>PM_GRAINS/2);
+ /* SUSTAIN. At its top a MORPH note is held; under it a struck note dies away by itself, and a note struck again
+  * (the same key) sounds again. MORPH's own page hears MORPH whatever MIX says. */
+ pm_init();pm_set(M_SUSTAIN,1);pm_note(0,57);run(400);assert(pm_voice_sounding(0)&&run(100)>.01);
+ pm_init();pm_set(M_SUSTAIN,.3f);pm_note(0,57);run(20);
+ {double early=run(40),late;assert(early>.01&&pm_voice_sounding(0));
+  run(600);late=run(60);assert(late<early*.02&&!pm_voice_sounding(0));
+  pm_note(0,57);run(20);assert(pm_voice_sounding(0)&&run(40)>early*.5);}
+ pm_init();pm_set(M_SUSTAIN,1);pm_note(0,48);run(100);assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);
+ pm_set(S_DENSITY,1);pm_grains(1);run(200);
+ {double both,morph_alone,mon;
+  assert(fabsf(pm_get(G_MIX)-1.f)<1e-6f);                 /* (as it starts: while grains sound, the grains are heard) */
+  both=run(200);pm_note(0,-1);run(600);                    /* MORPH let go: nothing of the sound changes much */
+  assert(fabs(run(200)-both)<both*.35);
+  pm_grains(0);run(400);pm_note(0,48);run(200);morph_alone=run(100);assert(morph_alone>.01);   /* no grains: MORPH */
+  pm_grains(1);run(300);pm_monitor(1);run(300);mon=run(100);pm_monitor(0);
+  assert(mon>.005);}
  puts("PALINDROME DSP smoke passed");
 }

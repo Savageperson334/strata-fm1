@@ -371,9 +371,16 @@ level-evening a block.
 - **SELECT on MORPH:** the ring selector there too. SPREAD moved to MIX, DROP to ALGORITHM on REC FX, and CARRY
   (below) to RINGS, so SELECT is never anything else.
 - **Key state:** the four grain pitches are global, not per ring: selecting a ring changes the sound under the
-  same held keys. MORPH's notes are separate and survive page changes.
+  same held keys. MORPH's notes are separate and survive page changes (until they die away).
 - **Recording while playing:** SILT's source is the grains alone (wet only); MORPH's is MORPH alone. With the
   grains stopped, a SILT capture has nothing to record and is dropped.
+- **Full store (changed in 0.7, at the player's request):** section 6's "never silently destroy the oldest" is
+  retired. With three rings a capture gives up the oldest ring that is not the selected one, and the screen says
+  which beforehand (`REC: DROPS 01`). The selected ring, the one being played and carried, is never taken.
+- **Struck notes and monitoring (0.7):** MORPH's notes die away by themselves (SUSTAIN on MIX; at its top they
+  hold as before). REC with nothing sounding is armed and starts with the next sound. MORPH is heard on its own
+  page and through its capture; elsewhere MIX starts on the grains alone, so the source and its recording are
+  not heard on top of each other.
 - **An aborted or empty capture** is discarded and the rings are untouched. A capture is finite, so there is no
   cancel: REC pressed meanwhile says it ends by itself.
 - **FEEDBACK became CARRY:** with no overdub there is nothing to feed back. CARRY copies the selected ring under

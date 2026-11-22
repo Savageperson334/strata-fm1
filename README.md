@@ -10,7 +10,7 @@ installer is available yet.
 | Firmware | What it is | Status | Site | Manual | Install |
 | --- | --- | --- | --- | --- | --- |
 | **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/) | [manual](https://savageperson334.github.io/strata-fm1/manual/) | [install](https://savageperson334.github.io/strata-fm1/install/) |
-| **PALINDROME** | SILT plays grains from recorded rings; MORPH, a four-corner synth, is the source; each press of REC captures a new ring and never overwrites an older one | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
+| **PALINDROME** | SILT plays grains from recorded rings; MORPH, a four-corner synth, is the source; each press of REC captures a new ring (three; then the oldest makes room) | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
 | **BABBLEBEAT** | Grammar-driven sentences, remembered nouns, structural mutations and a small formant-synthesis voice | Browser prototype (`0.1`) | [site](https://savageperson334.github.io/strata-fm1/babblebeat/) | [manual](https://savageperson334.github.io/strata-fm1/babblebeat/manual/) | [emulator](https://savageperson334.github.io/strata-fm1/babblebeat/emu/) (no hardware installer) |
 
 

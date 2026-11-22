@@ -14,6 +14,7 @@
 static int16_t memory[PM_RINGS][PM_BUFFER] PLAT_POOL;
 typedef struct {
     float phase, m1, m2, env, modal, filt, inc;
+    float life;                          /* 1 as it is struck, dying away from there (SUSTAIN); held at 1 at its top */
     int note;
 } Voice;
 typedef struct {
@@ -45,6 +46,10 @@ static uint32_t kill_seen[PM_RINGS];
 static Voice voice[PM_VOICES];
 static Grain grain[PM_GRAINS];
 static volatile int requested[PM_VOICES];
+static volatile uint32_t struck[PM_VOICES];   /* counts each pm_note with a note: a strike, even of the same note */
+static uint32_t struck_seen[PM_VOICES];
+static volatile int monitor;
+static int dropped_id;
 static volatile int grains_on;
 static volatile uint32_t burst_request;
 static volatile int gpitch[PM_PITCHES];        /* the keys held for the grains, semitones (PM_NO_PITCH: none) */
@@ -66,16 +71,27 @@ static int dropping;
 static const float defaults[PM_PARAMS]={
  .35f,.65f,.35f,.5f,.4f,0,.55f,
  .20f,.35f,.35f,.20f,.5f,0,0,            /* (CARRY 0: a capture is the source alone) */
- .65f,.20f,0,.5f,.65f,.35f,.75f,         /* (SHAPE: a bell) */
+ 1.f,.20f,0,.5f,.65f,.35f,.75f,          /* (MIX: while grains sound they are what is heard; SHAPE: a bell) */
  0,.5f,0,0,0,                            /* a clean recording: no hiss, no crush, no gate, no dropouts */
- 0,0,0,0,0};                             /* grains on an even pulse, all one length and pitch, one at a time */
+ 0,0,0,0,0,                              /* grains on an even pulse, all one length and pitch, one at a time */
+ .7f};                                   /* SUSTAIN: a struck note, gone in a few seconds */
 static float fclamp(float x,float a,float b){return x<a?a:x>b?b:x;}
 static float wrap(float x){return x-fm_floorf(x);}
 static float rnd(void){rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return (float)(rng>>8)*(1.0f/16777216.0f);}
 static float soft(float x){return x/(1.0f+(x<0?-x:x));}
 void pm_set(int id,float v){if(id>=0&&id<PM_PARAMS&&v>=0&&v<=1)target[id]=v;}
 float pm_get(int id){return id>=0&&id<PM_PARAMS?target[id]:0;}
-void pm_note(int slot,int note){if(slot>=0&&slot<PM_VOICES)requested[slot]=note>=0&&note<=127?note:-1;}
+void pm_note(int slot,int note){
+    if(slot<0||slot>=PM_VOICES)return;
+    requested[slot]=note>=0&&note<=127?note:-1;
+    if(note>=0&&note<=127)struck[slot]++;
+}
+int pm_voice_sounding(int slot){
+    if(slot<0||slot>=PM_VOICES||requested[slot]<0)return 0;
+    return struck[slot]!=struck_seen[slot]||voice[slot].life>.003f;      /* (just struck, or not yet died away) */
+}
+void pm_monitor(int on){monitor=on!=0;}
+int pm_capture_dropped(void){return dropped_id;}
 void pm_grains(int on){if(on&&!grains_on)burst_request++;grains_on=on!=0;}
 void pm_burst(void){burst_request++;}
 void pm_grain_pitch(int slot,int semis){
@@ -83,7 +99,7 @@ void pm_grain_pitch(int slot,int semis){
 }
 void pm_strike(int slot){if(slot>=0&&slot<PM_PITCHES)strike_request[slot]++;}
 void pm_panic(void){
-    for(int i=0;i<PM_VOICES;i++){requested[i]=-1;voice[i].env=0;voice[i].note=-1;}
+    for(int i=0;i<PM_VOICES;i++){requested[i]=-1;voice[i].env=0;voice[i].note=-1;voice[i].life=0;struck_seen[i]=struck[i];}
     for(int i=0;i<PM_GRAINS;i++)grain[i].active=0;
     for(int i=0;i<PM_PITCHES;i++){gpitch[i]=PM_NO_PITCH;strike_seen[i]=strike_request[i];}
     grains_on=0;burst_seen=burst_request; wet_gain=0;dry_gain=1;
@@ -102,7 +118,7 @@ void pm_init(void){
     for(int i=0;i<PM_GRAINS;i++)grain[i]=grain0;
     for(int i=0;i<64;i++)scope[i]=0;
     half=scope_wr=burst_request=burst_seen=0;
-    selected=-1;next_id=1;cap_i=0;cap_slot=cap_carry=-1;
+    selected=-1;next_id=1;cap_i=0;cap_slot=cap_carry=-1;monitor=0;dropped_id=0;
     rng=0x9f26ad31u;half_sample=clock_phase=scan_phase=launch=0;turn=0;next_at=1;
     pm_panic();
     for(int i=0;i<PM_PARAMS;i++)p[i]=target[i]=defaults[i];
@@ -182,8 +198,17 @@ int pm_capture(int source){
     int slot=-1,sel=selected;
     if(cap_state!=PM_CAP_IDLE)return PM_ERR_BUSY;
     if(source==PM_SRC_SILT&&(sel<0||!ring[sel].ready))return PM_ERR_NOSRC;
+    dropped_id=0;
     for(int r=0;r<PM_RINGS;r++)if(!ring[r].ready){slot=r;break;}
-    if(slot<0)return PM_ERR_FULL;
+    if(slot<0){
+        /* no room: the oldest ring gives up its place. Not the selected one: the capture is about to read it (as
+         * SILT's source, or under CARRY) while it writes */
+        for(int r=0;r<PM_RINGS;r++)if(r!=sel&&(slot<0||ring[r].id<ring[slot].id))slot=r;
+        if(slot<0)return PM_ERR_FULL;    /* (one ring only, and it selected: cannot be) */
+        dropped_id=ring[slot].id;
+        ring[slot].ready=0;
+        kill_req[slot]++;                /* its grains fade out */
+    }
     cap_slot=slot;cap_source=source==PM_SRC_SILT?PM_SRC_SILT:PM_SRC_MORPH;
     cap_parent=cap_source==PM_SRC_SILT?ring[sel].id:0;
     cap_carry=sel>=0&&ring[sel].ready?sel:-1;
@@ -334,6 +359,12 @@ void pm_render(float *left,float *right,uint32_t n){
         if(sr!=strike_seen[j]){strike_seen[j]=sr;trigger(position,j);trigger(position,j);}
     }
     float timing=p[S_TIMING];
+    /* SUSTAIN: how long a struck MORPH note lives: 80 ms .. 10 s to a third of its level; at the top, held */
+    float life_k=p[M_SUSTAIN]>=.97f?1.f:1.f-INV_RATE/(.08f*fm_exp2f(p[M_SUSTAIN]*7.f));
+    for(int j=0;j<PM_VOICES;j++){            /* a note struck (again): its life from the top, its bell rung again */
+        uint32_t k=struck[j];
+        if(k!=struck_seen[j]){struck_seen[j]=k;voice[j].life=1;voice[j].modal=1;}
+    }
     int sounding=0;
     for(int j=0;j<PM_VOICES;j++){
         Voice *v=&voice[j];int req=requested[j];
@@ -352,7 +383,9 @@ void pm_render(float *left,float *right,uint32_t n){
                 v->note=req;v->inc=440.f*fm_exp2f((req-69.f)/12.f)*INV_RATE;
                 v->phase=v->m1=v->m2=0;v->modal=1;v->filt=0;
             }
-            float gate=(req>=0&&req==v->note)?1.f:0.f;
+            /* its level follows its life: 1 while held (SUSTAIN at the top), else dying away from the strike */
+            v->life*=life_k;
+            float gate=(req>=0&&req==v->note&&v->life>.003f)?v->life:0.f;
             float c=(req>=0&&req!=v->note)?.004f:fade;
             v->env+=(gate-v->env)*c;
             if(v->env<.00003f&&!gate){v->env=0;continue;}
@@ -434,6 +467,7 @@ void pm_render(float *left,float *right,uint32_t n){
         }
         /* Turning grains off releases existing grains while returning to dry. */
         float mix=(on||active>0)?p[G_MIX]:0.f;
+        if(monitor&&mix>.3f)mix=.3f;         /* MORPH's own page, or a capture of it: MORPH in front, whatever MIX says */
         wet_gain+=(mix-wet_gain)*.002f;dry_gain+=(1.f-mix-dry_gain)*.002f;
         float l=(dl*dry_gain+gl*wet_gain)*p[G_LEVEL]*2.f;
         float r=(dr*dry_gain+gr*wet_gain)*p[G_LEVEL]*2.f;

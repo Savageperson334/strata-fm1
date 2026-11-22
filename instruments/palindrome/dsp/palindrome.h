@@ -32,12 +32,17 @@ enum { M_X, M_Y, M_COMPLEX, M_TONE, M_SPREAD, M_MOVE, M_EXCITE,
        S_SCATTER,                        /* the chance a grain jumps an octave (then also a fifth, two octaves) */
        S_DETUNE,                         /* each grain a little off pitch: none .. half a semitone either way */
        S_CLUSTER,                        /* grains started together: 1 .. 4, each on the next held key */
+       M_SUSTAIN,                        /* a MORPH note's life: struck and gone in a moment .. dying away over seconds
+                                          * .. (the top of the knob) held until let go */
        PM_PARAMS };
 void pm_init(void);
 void pm_panic(void);
 void pm_set(int p, float v);
 float pm_get(int p);
-void pm_note(int slot, int note);
+void pm_note(int slot, int note);        /* a MORPH note on a voice (0..PM_VOICES-1), or -1: let go. Each call with a
+                                          * note strikes it: under SUSTAIN's top it then dies away by itself */
+int pm_voice_sounding(int slot);         /* that voice still has a note (held, or not yet died away) */
+void pm_monitor(int on);                 /* MORPH to be heard whatever MIX says (its own page; a capture of it) */
 void pm_grains(int on);
 void pm_burst(void);
 /* the keys held for the grains: slot 0..PM_PITCHES-1 at semis semitones from the recorded pitch (-48..48), or
@@ -67,8 +72,10 @@ void pm_ring_wave(int slot, float *lo, float *hi, uint32_t n);   /* the ring in 
  * handed over by pm_service. The rings there already are not touched --- */
 enum { PM_CAP_IDLE, PM_CAP_RECORDING, PM_CAP_FINISHING };
 enum { PM_ERR_BUSY = -1, PM_ERR_FULL = -2, PM_ERR_NOSRC = -3 };
-int pm_capture(int source);              /* 0: started. PM_ERR_BUSY: one is running (nothing new is made); PM_ERR_FULL:
-                                          * no free slot (nothing is deleted); PM_ERR_NOSRC: SILT with no ring */
+int pm_capture(int source);              /* 0: started. PM_ERR_BUSY: one is running (nothing new is made);
+                                          * PM_ERR_NOSRC: SILT with no ring. With every slot taken the oldest ring makes
+                                          * room (never the selected one, which a capture reads): pm_capture_dropped */
+int pm_capture_dropped(void);            /* the number of the ring the last pm_capture gave up for room, 0: none */
 int pm_capture_state(void);
 float pm_capture_progress(void);         /* 0..1 */
 int pm_capture_slot(void);               /* where it is being written; -1: no capture */

@@ -6,11 +6,12 @@
 
 ## Quick start
 
-1. The FM-1 starts on **SILT** with no rings. Press **FX** for MORPH, raise MASTER and latch two or three notes.
-2. Press **REC** once. RING 01 fills on the screen and finishes by itself; you are back on SILT with it selected.
+1. The FM-1 starts on **SILT** with no rings. Press **FX** for MORPH and raise MASTER.
+2. Press **REC**, then play a note or two. The capture starts with the first note; RING 01 fills on the screen and finishes by itself, and you are back on SILT with it selected.
 3. Press **PLAY** for grains, or tap keys to play them yourself. Turn POSITION, SIZE and DENSITY.
 4. Press **REC** again. What SILT is playing becomes RING 02; RING 01 stays as it was.
 5. Turn **SELECT** to go between the rings. Each one keeps its own sound and its own settings.
+6. Keep going. With three rings, each new capture takes the place of the oldest.
 
 ## Buttons
 
@@ -29,7 +30,7 @@ Every button is one press. A page stays open until you open another.
 | GLO (hold) | The **guide**: what every button does, on the screen |
 | REC | Captures the SOURCE into a **new ring** |
 | PLAY | Grains on / off |
-| OCT− / OCT+ | Shift the keys an octave; held notes and pitches stay |
+| OCT− / OCT+ | Shift the keys an octave; sounding notes and pitches stay |
 | SAVE | Not used; the screen says so |
 
 **SELECT** chooses the ring on every page. **MASTER** is always volume.
@@ -60,7 +61,7 @@ Everywhere except MORPH's page the keys are grain pitches. Tap up to four to lat
 
 ### The screen
 
-Rings are concentric circles, the oldest innermost, each drawn from its own recording. The selected ring is bright and dense. The tick outside it is POSITION and the dotted arc is SPRAY; moving dots are grains. The small square in the middle is MORPH. Under the rings: **SOURCE** (what REC would capture) and **REC** (READY, a percentage while capturing, or FULL).
+Rings are concentric circles, the oldest innermost, each drawn from its own recording. The selected ring is bright and dense. The tick outside it is POSITION and the dotted arc is SPRAY; moving dots are grains. The small square in the middle is MORPH. Under the rings: **SOURCE** (what REC would capture) and **REC**: READY, ARMED, a percentage while capturing, or DROPS 01 (the ring the next capture replaces).
 
 ## MORPH
 
@@ -68,7 +69,9 @@ Rings are concentric circles, the oldest innermost, each drawn from its own reco
 
 ![MORPH: the vector square, the rings dim behind it](img/morph.png "MORPH SOURCE · FX")
 
-Four synthesis methods blend across the XY square. Up to four notes latch; tap a note again to release it. MORPH keeps sounding on every page, and SILT keeps playing here.
+Four synthesis methods blend across the XY square. A key **strikes** a note, up to four at once; each dies away by itself, as long as SUSTAIN (on MIX) says. With SUSTAIN at the top (HOLD) notes stay on until their key is tapped again.
+
+MORPH is heard on this page and while it is being captured. Everywhere else you hear the grains alone, so a sound and its recording do not pile up; MIX brings MORPH back in.
 
 | Knob | Control | Function |
 | --- | --- | --- |
@@ -97,7 +100,7 @@ The white dot is the current mix; the waveform surrounds it. The dotted orbit sh
 
 ![A capture: RING 01 filling as the next circle](img/capture.png "REC")
 
-A ring is 1.49 seconds of sound. There is room for three. A capture never writes into a ring that exists.
+A ring is 1.49 seconds of sound. There is room for three. A capture always makes a new ring; with three, the oldest gives up its place.
 
 | SOURCE | When | What is recorded |
 | --- | --- | --- |
@@ -107,9 +110,9 @@ A ring is 1.49 seconds of sound. There is room for three. A capture never writes
 - The capture runs for one ring's length and **ends by itself**. Pressing REC meanwhile does nothing.
 - The new ring appears only when it is complete, evened in level, and is then selected. Its number never changes.
 - A ring made from SILT starts with PITCH, REVERSE, SCATTER and DETUNE at rest, so they are not applied twice.
-- **Nothing to record** (no notes, or no grains): no ring is made and the screen says why.
-- **RINGS FULL**: REC opens RINGS. Nothing is deleted for you.
-- Go back to an older ring, change it and press REC: that is a new branch. The rings made before are untouched.
+- **Nothing sounding** (no notes, or no grains): REC is **armed** and the capture starts with the next sound, so a struck note is caught from its start. REC again takes the arming off.
+- **Three rings already**: the oldest ring makes room for the new one, but never the selected ring. The screen names it first: `REC: DROPS 01`.
+- Go back to an older ring, change it and press REC: that is a new branch.
 
 ### RINGS
 
@@ -154,15 +157,16 @@ Every SILT setting on SILT, SHAPE and MOTION, and STEREO on MIX, belongs to the 
 
 | Knob | MIX | Function |
 | --- | --- | --- |
-| KNOB1 | **MIX** | MORPH ↔ SILT balance |
+| KNOB1 | **MIX** | MORPH ↔ SILT balance; starts on SILT alone |
 | KNOB2 | **FADE** | MORPH note attack/release |
 | KNOB3 | **SPREAD** | MORPH voice stereo width |
 | KNOB4 | **STEREO** | Grain stereo placement |
+| ALGORITHM | **SUSTAIN** | How long a struck MORPH note rings, 0.1–10 s; at the top, **HOLD** |
 | PRESETS | **LEVEL** | Overall output level |
 
 ![REC FX](img/recfx.png "REC FX · SEQ")
 
-REC FX shapes what the **next capture** records. Rings that exist are never changed.
+REC FX shapes what the **next capture** records. It never changes a ring that exists.
 
 | Knob | REC FX | Function |
 | --- | --- | --- |
@@ -175,7 +179,7 @@ REC FX shapes what the **next capture** records. Rings that exist are never chan
 
 ## Patch ideas
 
-Capture one or two MORPH notes as RING 01 first. Values are displayed knob percentages.
+Capture one or two MORPH notes as RING 01 first (FX, REC, play them). Values are displayed knob percentages.
 
 | Patch | Settings |
 | --- | --- |
@@ -185,7 +189,8 @@ Capture one or two MORPH notes as RING 01 first. Values are displayed knob perce
 | Rain | TIMING 100, VARY 80, SIZE 20, SPRAY 100, DENSITY 80 |
 | Generations | Play a patch above, REC, change PITCH, REC again: three rings, each a step further |
 | Worn copy | REC FX: NOISE 30, CRUSH 40, DROP 30; REC from SILT; repeat for more wear |
-| Layered | RINGS: CARRY 60; FX, play new notes, REC: the new ring is the old one with MORPH on top |
+| Layered | RINGS: CARRY 60; FX, REC, play new notes: the new ring is the old one with MORPH on top |
+| Drone | MIX: SUSTAIN to HOLD, MIX 50; FX, latch notes: MORPH stays under the grains |
 
 ## Notes
 

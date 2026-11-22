@@ -14,7 +14,12 @@
  *   GLO, held   the guide: what every button does, on the screen, laid out as the buttons are
  *   REC         captures the source into a NEW ring: MORPH on MORPH's page, else SILT's grains of the selected ring
  *               (MORPH while there is no ring). It runs one ring's length and finishes by itself; pressed
- *               meanwhile it does nothing but say so. No room: it says so and opens RINGS; nothing is deleted.
+ *               meanwhile it does nothing but say so. With nothing sounding it is armed, and starts with the next
+ *               sound (a key, PLAY). No room: the oldest ring makes room (the screen says which, beforehand).
+ *
+ * MORPH's notes are struck: a key sounds its note, which dies away (SUSTAIN, on MIX; at its top a note is held
+ * until its key is tapped again). MORPH is heard on its own page and through a capture of it; elsewhere, while
+ * grains sound, MIX decides (as it starts: the grains alone), so a sound and its recording are not heard together.
  *   PLAY        the stream of grains, on and off
  *   SAVE        nothing: it says so
  *
@@ -33,6 +38,7 @@ static int page, source, octave, running, slots[PM_VOICES], replace_at;
 static int gslots[PM_PITCHES], greplace_at;  /* the keys held for the grains: semitones, PM_NO_PITCH none */
 static int arm;                          /* RINGS: 0, or what SEL would now do: 1 delete the selected ring, 2 clear all */
 static int guide;                        /* GLO is held: the guide is on the screen */
+static int armed;                        /* REC found nothing sounding: the capture starts with the next sound */
 static int played;                       /* PLAY has been pressed once (its hint no longer needed) */
 static uint32_t old_keys, old_btn, frames;
 static float gain_now;
@@ -47,7 +53,7 @@ static const char *const labels[PM_PARAMS]={
  "POSITION","SIZE","DENSITY","SPRAY","PITCH","REVERSE","CARRY",
  "MIX","FADE","SCAN","SHAPE","STEREO","DAMP","LEVEL",
  "NOISE","COLOR","CRUSH","GATE","DROP",
- "TIMING","VARY","SCATTER","DETUNE","CLUSTER"};
+ "TIMING","VARY","SCATTER","DETUNE","CLUSTER","SUSTAIN"};
 /* the control on knob j (KNOB1..4, SELECT, ALGORITHM, PRESETS) of a page, or PG_NONE (that knob sets nothing there).
  * SELECT (j 4) is the ring selector on every page, and KNOB4 on RINGS arms a delete: neither is in this table */
 #define PG_NONE 255
@@ -57,7 +63,7 @@ static const uint8_t PAGE[NPAGES][7]={
     {R_CARRY,PG_NONE,PG_NONE,PG_NONE,PG_NONE,PG_NONE,PG_NONE},                  /* RINGS */
     {S_SHAPE,S_VARY,S_SCATTER,S_DETUNE,PG_NONE,S_CLUSTER,PG_NONE},              /* SHAPE */
     {G_SCAN,S_TIMING,PG_NONE,PG_NONE,PG_NONE,PG_NONE,PG_NONE},                  /* MOTION */
-    {G_MIX,G_FADE,M_SPREAD,G_STEREO,PG_NONE,PG_NONE,G_LEVEL},                   /* MIX */
+    {G_MIX,G_FADE,M_SPREAD,G_STEREO,PG_NONE,M_SUSTAIN,G_LEVEL},                 /* MIX */
     {R_NOISE,R_COLOR,R_CRUSH,R_GATE,PG_NONE,R_DROP,G_DAMP}};                    /* REC FX */
 static int pidx(int pg,int j){return PAGE[pg][j]==PG_NONE?-1:PAGE[pg][j];}
 static const uint8_t PAGE_LED[NPAGES]={B_EDIT,B_FX,B_SEL,B_ENV,B_LFO,B_ARP,B_SEQ};
@@ -83,10 +89,17 @@ static void all_off(void){
     for(int j=0;j<PM_VOICES;j++){slots[j]=-1;pm_note(j,-1);}
     for(int j=0;j<PM_PITCHES;j++){gslots[j]=PM_NO_PITCH;pm_grain_pitch(j,PM_NO_PITCH);}
 }
+static int held(void){return pm_get(M_SUSTAIN)>=.97f;}   /* SUSTAIN at its top: notes are held, not struck */
+/* MORPH's keys. Held notes: a tap starts a note, a tap on a sounding one lets it go. Struck notes (SUSTAIN under its
+ * top): a tap strikes the note, again if it is still sounding; it dies away by itself */
 static void latch(int note){
     int empty=-1;
     for(int j=0;j<PM_VOICES;j++){
-        if(slots[j]==note){slots[j]=-1;pm_note(j,-1);return;}
+        if(slots[j]==note){
+            if(held()){slots[j]=-1;pm_note(j,-1);}
+            else pm_note(j,note);
+            return;
+        }
         if(slots[j]<0&&empty<0)empty=j;
     }
     if(empty<0)empty=(replace_at++)%PM_VOICES;
@@ -129,7 +142,7 @@ static void say_ring(const char *before,int slot,const char *after){
 /* sine and cosine of 256 steps round the circle, x 127: the rings' geometry, made once */
 static int8_t pd_sin[256],pd_cos[256];
 void app_init(void){
-    pm_init();page=PG_SILT;source=PM_SRC_MORPH;octave=-1;running=0;replace_at=greplace_at=0;arm=0;played=0;
+    pm_init();page=PG_SILT;source=PM_SRC_MORPH;octave=-1;running=0;replace_at=greplace_at=0;arm=0;played=0;armed=0;
     old_keys=old_btn=frames=message_until=0;gain_now=0;touched=-1;guide=0;
     for(int i=0;i<256;i++){
         pd_sin[i]=(int8_t)(fm_sin_turns((float)i*(1.f/256.f))*127.f);
@@ -151,21 +164,38 @@ void app_render(int32_t *lr,uint32_t n,uint32_t master_q12){
         n-=k;
     }
 }
-/* REC: one press, one new ring (or the reason there is none) */
+/* is there something of the source to record now? (NOISE and CARRY are sound of their own) */
+static int sounding(int src){
+    if(pm_get(R_NOISE)>=.02f||(pm_get(R_CARRY)>.02f&&pm_ring_selected()>=0))return 1;
+    return src==PM_SRC_MORPH?voices()>0:running||pm_active_grains()>0;
+}
+/* the ring a capture would give up for room now: the oldest but the selected one (0: there is room) */
+static int would_drop(void){
+    rings_now();
+    if(norder<PM_RINGS)return 0;
+    for(int k=0;k<norder;k++)if(order[k]!=pm_ring_selected())return ring_id(order[k]);
+    return 0;
+}
+static void start_capture(void){
+    armed=0;
+    if(pm_capture(source_now()))return;
+    if(pm_capture_dropped()){
+        char t[40],*e=put(t,"RING ");
+        e=two(pm_capture_dropped(),e);put(e," MAKES ROOM");
+        app_say(t,"");
+    }
+}
+/* REC: one press, one new ring. Nothing sounding: armed, to start with the next sound; pressed again, not armed */
 static void capture(void){
-    int src=source_now(),r;
+    int src=source_now();
     if(pm_capture_state()!=PM_CAP_IDLE){app_say("CAPTURING: IT ENDS BY ITSELF","");return;}
-    if(pm_ring_count()>=PM_RINGS){page=PG_RINGS;app_say("RINGS FULL: DELETE ONE HERE","");return;}
-    /* nothing to record: say what would make a sound, start nothing (NOISE and CARRY are sound of their own) */
-    if(src==PM_SRC_MORPH&&!voices()&&pm_get(R_NOISE)<.02f&&!(pm_get(R_CARRY)>.02f&&pm_ring_selected()>=0)){
-        app_say(page==PG_MORPH?"NO SOUND: TAP KEYS FIRST":"NO SOUND: FX, THEN TAP KEYS","");return;
+    if(armed){armed=0;app_say("REC: NOT ARMED NOW","");return;}
+    if(!sounding(src)){
+        armed=1;
+        app_say(src==PM_SRC_MORPH?(page==PG_MORPH?"ARMED: PLAY A KEY":"ARMED: FX, THEN A KEY"):"ARMED: PLAY, OR A KEY","");
+        return;
     }
-    if(src==PM_SRC_SILT&&!running&&!pm_active_grains()&&pm_get(R_NOISE)<.02f&&pm_get(R_CARRY)<.02f){
-        app_say("NO GRAINS: PRESS PLAY FIRST","");return;
-    }
-    r=pm_capture(src);
-    if(r==PM_ERR_FULL){page=PG_RINGS;app_say("RINGS FULL: DELETE ONE HERE","");}
-    else if(r)app_say("CAPTURING: IT ENDS BY ITSELF","");
+    start_capture();
 }
 static void select_ring(int d,uint32_t now){
     int at;
@@ -182,6 +212,12 @@ static void select_ring(int d,uint32_t now){
 void app_input_only(void){
     uint32_t keys=plat_keys(),btn=plat_buttons(),newb=btn&~old_btn,newk=keys&~old_keys,now=plat_ms();
     int slot=-1,ev=pm_service(&slot);
+    /* MORPH's struck notes that have died away: their keys are free again */
+    for(int j=0;j<PM_VOICES;j++)if(slots[j]>=0&&!pm_voice_sounding(j)){slots[j]=-1;pm_note(j,-1);}
+    /* armed, and now there is something to record: the capture */
+    if(armed&&pm_capture_state()==PM_CAP_IDLE&&sounding(source_now()))start_capture();
+    /* MORPH in front on its own page and through a capture of it */
+    pm_monitor(page==PG_MORPH||(pm_capture_state()!=PM_CAP_IDLE&&pm_capture_source()==PM_SRC_MORPH));
     /* a capture that has finished: the new ring is selected, and SILT is where it is played */
     if(ev==PM_EV_COMMITTED){page=PG_SILT;source=PM_SRC_SILT;arm=0;say_ring("RING ",slot," CAPTURED");}
     else if(ev==PM_EV_SILENT)app_say("NO SOUND: NOTHING CAPTURED","");
@@ -523,8 +559,11 @@ static void pd_scene(void){
         if(pm_capture_state()!=PM_CAP_IDLE){
             number((int)(pm_capture_progress()*100.f),t);e=t;while(*e)e++;put(e,"%");
             x0=236-text_w(&FONT_XS,t);pd_text(x0,184,t,C_WHITE);
-        }else if(norder>=PM_RINGS){x0=236-text_w(&FONT_XS,"FULL");pd_text(x0,184,"FULL",C_AMB);}
-        else{x0=236-text_w(&FONT_XS,"READY");pd_text(x0,184,"READY",C_HI);}
+        }else if(armed){x0=236-text_w(&FONT_XS,"ARMED");pd_text(x0,184,"ARMED",(plat_ms()>>8)&1u?C_WHITE:C_AMB);}
+        else if(would_drop()){                  /* no room: which ring the next capture gives up */
+            e=put(t,"DROPS ");two(would_drop(),e);
+            x0=236-text_w(&FONT_XS,t);pd_text(x0,184,t,C_AMB);
+        }else{x0=236-text_w(&FONT_XS,"READY");pd_text(x0,184,"READY",C_HI);}
         pd_text(x0-4-text_w(&FONT_XS,"REC:"),184,"REC:",C_GRAY);
     }
 
@@ -560,6 +599,7 @@ static void pd_scene(void){
                 else pd_knob(COL[i],ROW[i],"RING",0,lit==i,C_WHITE,"--");
             }else if(page==PG_RINGS&&i==3)
                 pd_knob(COL[i],ROW[i],"DEL",(float)arm*.5f,lit==i,C_WHITE,arm==2?"ALL":arm?"ONE":"NO");
+            else if(id==M_SUSTAIN&&held())pd_knob(COL[i],ROW[i],labels[id],1,lit==i,fill,"HOLD");
             else if(id>=0)pd_knob(COL[i],ROW[i],labels[id],pm_get(id),lit==i,fill,0);
         }
         pd_box(119,201,2,38,C_DIM);                                                  /* left knobs | right knobs */
@@ -600,6 +640,8 @@ int app_expect(const char *what,int *got){
     else if(!strcmp(what,"gkeys"))*got=gkeys();
     else if(!strcmp(what,"arm"))*got=arm;
     else if(!strcmp(what,"guide"))*got=guide;
+    else if(!strcmp(what,"armed"))*got=armed;
+    else if(!strcmp(what,"sustain"))*got=(int)(pm_get(M_SUSTAIN)*100+.5f);
     else if(!strcmp(what,"size"))*got=(int)(pm_get(S_SIZE)*100+.5f);
     else if(!strcmp(what,"pitch"))*got=(int)(pm_get(S_PITCH)*100+.5f);
     else if(!strcmp(what,"noise"))*got=(int)(pm_get(R_NOISE)*100+.5f);

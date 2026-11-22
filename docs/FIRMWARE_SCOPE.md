@@ -61,11 +61,11 @@ SILT is not just an effect hanging off MORPH. The selected ring and its granular
 
 ### Implemented / documented today
 
-**MORPH — source page (FX).** An independent four-corner XY synth blends **FM, modal, additive and wavefolding** sounds. Keys latch source notes. X/Y, complexity, brightness, orbit/motion and excitation shape the source. MORPH may continue sounding on other pages.
+**MORPH — source page (FX).** An independent four-corner XY synth blends **FM, modal, additive and wavefolding** sounds. Keys strike source notes that die away (SUSTAIN; at its top they hold). X/Y, complexity, brightness, orbit/motion and excitation shape the source. MORPH may continue sounding on other pages.
 
 **SILT — home/primary page (EDIT or HOME).** A granular playback engine operates the **selected recorded ring**. POSITION, SIZE, DENSITY, SPRAY, REVERSE and PITCH make it an instrument in its own right. Up to 16 grains are active globally; up to four latched keyboard pitches can play grains, including when automatic playback is off.
 
-**Recording (REC).** One press starts a finite capture into a **new ring**. The current design has **three 1.49-second rings**. The first capture comes from MORPH if there is no ring; on MORPH's page it takes the synth source, while SILT-focused playing captures processed grains of the selected ring. Capture completes automatically. A new ring doesn't overwrite a previous one. The interface shows source/progress/full state and changes to the new ring when capture finishes. Returning to an older ring and recording it again can create a *branch*, not a forced linear chain.
+**Recording (REC).** One press starts a finite capture into a **new ring**. The current design has **three 1.49-second rings**. The first capture comes from MORPH if there is no ring; on MORPH's page it takes the synth source, while SILT-focused playing captures processed grains of the selected ring. Capture completes automatically. With nothing sounding REC is armed and starts with the next sound. A capture always makes a new ring; when all three are in use the **oldest ring (never the selected one) makes room**, and the screen names it beforehand. MORPH is monitored on its own page and during its capture, otherwise the grains are heard alone, so a sound and its recording do not stack up. The interface shows source/progress/armed/drops state and changes to the new ring when capture finishes. Returning to an older ring and recording it again can create a *branch*, not a forced linear chain.
 
 **Ring management (SEL).** SELECT chooses the ring. **CARRY** can deliberately mix a prior ring into a future capture; deletions must be deliberately armed and confirmed. Rings hold independent playback settings and their own PCM.
 
@@ -86,7 +86,7 @@ Likewise, a ring is **recorded audio**, while MORPH is a continuously playing **
 
 A useful continuation includes clearer provenance (which ring was recorded from which), expressive ways to compare and revisit generations, safer source and capture decisions, more interesting modulation of granular playback, and maintaining the intuitive visual link between sound and concentric rings.
 
-But **not** by replacing SILT with a full multi-track DAW, automatically overwriting earlier rings, treating recording as instant when it actually takes time, or merging everything into a single circular buffer. Hardware RAM and CPU budgets constrain ring count, duration and density. The full prior [SILT-first redesign plan](PALINDROME_SILT_FIRST_REDESIGN.md) contains earlier architectural decisions and cautions; it must be read with the **current** implementation in mind, because some of that plan has already shipped.
+But **not** by replacing SILT with a full multi-track DAW, overwriting the ring being played, treating recording as instant when it actually takes time, or merging everything into a single circular buffer. Hardware RAM and CPU budgets constrain ring count, duration and density. The full prior [SILT-first redesign plan](PALINDROME_SILT_FIRST_REDESIGN.md) contains earlier architectural decisions and cautions; it must be read with the **current** implementation in mind, because some of that plan has already shipped.
 
 **Current limitations:** Ring audio/settings are volatile (no ring storage across power-off), no MIDI input in the PALINDROME app, and physical-device performance remains unverified. A published experimental firmware package is not equivalent to hardware qualification.
 

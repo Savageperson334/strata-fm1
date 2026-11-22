@@ -1,13 +1,13 @@
 # PALINDROME
 
-**SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.** One press does everything: nothing is held.
+**SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.** One press does everything; hold GLO and the screen shows what every button does.
 
 ![SILT playing the selected ring, an older ring inside it](manual/img/silt.png "PALINDROME")
 
 ## Play
 
-- **FX — MORPH:** latch notes and blend four synthesis methods with KNOB1/2.
-- **REC:** one press captures a new ring. It ends by itself and never overwrites another.
+- **FX — MORPH:** strike notes that die away and blend four synthesis methods with KNOB1/2.
+- **REC:** one press captures a new ring, starting with your next note. It ends by itself; with three rings the oldest makes room.
 - **EDIT — SILT:** PLAY starts grains from the selected ring; keys are their pitches.
 - **REC again:** what SILT plays becomes the next ring. **SELECT** moves between rings; each keeps its settings.
 

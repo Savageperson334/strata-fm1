@@ -51,7 +51,7 @@
       "how": "FX",
       "keys": [
         "NOTES",
-        "On MORPH's page each key latches a synth note, up to four. Tap a lit key again to release it."
+        "On MORPH's page each key strikes a synth note, up to four at once. A note dies away by itself (SUSTAIN, on MIX, says how long); with SUSTAIN at the top it holds until its key is tapped again."
       ],
       "knobs": {
         "KNOB1": [
@@ -140,7 +140,7 @@
       "knobs": {
         "KNOB1": [
           "MIX",
-          "Balance between MORPH and SILT's grains."
+          "Balance between MORPH and SILT's grains. It starts on the grains alone; MORPH is always heard on its own page and while it is captured."
         ],
         "KNOB2": [
           "FADE",
@@ -153,6 +153,10 @@
         "KNOB4": [
           "STEREO",
           "How wide the grains are scattered left to right."
+        ],
+        "ALGORITHM": [
+          "SUSTAIN",
+          "How long a struck MORPH note rings before it dies away. At the top (HOLD) notes stay on until their key is tapped again."
         ],
         "PRESETS": [
           "LEVEL",
@@ -236,7 +240,7 @@
     "REC": {
       "label": "NEW RING",
       "sub": "one press",
-      "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. It runs for one ring's length and finishes by itself. It never overwrites a ring: with no room left it says RINGS FULL."
+      "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. It runs for one ring's length and finishes by itself. With nothing sounding it is armed and starts with the next sound. With three rings, the oldest (never the selected one) makes room: the screen says which, REC: DROPS 01."
     },
     "PLAY": {
       "label": "GRAINS",
@@ -290,7 +294,7 @@
       },
       {
         "title": "MORPH",
-        "text": "Tap two or three keys: each one latches a note. Turn KNOB1 and KNOB2 to move between the four ways of making sound.",
+        "text": "Tap a key or two: each strikes a note that dies away. Turn KNOB1 and KNOB2 to move between the four ways of making sound.",
         "show": [
           "keys",
           "KNOB1",
@@ -302,7 +306,7 @@
       },
       {
         "title": "Capture",
-        "text": "Press REC once. Watch RING 01 fill on the screen; it finishes by itself.",
+        "text": "Press REC once. If the screen says ARMED, tap a key: the capture starts with the note. Watch RING 01 fill; it finishes by itself.",
         "show": [
           "REC"
         ],
