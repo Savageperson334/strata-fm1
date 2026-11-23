@@ -91,6 +91,7 @@ border-bottom:2px solid currentColor;box-sizing:border-box}
 font-size:12px;letter-spacing:.07em}
 #fm1nav .fm1nav-swap a{padding:5px 14px;opacity:.72}
 #fm1nav .fm1nav-swap a:hover{opacity:1}
+#fm1nav .fm1nav-swap a[data-project="strabbledrome"]{border-left:1px solid currentColor;letter-spacing:0}
 #fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
 @media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
 </style>
@@ -119,14 +120,15 @@ body:has(.devicebox) > header h1 { color: var(--accent); }
 @media(max-width:540px) {
   #fm1nav { align-items: stretch; }
   #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
-  #fm1nav .fm1nav-swap { display: flex; width: 100%; }
-  #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
+  #fm1nav .fm1nav-swap { display: flex; flex-wrap: wrap; width: 100%; border-radius:12px; }
+  #fm1nav .fm1nav-swap a { flex: 1 1 42%; text-align: center; padding: 8px 5px; font-size: 11px; }
+  #fm1nav .fm1nav-swap a[data-project="strabbledrome"] { border-left:0; border-top:1px solid var(--rule); }
 }
 
 </style>
 </head>
 <body>
-<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a></div></nav>
+<nav id="fm1nav" aria-label="BABBLEBEAT"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="../install/">Install</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/babblebeat">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware projects"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="./" aria-current="true">BABBLEBEAT</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/strabbledrome" data-project="strabbledrome" title="Three-in-one switching firmware — in development">STRABBLEDROME · WIP</a></div></nav>
 <a class="skip" href="#content">Skip to content</a>
 <div class="page">
 <main id="content" tabindex="-1">
