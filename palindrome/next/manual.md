@@ -2,7 +2,7 @@
 
 **Three recordings, one playable instrument.** MORPH creates source audio; SILT scans, slowly moves through, layers and transforms it. **REC prints the current sound into the next ring**, leaving the previous recordings intact until you explicitly make room.
 
-[Play the emulator](../emu/) · [Back to instrument](../) · [Source](https://github.com/Savageperson334/strata-fm1/tree/feature/palindrome-silt-weave-modes/instruments/palindrome)
+[Play the emulator](../emu/) · [Back to instrument](../) · [Source](https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome)
 
 ## Play it
 
@@ -99,4 +99,4 @@ The **SEL / RINGS** page offers CARRY (KNOB1), LOCK (KNOB2: right locks, left un
 | All three running | Make three rings, WEAVE 100, MODE varied per selected ring |
 | Serial transformation | WEAVE 0, REC to print solo; change mode/pitch, REC again; keep a locked original |
 
-**Limits:** Exactly three PCM rings and sixteen shared grains. Audio and ring settings are volatile (lost at power-off). Physical FM-1 playback quality and UI ergonomics require device testing; this preview shares its C audio DSP with the host and WebAssembly builds. The published installer may still point to an earlier release.
+**Limits:** Exactly three PCM rings and sixteen shared grains. Audio and ring settings are volatile (lost at power-off). Physical FM-1 playback quality and UI ergonomics still need hands-on testing. The native toolchain, host tests and browser emulator use the shared C audio engine. Version 0.9 is an experimental release.
