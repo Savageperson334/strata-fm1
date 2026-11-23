@@ -1,106 +1,102 @@
-# PALINDROME
+# PALINDROME — SILT
 
-**MORPH makes the seed. SILT is the instrument.** SILT preserves three recordings as concentric rings, lets them play independently, and captures their transformations as new generations.
+**Three recordings, one playable instrument.** MORPH creates source audio; SILT scans, slowly moves through, layers and transforms it. **REC prints the current sound into the next ring**, leaving the previous recordings intact until you explicitly make room.
 
-[Play the emulator](../emu/) · [Install](../install/) · [Source](https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome)
+[Play the emulator](../emu/) · [Back to instrument](../) · [Source](https://github.com/Savageperson334/strata-fm1/tree/feature/palindrome-silt-weave-modes/instruments/palindrome)
 
-## Start here
+## Play it
 
-1. Turn up **MASTER**. Tap a key on SILT's empty home screen. MORPH strikes a note, automatically records **RING 01**, and SILT starts playing it.
-2. Turn **KNOB1** (position) or **KNOB2** (grain size). Change **ALGORITHM** to choose a playback mode.
-3. Press **REC** to record that processed sound into **RING 02**.
-4. Raise **KNOB4 / WEAVE** to combine the selected ring with older material. Turn **SELECT** to change the ring you are editing.
-5. Open **FX** to play MORPH directly or inject another sound. DRIFT is optional on **LFO**; it starts off.
+1. Tap a key on SILT's empty screen. MORPH supplies the first sound; RING 01 captures automatically.
+2. Press **PLAY**. The ring plays with a gentle moving read head—without recording over itself.
+3. Turn **KNOB1 / SCAN** to browse the audio, **KNOB2 / GRAIN** to change fragment length, and **KNOB3 / FLOW** to make the motion stronger or subtler.
+4. Press **REC**. The processed sound is captured into RING 02. The first recording remains accessible.
+5. Turn **KNOB4 / WEAVE** from one ring to two and eventually all three. Press REC again to print that mixture into another generation.
 
-One press opens a page. Holding a button is **not** required to reach any musical control (GLO held only opens an optional on-device guide).
-
-## Two halves, different jobs
+### Two instruments, two roles
 
 | | **SILT — EDIT / HOME** | **MORPH — FX** |
 | --- | --- | --- |
-| Job | Play, manipulate, blend and resample rings | Generate fresh source audio |
-| Keys | Pitch-latch grains (up to four pitches) | Strike up to four synth notes |
-| KNOB1 | **POSITION** — where to read | **X** — vector left/right |
-| KNOB2 | **SIZE** — 20–500 ms grains | **Y** — vector down/up |
-| KNOB3 | **DENSITY** — starts/sec | **COMPLEX** — harmonic richness |
-| KNOB4 | **WEAVE** — introduce other rings | **TONE** — brightness |
-| SELECT | **RING** — choose recording | **RING** — choose recording |
-| ALGORITHM | **MODE** — Loop/Cloud/Pulse/Fracture | **MOVE** — automatic XY orbit |
-| PRESETS | **PITCH** — transpose grains | **EXCITE** — modal resonance decay |
+| Purpose | Playback, scan, transform and layer recorded sound | Generate the sound to inject |
+| Keys | Play and latch up to four grain pitches | Strike up to four synthesis notes |
+| KNOB1 | **SCAN** — manual position in the recording | **X** — sound morph position |
+| KNOB2 | **GRAIN** — size, 20–500 ms | **Y** — sound morph position |
+| KNOB3 | **FLOW** — slow playback drift | **COMPLEX** — harmonic richness |
+| KNOB4 | **WEAVE** — solo → two rings → three rings | **TONE** — brightness |
+| SELECT | **RING** — choose which recording you edit | **RING** — unchanged |
+| ALGORITHM | **MODE** — Loop / Cloud / Pulse / Fracture | **MOVE** — automatic vector motion |
+| PRESETS | **PITCH** — transpose grains | **EXCITE** — modal ringing |
 
-![SILT's three concentric rings](img/silt.png "SILT")
+![SILT rings](img/silt.png "SILT — independent recordings")
 
-![MORPH's vector synth](img/morph.png "MORPH")
+![MORPH](img/morph.png "MORPH — the injector")
 
-### What the four SILT modes mean
+### The point of SCAN
 
-| Mode | Behavior |
+SCAN places a read point anywhere in the selected 1.49-second recording—similar in spirit to the PO-33's simple sample-start control. **The amber notch shows your SCAN position; the white notch is the moving playback head.** FLOW drifts gently around that starting point, while MOTION/SPEED determines how quickly the head travels around the loop. Setting FLOW to zero removes its automatic wobble. The PCM itself is unchanged.
+
+The grain playback concepts are closer to Mutable Instruments Beads: position, fragment size and moving or frozen reading are separate controls. PALINDROME retains the three-ring generational model rather than Beads' single continuously recorded history.
+
+## Three rings, three relationships
+
+Each circle is an independent 16-bit mono recording, approximately 1.49 seconds long. A selected ring is bright; other rings active through WEAVE glow amber.
+
+| WEAVE position | What you hear |
 | --- | --- |
-| **LOOP** | Smooth, coherent reading along the loop; limited random scatter |
-| **CLOUD** | Overlapping granular texture (closest to the original SILT behavior) |
-| **PULSE** | Short, separated, regularly timed grain events |
-| **FRACTURE** | Short broken fragments with position jumps, pitch wander and additional reversals |
+| **0** | **SOLO** — just the selected ring |
+| **50** | **PAIR** — selected ring plus its parent (or nearest surviving ring) |
+| **100** | **ALL** — all three recorded rings, each with its own head and grain settings |
 
-Each ring keeps its own **mode, grain settings and playhead motion**. WEAVE is the selected ring's blend control: at 0, only that ring starts grains; turning it up lets the other recordings spawn their own grains too. All three still share **sixteen total grain voices**, so WEAVE doesn't triple the processing budget. The currently selected ring is the one the knobs edit; rings you aren't editing continue advancing their playheads.
+WEAVE never multiplies the sixteen-grain budget: grain-start rates and audio levels are apportioned between active rings. Selecting a ring changes your edit focus; the other rings can continue playing.
 
-## The three rings
+**REC is a one-way PRINT, not a live feedback cable.** With WEAVE at zero, a processed ring is passed to the next recording. With WEAVE raised, you print a layered mix. The child ring starts with WEAVE at zero because the old rings are *already present in its recorded sound*; this prevents repeatedly doubling them. Recording effects are bounded, and CARRY mixes proportional portions of the original and processed source rather than adding two full-scale signals.
 
-Each ring holds **1.49 seconds of mono audio**. The oldest recording appears toward the center; later generations appear farther out. A selected ring is brighter. Moving dots show the grains and their rings.
-
-**REC** captures one ring's duration from the current source, then automatically selects the new ring. On the FX page, the source is MORPH. Elsewhere, it is SILT's processed audio—including WEAVE contributions. A capture runs to completion; tapping REC again while it is running doesn't create another ring. If there's no sound, REC arms until the next audible event.
-
-**SEL** opens the ring browser. Turn SELECT to browse, and use these controls:
-
-| Control | Rings page action |
+| Activity | Result |
 | --- | --- |
-| **KNOB1 / CARRY** | Keep some selected-ring audio under the next capture |
-| **KNOB2 / LOCK** | Turn right to lock a ring; left to unlock |
-| **KNOB4 / DELETE** | Arm a confirmed delete or clear-all; SEL confirms |
+| MORPH → REC | A new ring captures the synth |
+| SILT solo → REC | The selected ring's manipulated audio becomes a new ring |
+| SILT WEAVE → REC | The layered audio is printed once to the new ring |
+| SELECT older ring | Its sound and granular settings are restored |
+| RINGS / LOCK | Protect a ring from automatic replacement |
+| Three rings full | Manual REC names the oldest unlocked, unselected ring it would replace; if no eligible ring exists, it refuses; automatic EVOLVE pauses |
 
-**A locked ring cannot be automatically replaced.** If all three are full, manual REC can recycle only the oldest **unlocked, unselected** recording, which is named on screen in advance. If none qualifies, REC refuses without destroying anything. Deliberate delete still requires confirmation. DRIFT never recycles a full ring.
+### Playback modes
 
-## SILT detail pages
+| MODE | Experience |
+| --- | --- |
+| **LOOP** | Coherent reading with minimal scatter |
+| **CLOUD** | Overlapping sound-cloud grains |
+| **PULSE** | Short, separated rhythmic events |
+| **FRACTURE** | Unstable short pieces with position, pitch and reverse jumps |
 
-Every page is selected with **one press**; SELECT continues to choose the ring.
+Each ring retains its own mode, scan point, flow, speed, pitch and granular parameters.
 
-| Knob | **ENV — SILT SHAPE** | **LFO — SILT MOTION** |
+## Additional controls
+
+Press a button once to open its page; the knob labels on screen always identify their current jobs. No musical function requires holding a modifier.
+
+| Control | **ENV — SHAPE** | **LFO — MOTION** |
 | --- | --- | --- |
-| KNOB1 | SHAPE — struck to swell envelope | SCAN — automatic position motion |
-| KNOB2 | VARY — random grain duration | TIMING — regular to irregular starts |
-| KNOB3 | SCATTER — jumps in intervals/octaves | LOOP — playhead speed: off to four times |
-| KNOB4 | DETUNE — individual grain tuning | SPRAY — grain position randomness |
-| ALGORITHM | CLUSTER — one to four simultaneous grains | DRIFT — automatic new-ring generation |
-| PRESETS | REVERSE — reverse probability | — |
+| KNOB1 | SHAPE: grain envelope | SPEED: ring playhead travel |
+| KNOB2 | VARY: randomized grain duration | TIMING: regular/irregular triggers |
+| KNOB3 | SCATTER: octave and interval jumps | DENSITY: grains per second |
+| KNOB4 | DETUNE: pitch randomness | SPRAY: position randomness |
+| ALGORITHM | CLUSTER: voices per trigger | EVOLVE: optional automatic new recordings |
+| PRESETS | REVERSE: chance to reverse | — |
 
-**DRIFT starts OFF.** Increase it on LFO to create successive generations during unattended SILT playback. The engine waits while you interact or browse RINGS, and pauses when all three ring slots are occupied. Unlike a manual REC, DRIFT will never delete an existing recording to make room.
+**FLOW versus EVOLVE:** FLOW changes *how an existing recording plays*. It begins gently enabled. EVOLVE makes *new recordings* after you leave the instrument unattended. It begins OFF and stops when the three rings are full.
 
-## Shared sound and recording effects
+The **SEL / RINGS** page offers CARRY (KNOB1), LOCK (KNOB2: right locks, left unlocks), and confirmed DELETE (KNOB4, then SEL). **ARP** still opens MIX (MORPH/SILT balance, stereo spread, level). **SEQ** opens REC FX (noise, color, crush, gate, dropouts, damp) for the next generation.
 
-**ARP** opens MIX (the button's firmware-specific role); **SEQ** opens REC FX. Screen labels indicate the active page.
+**PLAY** toggles ongoing grains; the keys can still fire individual grains when PLAY is stopped. **HOME** returns to SILT without deleting audio. **GLO** is a one-press toggle for a full-screen button guide; press it again or HOME to exit. **SAVE** is explicitly unavailable.
 
-| Knob | **ARP — MIX** | **SEQ — REC FX** |
-| --- | --- | --- |
-| KNOB1 | MIX — MORPH ↔ SILT | NOISE — inject hiss into next capture |
-| KNOB2 | FADE — MORPH attack/release | COLOR — noise tone |
-| KNOB3 | SPREAD — MORPH stereo width | CRUSH — recording bit-depth effect |
-| KNOB4 | STEREO — grain panning | GATE — suppress weak recorded audio |
-| ALGORITHM | DECAY — MORPH strike length / HOLD | DROP — capture gaps |
-| PRESETS | LEVEL — overall level | DAMP — recording lowpass |
+## Five short patches
 
-REC FX affects **new recordings**, not the PCM of an older ring.
-
-Other controls: **PLAY** toggles automatic grains (the keys can trigger grains even with PLAY off); **OCT−/+** shifts note range; **HOME** returns to SILT without erasing anything; **GLO** held shows an optional button reference; **SAVE** reports unavailable. A key on the empty SILT screen injects a MORPH note and captures the first ring automatically.
-
-## Patch ideas
-
-| Patch | Try this |
+| Sound | Starting move |
 | --- | --- |
-| **Tape loop** | MODE LOOP, WEAVE 0; MOTION: LOOP 50, SPRAY 0 |
-| **Ambient cloud** | MODE CLOUD, SIZE 70, DENSITY 55, ENV SHAPE 60 |
-| **Beat fragments** | MODE PULSE, SIZE 20, DENSITY 45; tap several pitch keys |
-| **Broken machine** | MODE FRACTURE, LFO SPRAY 80, ENV SCATTER 55 |
-| **Two generations** | Record RING 01, change its size/pitch, REC RING 02, then WEAVE 70 |
-| **Preserved source** | Lock RING 01 in SEL; use 02 and 03 for destructive experiments |
-| **Autonomous evolution** | With room free, LFO DRIFT 30, then leave the device alone |
+| Scanning sample | MODE CLOUD, FLOW 0, MOTION SPEED 0; sweep SCAN across the recording |
+| Slowly evolving texture | MODE CLOUD, FLOW 20, GRAIN 70, MOTION SPEED 10 |
+| Two-recording duet | Capture two rings, WEAVE 50, edit SCAN/SPEED on each separately |
+| All three running | Make three rings, WEAVE 100, MODE varied per selected ring |
+| Serial transformation | WEAVE 0, REC to print solo; change mode/pitch, REC again; keep a locked original |
 
-**Limits:** Three rings, 1.49 seconds each, sixteen total grains. Audio and settings remain in RAM and disappear on power-off. No MIDI recording or persistent projects. This is experimental firmware; native builds and device audio performance need verification before flashing. The installer can restore stock M-VAVE firmware.
+**Limits:** Exactly three PCM rings and sixteen shared grains. Audio and ring settings are volatile (lost at power-off). Physical FM-1 playback quality and UI ergonomics require device testing; this preview shares its C audio DSP with the host and WebAssembly builds. The published installer may still point to an earlier release.
