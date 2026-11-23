@@ -296,7 +296,8 @@ int main(void){
   }
   {float p0,p1;
    pm_set(S_LOOP,.5f);run(4);p0=pm_position();run(40);p1=pm_position();assert(p0!=p1);
-   pm_set(S_LOOP,0);run(40);p0=pm_position();run(40);p1=pm_position();assert(p0==p1);}}
+   pm_set(S_LOOP,0);pm_set(G_SCAN,0);run(120);p0=pm_position();run(40);p1=pm_position();
+   assert(fabsf(p0-p1)<.00001f); /* both SPEED and FLOW off: truly still */}}
  /* LOCK protects full rings from recycling, while the selected ring remains
   * a capture source regardless of lock state. */
  pm_init();pm_set(M_SUSTAIN,1);pm_note(0,48);run(30);
