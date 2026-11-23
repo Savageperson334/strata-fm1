@@ -35,13 +35,13 @@ The menu is the owner of GLO input. **Help / Controls** offers the active instru
 
 The [audit](AUDIT.md) measured each instrument's own share apart from the platform's:
 
-| | Flash (own code) | RAM pool | Other RAM |
+| | Flash | RAM pool | Other RAM |
 | --- | ---: | ---: | ---: |
-| The platform | most of each ~105 KB image | 69 KB | ~24 KB |
-| STRATA 0.4.2 | ~50 KB | 74 KB | ~5.5 KB |
-| PALINDROME 0.9 | ~45 KB | 197 KB | ~9 KB |
-| BabbleBeat 0.4 | ~30 KB | 0 | ~12 KB |
-| **Combined** | **~190 of 581 KB** | **340 KB side by side; 266 KB with one overlay** | **~51 of 96 KB** |
+| The platform (the launcher's own build) | 81 KB | 69 KB | 25 KB |
+| STRATA 0.4.2, its own share | 27 KB | 74 KB | 5 KB |
+| PALINDROME 0.9, its own share | 23 KB | 197 KB | 8 KB |
+| BabbleBeat 0.4, its own share | 22 KB | 0 | 10 KB |
+| **Combined** | **~153 of 581 KB** | **340 KB side by side; 266 KB with one overlay** | **49 of 96 KB** |
 | Limit | 581 KiB | 336 KiB, 8 KB kept free | 96 KiB |
 
 Flash and ordinary RAM fit with room. The pool misses by 4 KB if STRATA's buffers and PALINDROME's rings sit side by side, and fits with 78 KB spare if they share one workspace. (The earlier 478 KB sum counted the platform's 69 KB three times.)

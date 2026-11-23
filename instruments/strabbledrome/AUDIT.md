@@ -7,8 +7,9 @@ Milestone 2 of [the plan](README.md). Measured 23 November 2026 on STRATA 0.4.2,
 ## Where the numbers come from
 
 - **Device totals** are the FM-1 builds in CI (`tests.yml`, job `device`): the linker's own report.
-- **Each instrument's own share** is from compiling its sources alone as 32-bit objects and reading `size` (the script is at the end). Code size on the FM-1's processor will differ by some percent; data sizes will not.
-- The platform's share is a device total less that instrument's own share. The three subtractions agree with each other, which is the check.
+- **The platform's share** is the launcher's own device build: it has no instrument in it, so what it reports is the platform (and a few hundred bytes of menu).
+- **Each instrument's own share** is its device total less the launcher's.
+- As a cross-check, each instrument's sources were also compiled alone as 32-bit objects and read with `size` (the script is at the end). The two methods agree within a few hundred bytes of RAM.
 
 ## RAM pool (344,064 B; the builder keeps 8,192 B free)
 
@@ -29,15 +30,23 @@ Side by side they miss by **3,848 B**. The 478 KB in the first plan counted the 
 
 | | Device total | Its own share |
 | --- | ---: | ---: |
-| STRATA | 29,876 | about 5,500 |
-| PALINDROME | 33,180 | about 8,900 |
-| BabbleBeat | 35,220 | about 12,100 |
-| The platform | | about 24,000 |
-| **Combined** | | **about 51,000 of 98,304** |
+| The launcher alone (the platform) | 24,948 | |
+| STRATA | 29,876 | 4,928 |
+| PALINDROME | 33,332 | 8,384 |
+| BabbleBeat | 35,220 | 10,272 |
+| **Combined** | | **48,532 of 98,304** |
 
 ## Flash (the app's slot is about 581 KiB)
 
-Each image is about 102 to 108 KB, most of it the platform. Each instrument's own code and tables come to roughly 30 to 55 KB. Combined: **about 180 to 200 KB**, a third of the slot.
+| | Image | Its own share |
+| --- | ---: | ---: |
+| The launcher alone (the platform) | 80,816 | |
+| STRATA | 107,836 | 27,020 |
+| PALINDROME | 103,960 | 23,144 |
+| BabbleBeat | 102,960 | 22,144 |
+| **Combined** | | **about 153,000**, a quarter of the slot |
+
+The instruments' own code will come out somewhat larger in the combined build, because their `app.c` moves from the platform's size-optimised unit to units of their own. There is room for that many times over.
 
 ## Symbols
 
@@ -52,7 +61,7 @@ Each image is about 102 to 108 KB, most of it the platform. Each instrument's ow
 
 - Whether each instrument starts clean when it is started a second time. Anything it sets only by a static initialiser, and not in its `app_init`, will be stale. To be checked instrument by instrument as it goes in.
 - How Help shows an instrument's own button guide. The plan: the launcher presents GLO to the instrument for as long as Help is open.
-- The real numbers. These are estimates until the combined image links; the device job prints them on every push.
+- The real total. These are sums of separate builds until the combined image links; the device job prints the numbers on every push.
 
 ## The measurement
 
