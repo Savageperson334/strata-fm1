@@ -1,0 +1,12 @@
+# STRABBLEDROME: STRATA, PALINDROME and BabbleBeat behind one menu. Milestone 1: the launcher alone, no engine yet.
+# No id_prefix: it has no package identity of its own until it is released (the builder's default stands in).
+name = "STRABBLEDROME"
+usb_manufacturer = "STRABBLEDROME"
+usb_product = "STRABBLEDROME FM-1"
+emu = ["midi"]
+tagline = "STRATA, PALINDROME and BabbleBeat behind one menu"
+repo = "https://github.com/Savageperson334/strata-fm1"
+licence = "MPL-2.0"
+author = "Savageperson334"
+credits = "Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments)."
+description = "Work in progress: the launcher of a three-in-one firmware. GLO opens the menu, SELECT chooses, SEL opens, GLO or HOME goes back. No instrument is built in yet."

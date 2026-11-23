@@ -2,7 +2,7 @@
 
 **A fourth M-VAVE FM-1 firmware project: STRATA + PALINDROME + BabbleBeat, selectable from one instrument.**
 
-**Status: planned / integration scaffold. No STRABBLEDROME firmware binary, emulator or installer exists yet.** The three standalone releases are playable and remain independent.
+**Status: milestones 1 and 2 done.** The launcher exists (`app.c`): the menu, the change of instrument and its tests, built for the simulator, the browser and the FM-1 on every push. No instrument is built into it yet, and there is no installer, published emulator or package. The [audit](AUDIT.md) shows all three fit in one image. The three standalone releases are playable and remain independent.
 
 [STRATA source](../../app/) · [PALINDROME source](../palindrome/) · [BabbleBeat source](../babblebeat/) · [Repository](../../README.md)
 
@@ -33,27 +33,33 @@ The menu is the owner of GLO input. **Help / Controls** offers the active instru
 
 ## The actual engineering problem
 
-The individual November 2026 device builds report approximately:
+The [audit](AUDIT.md) measured each instrument's own share apart from the platform's:
 
-| Instrument | App binary | RAM pool |
-| --- | ---: | ---: |
-| STRATA 0.4.2 | 108 KB | 143 KB |
-| PALINDROME 0.9 | 104 KB | 266 KB |
-| BabbleBeat 0.4 | 103 KB | 69 KB |
-| **Sum** | **315 KB** | **478 KB** |
+| | Flash (own code) | RAM pool | Other RAM |
+| --- | ---: | ---: | ---: |
+| The platform | most of each ~105 KB image | 69 KB | ~24 KB |
+| STRATA 0.4.2 | ~50 KB | 74 KB | ~5.5 KB |
+| PALINDROME 0.9 | ~45 KB | 197 KB | ~9 KB |
+| BabbleBeat 0.4 | ~30 KB | 0 | ~12 KB |
+| **Combined** | **~190 of 581 KB** | **340 KB side by side; 266 KB with one overlay** | **~51 of 96 KB** |
+| Limit | 581 KiB | 336 KiB, 8 KB kept free | 96 KiB |
 
-The platform provides an application flash slot of about **581 KiB** and a RAM pool of about **336 KiB**. Binary totals are not a combined build or reliable flash-size proof; they count separate platform overhead. More importantly, the sum of the current static pool allocations **does not fit**. A fourth independent firmware can't be produced by merely concatenating the three existing binaries.
+Flash and ordinary RAM fit with room. The pool misses by 4 KB if STRATA's buffers and PALINDROME's rings sit side by side, and fits with 78 KB spare if they share one workspace. (The earlier 478 KB sum counted the platform's 69 KB three times.)
+
+The harder part is names, not bytes: the platform compiles an app inside its own single unit, where three `app.c` files collide on dozens of file-scope names.
 
 ### Preferred architecture to prototype
 
 Build one application dispatcher with a **shared, exclusive RAM workspace** whose maximum footprint is sized for the largest selected engine. Keep each engine's source separate and independently buildable; explicitly namespace their callbacks and symbols. Rework their large static allocations to use the workspace or another provably exclusive overlay. At most one audio engine owns the memory at a time. The linker map, host build, device build, and actual FM-1 memory report must verify the result.
 
-A flash-resident module/loader is a fallback option **only if the combined image cannot fit**. Do not alter bootloader or update/recovery regions on the basis of guessed flash capacity.
+**Decided by the audit:** each instrument's `app.c` is compiled as its own unit with its seven `app_` calls renamed, and the launcher hands it the platform's drawing calls, which are private to the platform's unit. The instruments' sources stay as they are. STRATA's buffers and PALINDROME's rings share one workspace, cleared on every change.
+
+A flash-resident module/loader is a fallback option **only if the combined image cannot fit**. The audit says it fits. Do not alter bootloader or update/recovery regions on the basis of guessed flash capacity.
 
 ## Milestones for Claude / contributors
 
-1. **Launcher proof:** Create the real app shell and a consistent GLO menu on host + browser + device, even before integrating sound engines.
-2. **Memory and symbol audit:** Prove that app callbacks, pool buffers, persistence and linker sections can be shared or namespaced. Record exact code/flash/RAM totals.
+1. **Launcher proof (done):** Create the real app shell and a consistent GLO menu on host + browser + device, even before integrating sound engines.
+2. **Memory and symbol audit (done, [AUDIT.md](AUDIT.md)):** Prove that app callbacks, pool buffers, persistence and linker sections can be shared or namespaced. Record exact code/flash/RAM totals.
 3. **Integrate STRATA:** Drone, six voices, arpeggiator, drums, Euclidean lanes and saved patches still work. Reserve FX/ENV/LFO for its future modulation expansion.
 4. **Integrate PALINDROME:** Three 1.49-second SILT rings, MORPH injector, SCAN, FLOW, WEAVE, REC and safe switching out of the PCM buffer.
 5. **Integrate BabbleBeat:** Grammar, voice, key mappings, mutation and remembered words.
@@ -68,4 +74,11 @@ A flash-resident module/loader is a fallback option **only if the combined image
 - No fake installation links or packaged firmware before an actual successful build.
 - No LFO, FX or ENV button permanently stolen from STRATA.
 
-This directory is the **canonical GitHub entrypoint** for STRABBLEDROME until executable source and build instructions are added.
+## Build and run the launcher
+
+~~~sh
+python3 base/tools/build.py instruments/strabbledrome --host
+instruments/strabbledrome/build/host/strabbledrome_host instruments/strabbledrome/tests/basic.txt /tmp/shots
+~~~
+
+`tests.yml` runs that on every push, and builds the launcher for the FM-1 and for the browser. Nothing is published.

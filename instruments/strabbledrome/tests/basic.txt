@@ -1,0 +1,109 @@
+# STRABBLEDROME's launcher. (view: 0 menu, 1 an instrument, 2 help, 3 system; no instrument is built in yet)
+wait 3000
+expect view 0
+expect cursor 0
+expect chosen -1
+expect owner -1
+expect ready 0
+shot menu.png
+# with nothing chosen there is nowhere to go back to: GLO and HOME say so
+tap GLO
+wait 100
+expect view 0
+expect note 1
+tap HOME
+wait 100
+expect view 0
+# SELECT moves the highlight and stops at the ends
+turn SELECT -3
+wait 100
+expect cursor 0
+turn SELECT 1
+wait 100
+expect cursor 1
+# SEL opens the instrument: not in this build, so its name, no sound, and GLO for the menu
+tap SEL
+wait 300
+expect view 1
+expect chosen 1
+expect owner -1
+expect changing -1
+shot placeholder.png
+# keys, knobs and other buttons do nothing here; one press of GLO is the menu, on the instrument chosen
+key 5 down
+wait 60
+key 5 up
+tap REC
+tap HOME
+wait 100
+expect view 1
+tap GLO
+wait 100
+expect view 0
+expect cursor 1
+shot menu-chosen.png
+# back with GLO, back again with HOME
+tap GLO
+wait 100
+expect view 1
+tap GLO
+wait 100
+tap HOME
+wait 100
+expect view 1
+tap GLO
+wait 100
+# another instrument
+turn SELECT 1
+wait 100
+tap SEL
+wait 300
+expect chosen 2
+expect view 1
+tap GLO
+wait 100
+# help and system: SEL opens, GLO or HOME goes back to the menu
+turn SELECT 9
+wait 100
+expect cursor 4
+turn SELECT -1
+wait 100
+expect cursor 3
+tap SEL
+wait 100
+expect view 2
+shot help.png
+tap HOME
+wait 100
+expect view 0
+turn SELECT 1
+wait 100
+tap SEL
+wait 100
+expect view 3
+shot system.png
+tap GLO
+wait 100
+expect view 0
+expect chosen 2
+# many changes in a row leave it where it should be
+turn SELECT -9
+wait 100
+tap SEL
+wait 60
+tap GLO
+wait 60
+turn SELECT 2
+wait 100
+tap SEL
+wait 60
+tap GLO
+wait 60
+turn SELECT -1
+wait 100
+tap SEL
+wait 300
+expect chosen 1
+expect view 1
+expect owner -1
+expect changing -1

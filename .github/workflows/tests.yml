@@ -56,6 +56,14 @@ jobs:
           python3 base/tools/build.py "$p" --host
           mkdir -p shots/babblebeat
           "$p/build/host/babblebeat_host" "$p/tests/basic.txt" shots/babblebeat
+      - name: STRABBLEDROME launcher on the simulator and in the browser build
+        run: |
+          set -euo pipefail
+          p=instruments/strabbledrome
+          if grep -nE '#include <(string|stdlib|stdio|math)\.h>' "$p/app.c" "$p/app.h"; then exit 1; fi
+          python3 base/tools/build.py "$p" --host
+          mkdir -p shots/strabbledrome
+          "$p/build/host/strabbledrome_host" "$p/tests/basic.txt" shots/strabbledrome
       - name: Screenshots and the drone, for a look
         if: always()
         run: |
@@ -105,7 +113,7 @@ jobs:
         run: |
           set -uo pipefail
           status=0
-          for p in app instruments/palindrome instruments/babblebeat; do
+          for p in app instruments/palindrome instruments/babblebeat instruments/strabbledrome; do
             echo "::group::$p"
             if python3 base/tools/build.py "$p" > "/tmp/build.log" 2>&1; then echo "built"; else status=1; echo "FAILED"; tail -30 /tmp/build.log; fi
             echo "::endgroup::"
@@ -113,3 +121,14 @@ jobs:
             grep -E '^ *(FAIL|fail|error)' /tmp/build.log | head -5 || true
           done
           exit $status
+      - name: STRABBLEDROME's launcher as a browser build (made to prove it builds; published nowhere)
+        if: always()
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          git -C "$RUNNER_TEMP/emsdk" checkout -q a2b92777574c2feda07994cd4f1079a3dfc151f8
+          "$RUNNER_TEMP/emsdk/emsdk" install 6.0.10
+          "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.10
+          set +u; source "$RUNNER_TEMP/emsdk/emsdk_env.sh"; set -u
+          python3 base/tools/build.py instruments/strabbledrome --web
+          ls -la instruments/strabbledrome/build/emu | head -20
