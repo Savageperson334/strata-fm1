@@ -2,6 +2,8 @@
 # the next by itself. (page: 0 SILT, 1 MORPH, 2 RINGS, 3 SHAPE, 4 MOTION, 5 MIX, 6 REC FX)
 wait 3000
 expect page 0
+expect flow 18
+expect scan 30
 expect rings 0
 expect ring 0
 expect voices 0
@@ -63,7 +65,16 @@ shot silt1.png
 # ring as it was recorded), MORPH's notes stay as they were
 expect grains 1
 expect root 7
+# K1 SCRUBS audio directly; FLOW makes the playback point drift when PLAY runs.
+turn K1 8
+wait 100
+expect scan 43
+turn K1 -8
+wait 100
+expect scan 30
 turn K3 30
+wait 100
+expect flow 65
 turn K2 20
 key 7 down
 wait 60
@@ -171,18 +182,22 @@ turn K1 -8
 tap ARP
 wait 100
 expect page 5
-# GLO held: the guide on the screen, the page as it was; let go, the page again
-press GLO
+# GLO is persistent Info: one tap opens it; release does not close it.
+tap GLO
 wait 200
 expect guide 1
 expect page 5
 shot guide.png
-release GLO
+tap GLO
 wait 100
 expect guide 0
 expect page 5
+tap GLO
+wait 100
+expect guide 1
 tap HOME
 wait 100
+expect guide 0
 expect page 0
 # a branch: back on 01, captured again: ring 03's parent is 01
 expect ring 1

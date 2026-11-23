@@ -76,6 +76,7 @@ int main(void){
  pm_set(S_PITCH,.75f);pm_set(S_SIZE,.6f);pm_grains(1);run(120);
  assert(capture(PM_SRC_SILT,&slot)==PM_EV_COMMITTED);
  int r2=slot;assert(r2!=r1&&pm_ring_count()==2&&pm_ring_selected()==r2);
+ assert(fabsf(pm_get(S_WEAVE))<1e-6f); /* the printed mix starts solo, no ancestors doubled */
  assert(pm_ring_info(r2,&id,&parent,&source)&&id==2&&parent==1&&source==PM_SRC_SILT);
  assert(sum_of(r1)==sum1);
  double sum2=sum_of(r2);assert(sum2!=sum1);
@@ -106,12 +107,30 @@ int main(void){
   assert(pm_active_grains()<=PM_GRAINS);
  }
  pm_set(S_WEAVE,0);pm_set(S_MODE,.375f);run(160);
+ /* Manual SCAN and automatic FLOW: both move the read head without changing audio PCM. */
+ assert(pm_ring_select(r1)==0);
+ pm_set(S_LOOP,0);pm_set(G_SCAN,.5f);pm_set(S_POS,.15f);run(100);
+ float scan_a=pm_position();run(800);float scan_b=pm_position();
+ assert(fabsf(scan_a-scan_b)>.002f);
+ pm_set(S_POS,.85f);run(50);assert(pm_position()>.5f);
+ pm_set(S_LOOP,.15f);pm_set(G_SCAN,.18f);run(50);
+ assert(sum_of(r1)==sum1&&sum_of(r2)==sum2);
  /* A branch: back on 01, changed again and captured: RING 03's parent is 01, and 02 is untouched. */
  assert(pm_ring_select(r1)==0);pm_set(S_REVERSE,1);run(60);
  assert(capture(PM_SRC_SILT,&slot)==PM_EV_COMMITTED);
  int r3=slot;assert(pm_ring_count()==3&&pm_ring_info(r3,&id,&parent,&source)&&id==3&&parent==1);
  assert(sum_of(r1)==sum1&&sum_of(r2)==sum2);
  double sum3=sum_of(r3);
+ /* Graduated WEAVE: at 0 the selected ring plays solo; halfway it brings
+  * the previous parent ring; at 100 it includes all three. */
+ pm_set(S_WEAVE,0);run(100);
+ assert(pm_ring_mix_weight(r3)>.99f&&pm_ring_mix_weight(r1)<.001f&&pm_ring_mix_weight(r2)<.001f);
+ pm_set(S_WEAVE,.5f);run(100);
+ assert(pm_ring_mix_weight(r1)>.30f&&pm_ring_mix_weight(r2)<.001f);
+ pm_set(S_WEAVE,1);run(100);
+ assert(pm_ring_mix_weight(r1)>.15f&&pm_ring_mix_weight(r2)>.15f&&pm_ring_mix_weight(r3)>.15f);
+ /* Fresh generations start solo. Reset WEAVE before continuing old replacement tests. */
+ pm_set(S_WEAVE,0);run(80);
  /* Full: the oldest ring, the first recording, makes room for the new one. The others are as they were; the new
   * ring, 04, has 01's place. */
  assert(pm_ring_selected()==r3);
