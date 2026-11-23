@@ -30,11 +30,11 @@ typedef struct {
 } Grain;
 /* the SILT controls each ring keeps for itself */
 static const uint8_t RING_PAR[]={S_POS,S_SIZE,S_DENSITY,S_SPRAY,S_PITCH,S_REVERSE,S_SHAPE,
-                                 S_TIMING,S_VARY,S_SCATTER,S_DETUNE,S_CLUSTER,G_STEREO,G_SCAN,S_LOOP};
+                                 S_TIMING,S_VARY,S_SCATTER,S_DETUNE,S_CLUSTER,G_STEREO,G_SCAN,S_LOOP,S_WEAVE,S_MODE};
 #define NPAR ((int)sizeof RING_PAR)
 typedef struct {
     volatile int ready;                  /* a finished ring: its samples are final */
-    int id, parent, source;
+    int id, parent, source, locked;
     float par[sizeof RING_PAR];
 } Ring;
 static Ring ring[PM_RINGS];
@@ -46,7 +46,10 @@ static volatile uint32_t cap_i;          /* samples written so far */
 static int cap_slot,cap_source,cap_parent,cap_carry;   /* (cap_carry: the slot copied under it, -1 none) */
 static uint32_t norm_i;
 static float cap_peak,cap_gain,cap_sq;   /* (cap_sq: the sum of its samples' squares, for a generation's level) */
-static float loop_phase,cap_dc;
+static float cap_dc;
+static float lane_phase[PM_RINGS],lane_scan[PM_RINGS],lane_launch[PM_RINGS],lane_next[PM_RINGS];
+static float lane_pos[PM_RINGS],lane_rate[PM_RINGS],lane_weight[PM_RINGS],lane_timing[PM_RINGS];
+static int lane_mode[PM_RINGS];
 static volatile uint32_t kill_req[PM_RINGS];
 static uint32_t kill_seen[PM_RINGS];
 
@@ -63,10 +66,10 @@ static volatile int gpitch[PM_PITCHES];        /* the keys held for the grains, 
 static volatile uint32_t strike_request[PM_PITCHES];
 static uint32_t strike_seen[PM_PITCHES];
 static int turn;                         /* whose turn among the held pitches */
-static float next_at;                    /* the next grain's time, in even pulses (1: on the pulse) */
+
 static uint32_t burst_seen, half, rng;
 static volatile uint32_t scope_wr;
-static float half_sample, clock_phase, scan_phase, launch, dry_gain, wet_gain;
+static float half_sample, clock_phase, dry_gain, wet_gain;
 static float capture_lp, dc_l, dc_r, prev_l, prev_r, scope[64];
 static volatile float target[PM_PARAMS];
 static float p[PM_PARAMS];
@@ -83,8 +86,10 @@ static const float defaults[PM_PARAMS]={
  0,.5f,0,0,0,                            /* a clean recording: no hiss, no crush, no gate, no dropouts */
  0,0,0,0,0,                              /* grains on an even pulse, all one length and pitch, one at a time */
  .7f,                                    /* DECAY: a struck note, gone in a few seconds */
- .3f,                                    /* DRIFT: a generation every few seconds, about half of it kept */
- .5f};                                   /* LOOP: the play point round the ring at the speed it was recorded */
+ 0.f,                                    /* DRIFT: off until the user enables it */
+ .5f,                                    /* LOOP: natural-speed playhead */
+ 0.f,                                    /* WEAVE: selected ring only */
+ .375f};                                 /* CLOUD mode (legacy grain behavior) */
 static float fclamp(float x,float a,float b){return x<a?a:x>b?b:x;}
 static float wrap(float x){return x-fm_floorf(x);}
 static float rnd(void){rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return (float)(rng>>8)*(1.0f/16777216.0f);}
@@ -103,6 +108,11 @@ int pm_voice_sounding(int slot){
 void pm_monitor(int on){monitor=on!=0;}
 int pm_capture_dropped(void){return dropped_id;}
 void pm_grains(int on){if(on&&!grains_on)burst_request++;grains_on=on!=0;}
+int pm_grains_on_ring(int slot){
+    int n=0;if(slot<0||slot>=PM_RINGS)return 0;
+    for(int i=0;i<PM_GRAINS;i++)if(grain[i].active&&grain[i].slot==slot)n++;
+    return n;
+}
 void pm_burst(void){burst_request++;}
 void pm_grain_pitch(int slot,int semis){
     if(slot>=0&&slot<PM_PITCHES)gpitch[slot]=semis>=-48&&semis<=48?semis:PM_NO_PITCH;
@@ -121,7 +131,9 @@ void pm_init(void){
     static const Voice voice0;static const Grain grain0;
     for(int r=0;r<PM_RINGS;r++){
         for(uint32_t i=0;i<PM_BUFFER;i++)memory[r][i]=0;
-        ring[r].ready=0;ring[r].id=ring[r].parent=ring[r].source=0;
+        ring[r].ready=0;ring[r].id=ring[r].parent=ring[r].source=ring[r].locked=0;
+        lane_phase[r]=lane_scan[r]=lane_launch[r]=lane_pos[r]=lane_weight[r]=0;
+        lane_next[r]=1;
         kill_seen[r]=kill_req[r]=0;
     }
     for(int i=0;i<PM_VOICES;i++)voice[i]=voice0;
@@ -129,7 +141,7 @@ void pm_init(void){
     for(int i=0;i<64;i++)scope[i]=0;
     half=scope_wr=burst_request=burst_seen=0;
     selected=-1;next_id=1;cap_i=0;cap_slot=cap_carry=-1;monitor=0;dropped_id=0;
-    rng=0x9f26ad31u;half_sample=clock_phase=scan_phase=launch=0;loop_phase=0;turn=0;next_at=1;
+    rng=0x9f26ad31u;half_sample=clock_phase=0;turn=0;
     pm_panic();
     for(int i=0;i<PM_PARAMS;i++)p[i]=target[i]=defaults[i];
     gate_env=noise_lp=0;write_amt=1;dropping=0;
@@ -147,7 +159,21 @@ float pm_position(void){return position_now;}
 /* ------------------------------------------------------------------ the rings (the UI's side) --- */
 static void keep(int slot){for(int k=0;k<NPAR;k++)ring[slot].par[k]=target[RING_PAR[k]];}
 static void bring(int slot){for(int k=0;k<NPAR;k++)target[RING_PAR[k]]=ring[slot].par[k];}
+static float ring_value(int slot,int id){
+    if(slot==selected)return p[id];
+    for(int k=0;k<NPAR;k++)if(RING_PAR[k]==id)return ring[slot].par[k];
+    return p[id];
+}
+static int ring_mode(int slot){
+    int k=(int)(ring_value(slot,S_MODE)*3.999f);
+    return k<0?0:k>3?3:k;
+}
 int pm_ring_count(void){int n=0;for(int r=0;r<PM_RINGS;r++)n+=ring[r].ready;return n;}
+int pm_ring_locked(int slot){return slot>=0&&slot<PM_RINGS&&ring[slot].ready?ring[slot].locked:0;}
+int pm_ring_lock(int slot,int locked){
+    if(slot<0||slot>=PM_RINGS||!ring[slot].ready||cap_state!=PM_CAP_IDLE)return -1;
+    ring[slot].locked=!!locked;return 0;
+}
 int pm_ring_selected(void){return selected;}
 int pm_ring_info(int slot,int *id,int *parent,int *source){
     if(slot<0||slot>=PM_RINGS||!ring[slot].ready)return 0;
@@ -169,7 +195,7 @@ int pm_ring_delete(int slot){
     int best=-1;
     if(slot<0||slot>=PM_RINGS||!ring[slot].ready)return -1;
     if(cap_state!=PM_CAP_IDLE&&cap_carry==slot)return -1;   /* (a running capture is reading it) */
-    ring[slot].ready=0;
+    ring[slot].ready=0;ring[slot].locked=0;
     kill_req[slot]++;                    /* its grains fade out */
     if(selected==slot){                  /* the newest of those left */
         for(int r=0;r<PM_RINGS;r++)if(ring[r].ready&&(best<0||ring[r].id>ring[best].id))best=r;
@@ -180,7 +206,7 @@ int pm_ring_delete(int slot){
 }
 void pm_ring_clear(void){
     if(cap_state!=PM_CAP_IDLE)cap_abort=1;
-    for(int r=0;r<PM_RINGS;r++)if(ring[r].ready){ring[r].ready=0;kill_req[r]++;}
+    for(int r=0;r<PM_RINGS;r++)if(ring[r].ready){ring[r].ready=0;ring[r].locked=0;kill_req[r]++;}
     selected=-1;
 }
 void pm_ring_wave(int slot,float *lo,float *hi,uint32_t n){
@@ -222,10 +248,10 @@ int pm_capture(int source){
     if(slot<0){
         /* no room: the oldest ring gives up its place. Not the selected one: the capture is about to read it (as
          * SILT's source, or under CARRY) while it writes */
-        for(int r=0;r<PM_RINGS;r++)if(r!=sel&&(slot<0||ring[r].id<ring[slot].id))slot=r;
+        for(int r=0;r<PM_RINGS;r++)if(r!=sel&&!ring[r].locked&&(slot<0||ring[r].id<ring[slot].id))slot=r;
         if(slot<0)return PM_ERR_FULL;    /* (one ring only, and it selected: cannot be) */
         dropped_id=ring[slot].id;
-        ring[slot].ready=0;
+        ring[slot].ready=0;ring[slot].locked=0;
         kill_req[slot]++;                /* its grains fade out */
     }
     cap_slot=slot;cap_source=source==PM_SRC_SILT?PM_SRC_SILT:PM_SRC_MORPH;
@@ -252,7 +278,7 @@ int pm_service(int *slot){
         /* the new ring starts with the settings in use. Made from SILT's grains, what those already did to its
          * sound is set back, so that it is not done twice over */
         if(cap_source==PM_SRC_SILT){target[S_PITCH]=.5f;target[S_REVERSE]=0;target[S_SCATTER]=0;target[S_DETUNE]=0;}
-        r->id=next_id++;r->parent=cap_parent;r->source=cap_source;
+        r->id=next_id++;r->parent=cap_parent;r->source=cap_source;r->locked=0;
         keep(cap_slot);
         r->ready=1;
         selected=cap_slot;
@@ -285,29 +311,39 @@ int pm_grain(int i,float *at,float *env,int *slot){
     if(slot)*slot=grain[i].slot;
     return grain[i].speed<0?-1:1;
 }
-static void spawn(float position,float amp,float semis){
-    int sel=selected,s=-1;
-    if(sel<0||!ring[sel].ready)return;       /* no ring: nothing to play */
+/* Four distinct algorithms. The source audio stays immutable; mode affects only how grains read it. */
+static void spawn(int slot,float position,float amp,float semis){
+    int s=-1;
+    if(slot<0||slot>=PM_RINGS||!ring[slot].ready)return;
     for(int i=0;i<PM_GRAINS;i++)if(!grain[i].active){s=i;break;}
-    if(s<0)return; /* graceful saturation, never cut a sounding grain */
+    if(s<0)return;
     Grain *g=&grain[s];
-    float seconds=.020f+.480f*p[S_SIZE]*p[S_SIZE];
-    if(p[S_VARY]>.005f)seconds=fclamp(seconds*fm_exp2f((rnd()-.5f)*4.f*p[S_VARY]),.010f,.75f);
-    /* its pitch: the PITCH knob and its key; SCATTER's jump (octaves first, then a fifth, two octaves); DETUNE */
-    float st=(p[S_PITCH]-.5f)*48.f+semis;
-    if(p[S_SCATTER]>.005f&&rnd()<p[S_SCATTER]){
+    int mode=ring_mode(slot);
+    float size=ring_value(slot,S_SIZE),vary=ring_value(slot,S_VARY);
+    float seconds=.020f+.480f*size*size;
+    if(mode==0)seconds=.070f+.34f*size;     /* LOOP: coherent overlap */
+    if(mode==2)seconds=.020f+.11f*size;     /* PULSE: distinct attacks */
+    if(mode==3)seconds=.012f+.17f*size;     /* FRACTURE: short fragments */
+    if(vary>.005f)seconds=fclamp(seconds*fm_exp2f((rnd()-.5f)*4.f*vary),.010f,.75f);
+    float scatter=ring_value(slot,S_SCATTER),detune=ring_value(slot,S_DETUNE);
+    float st=(ring_value(slot,S_PITCH)-.5f)*48.f+semis;
+    if(scatter>.005f&&rnd()<scatter){
         static const int8_t JUMP[7]={12,-12,7,-5,24,19,-24};
-        st+=(float)JUMP[(int)(rnd()*(2.f+p[S_SCATTER]*4.99f))];
+        st+=(float)JUMP[(int)(rnd()*(2.f+scatter*4.99f))];
     }
-    if(p[S_DETUNE]>.005f)st+=(rnd()-.5f)*p[S_DETUNE];
-    float speed=fclamp(.5f*fm_exp2f(st*(1.f/12.f)),.03f,4.f);      /* (a ring is at half rate: .5 is as recorded) */
-    if(rnd()<p[S_REVERSE])speed=-speed;
-    /* where it starts: POSITION round the ring, SPRAY's scatter about it (a ring is a loop: it reads on round) */
-    g->pos=wrap(position+(rnd()-.5f)*p[S_SPRAY])*(float)(PM_BUFFER-1u);
+    if(detune>.005f)st+=(rnd()-.5f)*detune;
+    if(mode==3){st+=(rnd()-.5f)*12.f;position=wrap(position+(rnd()-.5f)*.85f);}
+    float speed=fclamp(.5f*fm_exp2f(st*(1.f/12.f)),.03f,4.f);
+    if(rnd()<fclamp(ring_value(slot,S_REVERSE)+(mode==3?.30f:0.f),0,1))speed=-speed;
+    float spray=ring_value(slot,S_SPRAY);
+    if(mode==0)spray*=.1f;
+    if(mode==3)spray=fclamp(spray+.3f,0,1);
+    g->pos=wrap(position+(rnd()-.5f)*spray)*(float)(PM_BUFFER-1u);
     g->speed=speed;g->age=0;g->step=1.0f/(seconds*44100.f);
-    g->atk=.03f+.94f*p[S_SHAPE];g->up=1.f/g->atk;g->down=1.f/(1.f-g->atk);
-    g->pan=.5f+(rnd()-.5f)*p[G_STEREO];
-    g->mem=memory[sel];g->slot=sel;g->gain=1;g->dying=0;
+    g->atk=mode==2?.07f:.03f+.94f*ring_value(slot,S_SHAPE);
+    g->up=1.f/g->atk;g->down=1.f/(1.f-g->atk);
+    g->pan=.5f+(rnd()-.5f)*ring_value(slot,G_STEREO);
+    g->mem=memory[slot];g->slot=slot;g->gain=1;g->dying=0;
     g->amp=amp;g->active=1;
 }
 /* the next held key's pitch, in turn (none held: the recorded pitch) */
@@ -319,10 +355,12 @@ static float next_pitch(void){
     return 0.f;
 }
 /* one start: CLUSTER grains together, each on the next held key (slot >= 0: all on that key, just played) */
-static void trigger(float position,int slot){
+static void trigger(int ring_slot,float position,int key_slot){
     static const float AMP[4]={.75f,.58f,.50f,.45f};
-    int k=1+(int)(p[S_CLUSTER]*3.99f),st=slot>=0?gpitch[slot]:PM_NO_PITCH;
-    for(int j=0;j<k;j++)spawn(position,AMP[k-1],slot<0?next_pitch():st==PM_NO_PITCH?0.f:(float)st);
+    int k=1+(int)(ring_value(ring_slot,S_CLUSTER)*3.99f);
+    int st=key_slot>=0?gpitch[key_slot]:PM_NO_PITCH;
+    for(int j=0;j<k;j++)
+        spawn(ring_slot,position,AMP[k-1],key_slot<0?next_pitch():st==PM_NO_PITCH?0.f:(float)st);
 }
 static float read_grain(const int16_t *mem,float pos){
     uint32_t a=(uint32_t)pos;float f=pos-(float)a;
@@ -339,14 +377,29 @@ void pm_render(float *left,float *right,uint32_t n){
     w[0]=(1-mx)*my;w[1]=mx*my;w[2]=(1-mx)*(1-my);w[3]=mx*(1-my);
     float fade=1.0f/(441.f+88200.f*p[G_FADE]*p[G_FADE]);
     float tone=.02f+.62f*p[M_TONE]*p[M_TONE];
-    float scan=p[G_SCAN];scan_phase=wrap(scan_phase+scan*.3f*(float)n*INV_RATE);
-    /* LOOP: the play point's own way round the ring (a ring is 2 x PM_BUFFER samples long) */
-    float loop=p[S_LOOP]<.03f?0.f:fm_exp2f(4.f*(p[S_LOOP]-.5f));
-    loop_phase=wrap(loop_phase+loop*(float)n*(1.f/(2.f*PM_BUFFER)));
-    float position=loop>0?wrap(p[S_POS]+loop_phase+scan*.45f*fm_sin_turns(scan_phase))
-                         :fclamp(p[S_POS]+scan*.45f*fm_sin_turns(scan_phase),0,1);
-    position_now=position;
-    float rate=1.f+39.f*p[S_DENSITY]*p[S_DENSITY];
+    float sum=0.f,weave=fclamp(p[S_WEAVE],0,1);
+    for(int ri=0;ri<PM_RINGS;ri++){
+        lane_weight[ri]=ring[ri].ready?(ri==selected?1.f:weave*.75f):0.f;
+        sum+=lane_weight[ri];
+    }
+    for(int ri=0;ri<PM_RINGS;ri++){
+        lane_weight[ri]=sum>0?lane_weight[ri]/sum:0.f;
+        if(!ring[ri].ready)continue;
+        float scan=ring_value(ri,G_SCAN),lo=ring_value(ri,S_LOOP);
+        float speed=lo<.03f?0.f:fm_exp2f(4.f*(lo-.5f));
+        lane_phase[ri]=wrap(lane_phase[ri]+speed*(float)n*(1.f/(2.f*PM_BUFFER)));
+        lane_scan[ri]=wrap(lane_scan[ri]+scan*.3f*(float)n*INV_RATE);
+        float base=ring_value(ri,S_POS),sway=scan*.45f*fm_sin_turns(lane_scan[ri]);
+        lane_pos[ri]=speed>0?wrap(base+lane_phase[ri]+sway):fclamp(base+sway,0,1);
+        lane_mode[ri]=ring_mode(ri);
+        float density=ring_value(ri,S_DENSITY);
+        lane_rate[ri]=1.f+39.f*density*density;
+        if(lane_mode[ri]==0)lane_rate[ri]=12.f+25.f*density;
+        if(lane_mode[ri]==2)lane_rate[ri]=1.f+13.f*density;
+        lane_timing[ri]=ring_value(ri,S_TIMING);
+    }
+    position_now=selected>=0?lane_pos[selected]:0.f;
+
     float modal_decay=1.f-1.f/(2205.f+132300.f*p[M_EXCITE]*p[M_EXCITE]);
     int on=grains_on;
     /* what a capture does to its sound: put in (NOISE, COLOR, CRUSH), kept out (GATE), left out (DROP) */
@@ -385,12 +438,20 @@ void pm_render(float *left,float *right,uint32_t n){
         if(k!=kill_seen[r]){kill_seen[r]=k;for(int j=0;j<PM_GRAINS;j++)if(grain[j].active&&grain[j].slot==r)grain[j].dying=1;}
     }
     uint32_t br=burst_request;
-    if(br!=burst_seen){burst_seen=br;for(int j=0;j<3;j++)trigger(position,-1);}
-    for(int j=0;j<PM_PITCHES;j++){           /* a key played: its grains now */
-        uint32_t sr=strike_request[j];
-        if(sr!=strike_seen[j]){strike_seen[j]=sr;trigger(position,j);trigger(position,j);}
+    if(br!=burst_seen){
+        burst_seen=br;
+        if(selected>=0)for(int j=0;j<3;j++)trigger(selected,lane_pos[selected],-1);
     }
-    float timing=p[S_TIMING];
+    for(int j=0;j<PM_PITCHES;j++){
+        uint32_t sr=strike_request[j];
+        if(sr!=strike_seen[j]){
+            strike_seen[j]=sr;
+            if(selected>=0){
+                trigger(selected,lane_pos[selected],j);
+                trigger(selected,lane_pos[selected],j);
+            }
+        }
+    }
     /* DECAY: how long a struck MORPH note lives: 80 ms .. 10 s to a third of its level; at the top, held */
     float life_k=p[M_SUSTAIN]>=.97f?1.f:1.f-INV_RATE/(.08f*fm_exp2f(p[M_SUSTAIN]*7.f));
     for(int j=0;j<PM_VOICES;j++){            /* a note struck (again): its life from the top, its bell rung again */
@@ -448,14 +509,21 @@ void pm_render(float *left,float *right,uint32_t n){
             dl+=val*(1.f-pan);dr+=val*pan;
         }
         if(on){
-            launch+=rate*INV_RATE;
-            if(launch>=next_at){             /* TIMING: on the pulse .. anywhere (short gaps and long, the same on average) */
-                launch-=next_at;
-                next_at=timing>.005f?(1.f-timing)+timing*4.f*rnd()*rnd():1.f;
-                if(next_at<.05f)next_at=.05f;
-                trigger(position,-1);
+            /* Each ring advances on its own clock; weighted event rates keep the 16-grain ceiling. */
+            for(int ri=0;ri<PM_RINGS;ri++)if(lane_weight[ri]>.0001f){
+                lane_launch[ri]+=lane_rate[ri]*INV_RATE*lane_weight[ri];
+                if(lane_launch[ri]>=lane_next[ri]){
+                    lane_launch[ri]-=lane_next[ri];
+                    int m=lane_mode[ri];float timing=lane_timing[ri];
+                    if(m==2)lane_next[ri]=1.f;
+                    else if(m==3)lane_next[ri]=.35f+1.3f*rnd();
+                    else lane_next[ri]=timing>.005f?(1.f-timing)+timing*4.f*rnd()*rnd():1.f;
+                    if(lane_next[ri]<.05f)lane_next[ri]=.05f;
+                    trigger(ri,lane_pos[ri],-1);
+                }
             }
         }
+
         for(int j=0;j<PM_GRAINS;j++){
             Grain *g=&grain[j];if(!g->active)continue;active++;
             float sample=read_grain(g->mem,g->pos)*grain_env(g)*g->amp*g->gain;
