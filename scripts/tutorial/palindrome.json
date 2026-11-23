@@ -22,7 +22,7 @@
       "knobs": {
         "KNOB1": [
           "POSITION",
-          "Where grains start, round the selected ring."
+          "Pick the grain playback position on the selected ring. Each recording has an independent playhead."
         ],
         "KNOB2": [
           "SIZE",
@@ -33,12 +33,12 @@
           "1 to 40 grain starts a second."
         ],
         "KNOB4": [
-          "SPRAY",
-          "Random scatter of each grain's start around POSITION."
+          "WEAVE",
+          "0 plays only the selected recording; raise to bring in grain streams from the other rings. Each ring remembers its own position, speed, grain controls and mode."
         ],
         "ALGORITHM": [
-          "DRIFT",
-          "The loop made again from itself, by itself. OFF: it stays as it is. Low: a new generation now and then, most of the ring kept. High: one after another, little kept. It waits while you play, and on MORPH's and RINGS' pages."
+          "MODE",
+          "Four playback personalities: LOOP follows the source, CLOUD layers grains, PULSE fires discrete hits, FRACTURE makes abrupt position, pitch and direction jumps."
         ],
         "PRESETS": [
           "PITCH",
@@ -91,6 +91,10 @@
         "KNOB4": [
           "DELETE",
           "Turn right once to arm deleting the selected ring, twice to arm clearing everything. SEL confirms; any other button calls it off."
+        ],
+        "KNOB2": [
+          "LOCK",
+          "Turn right to protect the selected ring from replacement by REC; turn left to unlock. Deleting a locked ring is still possible only through the explicit confirmation."
         ]
       }
     },
@@ -139,6 +143,14 @@
         "KNOB3": [
           "LOOP",
           "The play point going round the ring by itself: OFF it stays at POSITION, 50 is the speed it was recorded at (the ring heard as a loop), 100 four times that."
+        ],
+        "KNOB4": [
+          "SPRAY",
+          "Scatter individual grain positions around the playhead. Large values explore the ring."
+        ],
+        "ALGORITHM": [
+          "DRIFT",
+          "Optional automatic generations. It starts OFF and pauses at three full rings, so it never destroys a recording on its own."
         ]
       }
     },
@@ -208,7 +220,7 @@
       "label": "SILT",
       "sub": "the grains",
       "base": "silt",
-      "text": "Opens SILT, the instrument: the grains of the selected ring. REC here captures SILT's own grains into a new ring."
+      "text": "SILT is home. Select a ring, pick LOOP / CLOUD / PULSE / FRACTURE, and increase WEAVE to bring in other recordings. REC captures the processed mix into another generation."
     },
     "HOME": {
       "label": "SILT HOME",
@@ -226,7 +238,7 @@
       "label": "RINGS",
       "sub": "list, delete",
       "base": "rings",
-      "text": "Opens the list of rings: which there are and what each was made from. KNOB4 arms a delete there and SEL confirms it."
+      "text": "Browse three independently recorded rings, lock favorites with KNOB2, or use KNOB4 then SEL to deliberately delete. Selecting never changes a recording."
     },
     "ENV": {
       "label": "SHAPE",
@@ -238,7 +250,7 @@
       "label": "MOTION",
       "sub": "scan, timing",
       "base": "motion",
-      "text": "Opens SILT MOTION: POSITION moving by itself, and regular or irregular grain timing."
+      "text": "SILT MOTION: SCAN, irregular TIMING, playhead speed LOOP, SPRAY and optional automatic DRIFT. DRIFT starts OFF."
     },
     "GLO": {
       "label": "GUIDE",
@@ -248,7 +260,7 @@
     "REC": {
       "label": "NEW RING",
       "sub": "one press",
-      "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. DRIFT does the same by itself. It runs for one ring's length and finishes by itself. With nothing sounding it is armed and starts with the next sound. With three rings, the oldest (never the selected one) makes room: the screen says which, REC: DROPS 01."
+      "text": "One press captures a new ring from MORPH or processed SILT. With three rings full it may replace the oldest unlocked, unselected ring; if none are eligible, it refuses. DRIFT never replaces full rings."
     },
     "PLAY": {
       "label": "GRAINS",
@@ -281,7 +293,7 @@
   },
   "guide": {
     "label": "Guide",
-    "done": "That's the loop: a key strikes MORPH, SILT loops the note, and DRIFT (ALGORITHM on SILT) makes it again from itself. Turned down to OFF the loop stays as it is; turned up it changes faster. HOME always brings you back to SILT. Reference says what every control does.",
+    "done": "MORPH injects audio. SILT plays three independent recordings with four modes. WEAVE mixes the rings, REC captures a new generation, and RINGS can lock recordings worth preserving.",
     "steps": [
       {
         "title": "Switch on",
@@ -301,15 +313,19 @@
         }
       },
       {
-        "title": "The loop",
-        "text": "That is your note going round. Now leave it alone: in a few seconds DRIFT makes the loop again from itself, and a second ring appears around the first.",
+        "title": "Another generation",
+        "text": "RING 01 plays in SILT. Turn a grain control, then press REC. RING 02 captures the processed sound. DRIFT starts OFF; you can turn it on later under LFO.",
         "done": {
           "rings": 2
-        }
+        },
+        "show": [
+          "REC",
+          "KNOB2"
+        ]
       },
       {
         "title": "Rings",
-        "text": "Each ring is a generation. Press SEL to see them and which ring each came from. DRIFT waits while this page is open.",
+        "text": "Press SEL to browse the individual ring recordings. KNOB2 locks/unlocks a favorite. Return to EDIT, use KNOB4 WEAVE to mix rings and ALGORITHM MODE to change how they play.",
         "show": [
           "SEL"
         ],

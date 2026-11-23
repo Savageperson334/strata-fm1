@@ -47,7 +47,7 @@ it, and it has never run on an FM-1. <a href="../">The released PALINDROME</a> i
 <p><a class="go" href="emu/">Play the preview in the browser</a></p>
 <p>In the emulator, <strong>Guide</strong> walks through the first two rings on the live panel;
 <strong>Reference</strong> says what every control does. One press does everything: nothing is held.
-<a href="https://github.com/Savageperson334/strata-fm1/blob/feature/silt-first/instruments/palindrome/docs/MANUAL.md">The
+<a href="manual.md">The
 manual for this build</a> is on its branch.</p>
 <h2>The screens, from the simulator</h2>{shots}</main></html>
 """, encoding="utf-8")

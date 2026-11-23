@@ -1,20 +1,21 @@
 # PALINDROME
 
-**A sound, looped, and made again from itself.** MORPH strikes the seed, SILT loops it, DRIFT makes each new generation from the last. Hold GLO and the screen shows what every button does.
+**SILT is a three-ring granular instrument. MORPH injects sound.** Build generations of a recording, play them as LOOP, CLOUD, PULSE or FRACTURE, and bring the rings together with WEAVE.
 
-![SILT playing the selected ring, an older ring inside it](manual/img/silt.png "PALINDROME")
+![Three-ring SILT interface](manual/img/silt.png "SILT — three independent recordings")
 
 ## Play
 
-- **Tap a key.** MORPH strikes a note; it is caught as a ring and the grains loop it.
-- **Leave it.** DRIFT makes the loop again from itself every few seconds: a new ring around the last.
-- **DRIFT (ALGORITHM):** down to OFF the loop is stable; up, it changes faster.
-- **FX — MORPH:** the synth by itself. REC, then a key, captures a new seed. **SELECT** moves between rings.
+- **Tap a key** to inject a MORPH note and capture the first ring.
+- **ALGORITHM** selects LOOP, CLOUD, PULSE or FRACTURE.
+- **KNOB4 / WEAVE** adds material from the other rings; **SELECT** chooses the ring you are editing.
+- **REC** records the processed mix into another ring; **SEL / KNOB2** locks recordings you want to keep.
+- **LFO / DRIFT** optionally evolves generations while you're away from the controls, stopping safely at three rings.
 
-[Play in the browser](emu/) · [Control reference](manual/) · [Install on FM-1](install/)
+[Try the browser emulator](emu/) · [Concise manual](manual/) · [Install](install/)
 
 Version {{VERSION}} · Experimental · [Download {{PKG}}](firmware/{{PKG}})
 
-Simulator-tested; physical hardware validation pending. Custom firmware is installed at your own risk. The installer can restore stock firmware. Switch to [STRATA](../) for FM drones, drums and Euclidean rhythms.
+Custom firmware is installed at your own risk; physical FM-1 performance remains unverified. The installer can restore stock firmware. [STRATA](../) is a separate synth.
 
-[Source (MPL-2.0)](https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome). Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). Not affiliated with M-VAVE.
+[Source (MPL-2.0)](https://github.com/Savageperson334/strata-fm1/tree/main/instruments/palindrome). Built on fm1-base. Not affiliated with M-VAVE.

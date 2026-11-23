@@ -7,7 +7,7 @@ name: PALINDROME next (preview)
 
 on:
   push:
-    branches: ['feature/silt-first']
+    branches: ['feature/silt-first', 'feature/palindrome-silt-weave-modes']
   workflow_dispatch:
 
 permissions:
