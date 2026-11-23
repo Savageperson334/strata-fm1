@@ -1,12 +1,12 @@
 {
   "start": "silt",
   "tutorial_label": "Reference",
-  "intro": "Reference: tap any button, knob or key to read what it does. A button that opens a page changes the knob labels here to that page's. Switch to Play or Guide to use the panel. On the FM-1 itself, holding GLO shows a guide like this on its own screen.",
+  "intro": "Reference: click a button or knob to learn its function. The controls shown here match PALINDROME's actual single-press pages. In the FM-1 firmware, tap GLO once to show Help; tap GLO or HOME to leave. Use Play to perform or Guide for a short live walkthrough.",
   "master": [
     "VOLUME",
     "Output volume. MASTER is always the volume, whatever the other knobs are doing."
   ],
-  "screen": "The screen shows the rings as concentric circles, the oldest innermost, each one its own recording; the selected ring is the bright one, and grains ride the ring they play. MORPH is the small square in the middle. The top line names the page, the keys' job and the selected ring; under the rings are the SOURCE that REC would capture and REC's state, or DRIFT's countdown to the next generation; the boxes at the foot name what each knob sets now.",
+  "screen": "Three independent waveform rings surround MORPH's small source square. Bright = selected, amber = another playing through WEAVE. White notch = moving grain head; amber notch = SCAN knob's manual position. SOURCE says PASS (solo) or MIX (layered) before REC captures the next generation. Bottom boxes always name the actual encoder assignment.",
   "keys": [
     "GRAIN PITCH",
     "With no ring yet, a key strikes MORPH and the note is caught as the first ring. After that each key latches a pitch for the grains, up to four; the grains take them in turn. The key the seed was struck with plays the ring as recorded. A new key also plays its grains at once, even with PLAY off."
@@ -21,24 +21,24 @@
       "how": "EDIT or HOME",
       "knobs": {
         "KNOB1": [
-          "POSITION",
-          "Where grains start, round the selected ring."
+          "SCAN",
+          "Scrub manually through the selected 1.49-second recording. The amber inner marker is where you placed the scan point; the white moving marker shows drift around it. This is the PO-33-like start-point gesture, not a sequencer."
         ],
         "KNOB2": [
-          "SIZE",
-          "Grain length, 20 to 500 ms."
+          "GRAIN",
+          "Set the grain duration from a tiny fragment to a long, overlapping piece (20–500 ms)."
         ],
         "KNOB3": [
-          "DENSITY",
-          "1 to 40 grain starts a second."
+          "FLOW",
+          "Slow autonomous motion of the playback head around SCAN while PLAY runs. The default gentle movement is on; zero holds that offset steady. This changes playback, not the stored audio."
         ],
         "KNOB4": [
-          "SPRAY",
-          "Random scatter of each grain's start around POSITION."
+          "WEAVE",
+          "0: selected ring solo. About 50: add its parent or nearest ring. 100: all three ready rings play with independent heads. Their total grain rate and mixed loudness are normalized."
         ],
         "ALGORITHM": [
-          "DRIFT",
-          "The loop made again from itself, by itself. OFF: it stays as it is. Low: a new generation now and then, most of the ring kept. High: one after another, little kept. It waits while you play, and on MORPH's and RINGS' pages."
+          "MODE",
+          "LOOP for coherent reading, CLOUD for overlapping grains, PULSE for separated rhythmic snippets, FRACTURE for irregular reversals and pitch/position jumps. Each ring remembers its own mode."
         ],
         "PRESETS": [
           "PITCH",
@@ -91,6 +91,10 @@
         "KNOB4": [
           "DELETE",
           "Turn right once to arm deleting the selected ring, twice to arm clearing everything. SEL confirms; any other button calls it off."
+        ],
+        "KNOB2": [
+          "LOCK",
+          "Turn right to protect the selected ring from replacement by REC; turn left to unlock. Deleting a locked ring is still possible only through the explicit confirmation."
         ]
       }
     },
@@ -129,16 +133,24 @@
       "how": "LFO",
       "knobs": {
         "KNOB1": [
-          "SCAN",
-          "Moves POSITION back and forth by itself."
+          "SPEED",
+          "How quickly the playback point travels around this ring. At zero it stays near SCAN and FLOW gently shifts it; the middle travels near original speed."
         ],
         "KNOB2": [
           "TIMING",
-          "When grains start: an even pulse at 0, irregular at 100."
+          "How regular or irregular the timing between grains becomes."
         ],
         "KNOB3": [
-          "LOOP",
-          "The play point going round the ring by itself: OFF it stays at POSITION, 50 is the speed it was recorded at (the ring heard as a loop), 100 four times that."
+          "DENSITY",
+          "How many grains are triggered per second. All three rings share sixteen active grain voices."
+        ],
+        "KNOB4": [
+          "SPRAY",
+          "How far individual grains start from the current read point."
+        ],
+        "ALGORITHM": [
+          "EVOLVE",
+          "Separate from FLOW: automatically prints another ring from SILT after idle. Off by default. Stops when all three ring slots are occupied, so it cannot silently replace a favorite."
         ]
       }
     },
@@ -208,7 +220,7 @@
       "label": "SILT",
       "sub": "the grains",
       "base": "silt",
-      "text": "Opens SILT, the instrument: the grains of the selected ring. REC here captures SILT's own grains into a new ring."
+      "text": "SILT is home. Select a ring, pick LOOP / CLOUD / PULSE / FRACTURE, and increase WEAVE to bring in other recordings. REC captures the processed mix into another generation."
     },
     "HOME": {
       "label": "SILT HOME",
@@ -226,7 +238,7 @@
       "label": "RINGS",
       "sub": "list, delete",
       "base": "rings",
-      "text": "Opens the list of rings: which there are and what each was made from. KNOB4 arms a delete there and SEL confirms it."
+      "text": "Opens the ring list. SELECT chooses any recording, KNOB2 locks it, KNOB4 arms intentional deletion. New captured rings preserve their source ring and are selected automatically."
     },
     "ENV": {
       "label": "SHAPE",
@@ -238,22 +250,22 @@
       "label": "MOTION",
       "sub": "scan, timing",
       "base": "motion",
-      "text": "Opens SILT MOTION: POSITION moving by itself, and regular or irregular grain timing."
+      "text": "Opens motion settings: per-ring SPEED, TIMING, DENSITY, SPRAY and EVOLVE. SPEED and FLOW control playback movement, EVOLVE controls recording new generations."
     },
     "GLO": {
-      "label": "GUIDE",
-      "sub": "hold",
-      "text": "Held down, the screen itself shows what every button does, laid out as the buttons are, with a line for the keys. Let go to return. Nothing else changes while it is held."
+      "label": "INFO",
+      "sub": "tap to toggle",
+      "text": "Press GLO once to open the on-device button guide. It stays open without holding. Press GLO again or HOME to close. This is PALINDROME's single-press information page."
     },
     "REC": {
       "label": "NEW RING",
       "sub": "one press",
-      "text": "Captures the SOURCE named on the screen into a new ring: MORPH on MORPH's page, otherwise SILT's grains of the selected ring. DRIFT does the same by itself. It runs for one ring's length and finishes by itself. With nothing sounding it is armed and starts with the next sound. With three rings, the oldest (never the selected one) makes room: the screen says which, REC: DROPS 01."
+      "text": "Prints the current source into a new ring: MORPH when playing the injector, otherwise SILT's processed audio. SCAN and FLOW alter what is printed. WEAVE 0 passes one ring into the next; WEAVE 100 prints all three mixed. Printing resets WEAVE on the child to zero, preventing repeated layering. Full-ring management is deliberate; EVOLVE never overwrites."
     },
     "PLAY": {
-      "label": "GRAINS",
-      "sub": "start / stop",
-      "text": "Starts and stops the continuous stream of grains. Keys still play grains by hand while it is stopped."
+      "label": "PLAY",
+      "sub": "slow drift",
+      "text": "Starts or stops live playback of the selected ring. The scan point slowly drifts by default using FLOW; SCAN positions the reading window. WEAVE can add the other rings. No new recording is made by PLAY."
     },
     "OCT-": {
       "label": "KEYS DOWN",
@@ -281,7 +293,7 @@
   },
   "guide": {
     "label": "Guide",
-    "done": "That's the loop: a key strikes MORPH, SILT loops the note, and DRIFT (ALGORITHM on SILT) makes it again from itself. Turned down to OFF the loop stays as it is; turned up it changes faster. HOME always brings you back to SILT. Reference says what every control does.",
+    "done": "MORPH injects audio. SILT's SCAN scrubs a ring, FLOW gives PLAY gentle motion, and WEAVE runs one, two or three rings at a time. REC prints a new generation without resumming its ancestors. GLO toggles Help.",
     "steps": [
       {
         "title": "Switch on",
@@ -301,16 +313,25 @@
         }
       },
       {
-        "title": "The loop",
-        "text": "That is your note going round. Now leave it alone: in a few seconds DRIFT makes the loop again from itself, and a second ring appears around the first.",
+        "title": "Another generation",
+        "text": "PLAY makes the captured ring move. Turn KNOB1 SCAN to scrub through its audio and KNOB3 FLOW to change the gentle drift. Try KNOB2 GRAIN; then REC prints that transformed sound into a second ring.",
         "done": {
           "rings": 2
-        }
+        },
+        "show": [
+          "PLAY",
+          "KNOB1",
+          "KNOB3",
+          "REC"
+        ]
       },
       {
         "title": "Rings",
-        "text": "Each ring is a generation. Press SEL to see them and which ring each came from. DRIFT waits while this page is open.",
+        "text": "Return to SILT (EDIT). KNOB4 WEAVE at 0 plays the selected ring, halfway introduces its previous/closest ring, and full adds all three. SELECT selects which ring you're editing; SEL displays their history. REC prints the processed mix into the next generation.",
         "show": [
+          "EDIT",
+          "KNOB4",
+          "SELECT",
           "SEL"
         ],
         "done": {

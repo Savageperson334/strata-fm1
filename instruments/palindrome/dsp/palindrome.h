@@ -40,6 +40,8 @@ enum { M_X, M_Y, M_COMPLEX, M_TONE, M_SPREAD, M_MOVE, M_EXCITE,
        S_LOOP,                           /* the play point going round the ring by itself: still (POSITION alone) ..
                                           * at the speed it was recorded (the middle: the ring heard as a loop) ..
                                           * four times that */
+       S_WEAVE,                          /* 0 solo selected ring, 1 include other rings */
+       S_MODE,                           /* 0 LOOP, 1 CLOUD, 2 PULSE, 3 FRACTURE */
        PM_PARAMS };
 void pm_init(void);
 void pm_panic(void);
@@ -61,6 +63,8 @@ void pm_scope(float *out, uint32_t n);
 float pm_morph_x(void);
 float pm_morph_y(void);
 int pm_active_grains(void);
+int pm_grains_on_ring(int slot);
+float pm_ring_mix_weight(int slot);   /* last audio-block mix share; for on-screen activity */
 
 /* --- the rings. Called from the UI (never from the render); a slot is 0..PM_RINGS-1, a ring's id counts up from 1
  * and is never used twice, so a ring's parent stays the same ring's whatever is deleted --- */
@@ -70,6 +74,8 @@ int pm_ring_selected(void);              /* the slot the grains play and the SIL
 int pm_ring_select(int slot);            /* 0, or -1 (no finished ring there, or a capture is running). The ring left
                                           * keeps its settings; the one chosen brings its own back */
 int pm_ring_info(int slot, int *id, int *parent, int *source);   /* 1: a finished ring (parent 0: from MORPH) */
+int pm_ring_locked(int slot);
+int pm_ring_lock(int slot,int locked);
 int pm_ring_delete(int slot);            /* 0, or -1. Its grains fade out; another ring (the newest) is selected */
 void pm_ring_clear(void);                /* every ring gone, a running capture dropped */
 void pm_ring_wave(int slot, float *lo, float *hi, uint32_t n);   /* the ring in n arcs: each one's lowest and highest

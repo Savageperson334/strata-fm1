@@ -1,7 +1,6 @@
 # PALINDROME
 
-A separate firmware from STRATA: SILT (grains of the selected ring) is the instrument, MORPH the injector, and
-each capture a new ring. See the [manual](docs/MANUAL.md) and the [redesign](../../docs/PALINDROME_SILT_FIRST_REDESIGN.md). Site, emulator and installer:
+A separate firmware from STRATA: SILT is a three-ring instrument, MORPH the sound injector, and every REC a generational print. PLAY slowly moves through the recorded audio, SCAN scrubs it directly, FLOW changes its movement and WEAVE combines one, two or three rings. See the [manual](docs/MANUAL.md) and the [redesign](../../docs/PALINDROME_SILT_FIRST_REDESIGN.md). Site, emulator and installer:
 <https://savageperson334.github.io/strata-fm1/palindrome/>.
 
 The FM-1's toolchain has no C library headers: keep `<string.h>` and friends out of `app.c` and `dsp/` (the

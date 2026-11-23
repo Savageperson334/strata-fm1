@@ -4,18 +4,18 @@
  * SILT is the instrument and the page the FM-1 starts on; MORPH is the injector. One press is one thing: a button
  * either opens a page, which stays until another is opened, or does its one action. Nothing is held.
  *
- *   EDIT, HOME  SILT: the grains of the selected ring (POSITION SIZE DENSITY SPRAY, REVERSE, PITCH)
+ *   EDIT, HOME  SILT: SCAN GRAIN FLOW WEAVE, MODE, PITCH; SELECT always chooses a ring
  *   FX          MORPH SOURCE: the four-corner synth (X Y COMPLEX TONE, MOVE, EXCITE); the keys are its notes
- *   SEL         RINGS: the rings there are and where each came from; CARRY; KNOB4 arms a delete, SEL confirms it
+ *   SEL         RINGS: ring selection, CARRY, LOCK and confirmed deletion
  *   ENV         SILT SHAPE: SHAPE VARY SCATTER DETUNE, CLUSTER
- *   LFO         SILT MOTION: SCAN, TIMING
+ *   LFO         SILT MOTION: SPEED, TIMING, DENSITY, SPRAY, optional EVOLVE
  *   ARP         MIX
  *   SEQ         REC FX: what the next capture does to the sound it records
- *   GLO, held   the guide: what every button does, on the screen, laid out as the buttons are
+ *   GLO         info toggle: press once to show the control guide, again to leave
  *   REC         captures the source into a NEW ring: MORPH on MORPH's page, else SILT's grains of the selected ring
  *               (MORPH while there is no ring). It runs one ring's length and finishes by itself; pressed
  *               meanwhile it does nothing but say so. With nothing sounding it is armed, and starts with the next
- *               sound (a key, PLAY). No room: the oldest ring makes room (the screen says which, beforehand).
+ *               sound (a key, PLAY). Only unlocked, unselected rings can make room; DRIFT pauses at capacity.
  *
  * MORPH's notes are struck: a key sounds its note, which dies away (DECAY, on MIX; at its top a note is held
  * until its key is tapped again). MORPH is heard on its own page and through a capture of it; elsewhere, while
@@ -37,7 +37,7 @@ enum { PG_SILT, PG_MORPH, PG_RINGS, PG_SHAPE, PG_MOTION, PG_MIX, PG_RECFX, NPAGE
 static int page, source, octave, running, slots[PM_VOICES], replace_at;
 static int gslots[PM_PITCHES], greplace_at;  /* the keys held for the grains: semitones, PM_NO_PITCH none */
 static int arm;                          /* RINGS: 0, or what SEL would now do: 1 delete the selected ring, 2 clear all */
-static int guide;                        /* GLO is held: the guide is on the screen */
+static int guide;                        /* toggled with a GLO tap; HOME also closes */
 static int armed;                        /* REC found nothing sounding: the capture starts with the next sound */
 static int played;                       /* PLAY has been pressed once (its hint no longer needed) */
 /* the key that plays a ring as it was recorded: the key its seed was struck with (as the FM-1 starts: the C) */
@@ -56,19 +56,19 @@ static uint32_t touched_at;
 static const int enc[7]={EN_K1,EN_K2,EN_K3,EN_K4,EN_SELECT,EN_ALGO,EN_PRESET};
 static const char *const labels[PM_PARAMS]={
  "X","Y","COMPLEX","TONE","SPREAD","MOVE","EXCITE",
- "POSITION","SIZE","DENSITY","SPRAY","PITCH","REVERSE","CARRY",
- "MIX","FADE","SCAN","SHAPE","STEREO","DAMP","LEVEL",
+ "SCAN","GRAIN","DENSITY","SPRAY","PITCH","REVERSE","CARRY",
+ "MIX","FADE","FLOW","SHAPE","STEREO","DAMP","LEVEL",
  "NOISE","COLOR","CRUSH","GATE","DROP",
- "TIMING","VARY","SCATTER","DETUNE","CLUSTER","DECAY","DRIFT","LOOP"};
+ "TIMING","VARY","SCATTER","DETUNE","CLUSTER","DECAY","EVOLVE","SPEED","WEAVE","MODE"};
 /* the control on knob j (KNOB1..4, SELECT, ALGORITHM, PRESETS) of a page, or PG_NONE (that knob sets nothing there).
  * SELECT (j 4) is the ring selector on every page, and KNOB4 on RINGS arms a delete: neither is in this table */
 #define PG_NONE 255
 static const uint8_t PAGE[NPAGES][7]={
-    {S_POS,S_SIZE,S_DENSITY,S_SPRAY,PG_NONE,G_DRIFT,S_PITCH},                   /* SILT */
+    {S_POS,S_SIZE,G_SCAN,S_WEAVE,PG_NONE,S_MODE,S_PITCH},                      /* SILT */
     {M_X,M_Y,M_COMPLEX,M_TONE,PG_NONE,M_MOVE,M_EXCITE},                         /* MORPH (SPREAD: on MIX) */
     {R_CARRY,PG_NONE,PG_NONE,PG_NONE,PG_NONE,PG_NONE,PG_NONE},                  /* RINGS */
     {S_SHAPE,S_VARY,S_SCATTER,S_DETUNE,PG_NONE,S_CLUSTER,S_REVERSE},            /* SHAPE */
-    {G_SCAN,S_TIMING,S_LOOP,PG_NONE,PG_NONE,PG_NONE,PG_NONE},                   /* MOTION */
+    {S_LOOP,S_TIMING,S_DENSITY,S_SPRAY,PG_NONE,G_DRIFT,PG_NONE},                /* MOTION */
     {G_MIX,G_FADE,M_SPREAD,G_STEREO,PG_NONE,M_SUSTAIN,G_LEVEL},                 /* MIX */
     {R_NOISE,R_COLOR,R_CRUSH,R_GATE,PG_NONE,R_DROP,G_DAMP}};                    /* REC FX */
 static int pidx(int pg,int j){return PAGE[pg][j]==PG_NONE?-1:PAGE[pg][j];}
@@ -180,8 +180,9 @@ static int sounding(int src){
 static int would_drop(void){
     rings_now();
     if(norder<PM_RINGS)return 0;
-    for(int k=0;k<norder;k++)if(order[k]!=pm_ring_selected())return ring_id(order[k]);
-    return 0;
+    if(norder<PM_RINGS)return 0;
+    for(int k=0;k<norder;k++)if(order[k]!=pm_ring_selected()&&!pm_ring_locked(order[k]))return ring_id(order[k]);
+    return -1;
 }
 /* DRIFT, as the panel reads it: how long the loop is left before its next generation, and how much of it that
  * generation keeps as it was. Under 2: never (it stays as it is) */
@@ -191,7 +192,9 @@ static float drift_keep(void){return .9f-.75f*pm_get(G_DRIFT);}
 static void start_capture(void){
     int src=source_now();
     armed=0;gen=0;
-    if(pm_capture(src))return;
+    int rc=pm_capture(src);
+    if(rc){if(rc==PM_ERR_FULL)app_say("RINGS FULL: UNLOCK ONE","");
+           else app_say("CANNOT CAPTURE","");return;}
     if(src==PM_SRC_MORPH&&last_k>=0){root_k=last_k;root_oct=octave;}   /* (its seed's key: the ring as recorded) */
     if(pm_capture_dropped()){
         char t[40],*e=put(t,"RING ");
@@ -247,7 +250,7 @@ void app_input_only(void){
     /* DRIFT: left alone on SILT's pages with the grains sounding, the loop is made again from itself, the ring it
      * plays kept under the new one as far as DRIFT says */
     if(drifting()&&pm_capture_state()==PM_CAP_IDLE&&!armed&&!arm&&!guide&&page!=PG_MORPH&&page!=PG_RINGS&&
-       pm_ring_count()>0&&(running||pm_active_grains()>0)&&now-idle_since>=drift_wait()){
+       pm_ring_count()>0&&pm_ring_count()<PM_RINGS&&(running||pm_active_grains()>0)&&now-idle_since>=drift_wait()){
         source=PM_SRC_SILT;
         if(!pm_capture_keep(PM_SRC_SILT,drift_keep()))gen=1;
         else idle_since=now;
@@ -262,7 +265,11 @@ void app_input_only(void){
         }
         arm=0;newb&=~(1u<<B_SEL);
     }
-    if(newb&~((1u<<B_OCTDN)|(1u<<B_OCTUP)|(1u<<B_GLO)))arm=0;   /* any other button (but the guide's): not deleted */
+    if(newb&~((1u<<B_OCTDN)|(1u<<B_OCTUP)|(1u<<B_GLO)))arm=0;
+    if(newb&(1u<<B_GLO))guide=!guide;
+    if(newb&(1u<<B_HOME))guide=0;
+    /* INFO is a persistent page, not a hidden hold state. It only permits HOME or another GLO tap. */
+    if(guide){newb&=(1u<<B_GLO);newk=0;}
     if(newb&(1u<<B_EDIT)){page=PG_SILT;source=PM_SRC_SILT;}
     if(newb&(1u<<B_HOME)){page=PG_SILT;source=PM_SRC_SILT;}
     if(newb&(1u<<B_FX)){page=PG_MORPH;source=PM_SRC_MORPH;}
@@ -271,8 +278,7 @@ void app_input_only(void){
     if(newb&(1u<<B_LFO))page=PG_MOTION;
     if(newb&(1u<<B_ARP))page=PG_MIX;
     if(newb&(1u<<B_SEQ))page=PG_RECFX;
-    guide=(int)((btn>>B_GLO)&1u);
-    if(newb&(1u<<B_PLAY)){running=!running;pm_grains(running);played=1;}
+     if(newb&(1u<<B_PLAY)){running=!running;pm_grains(running);played=1;}
     if(newb&(1u<<B_REC))capture();
     if(newb&(1u<<B_SAVE))app_say("SAVE: NOT AVAILABLE","");
     if((newb&(1u<<B_OCTDN))&&octave>-3)octave--;
@@ -290,8 +296,15 @@ void app_input_only(void){
     }
     for(int j=0;j<7;j++){
         int d=plat_enc(enc[j]),id=pidx(page,j);
-        if(!d)continue;
+        if(!d||guide)continue;
         if(j==4){select_ring(d,now);continue;}               /* SELECT: the ring, on every page */
+        if(page==PG_RINGS&&j==1){
+            if(pm_ring_selected()>=0){
+                pm_ring_lock(pm_ring_selected(),d>0);
+                app_say(d>0?"RING LOCKED":"RING UNLOCKED","");
+            }
+            touched=j;touched_at=now;continue;
+        }
         if(page==PG_RINGS&&j==3){                            /* KNOB4 on RINGS: arm a delete (SEL confirms) */
             arm+=d>0?1:-1;
             if(arm<0)arm=0;
@@ -382,7 +395,7 @@ static const char *pd_hint(const char **second){
         return 0;
     }
     if(!norder){*second="IT IS CAUGHT AND LOOPED";return "TAP A KEY";}
-    if(page==PG_SILT&&!running&&!played)return "PLAY STARTS THE GRAINS";
+    if(page==PG_SILT&&!running&&!played)return "PLAY STARTS THE SLOW DRIFT";
     return 0;
 }
 
@@ -469,7 +482,8 @@ static void pd_list(void){
         if(on)pd_box(4,y,232,19,C_LINE);
         pd_frame(4,y,232,19,on?C_HI:C_LINE);
         pd_text(10,y+3,t,on?C_WHITE:C_GRAY);
-        if(on)pd_text(236-6-text_w(&FONT_XS,"SELECTED"),y+3,"SELECTED",C_HI);
+        if(pm_ring_locked(slot))pd_text(236-6-text_w(&FONT_XS,"LOCK"),y+3,"LOCK",C_AMB);
+        else if(on)pd_text(236-6-text_w(&FONT_XS,"SELECTED"),y+3,"SELECTED",C_HI);
         row++;
     }
     {
@@ -486,20 +500,20 @@ static void pd_list(void){
             pd_text(PD_CX-text_w(&FONT_XS,"SEL = YES   ANY OTHER = NO")/2,y+19,"SEL = YES   ANY OTHER = NO",C_AMB);
         }else{
             pd_text(10,y+3,"KNOB1: CARRY - THE SELECTED RING",C_DIM);
-            pd_text(10,y+17,"UNDER THE NEXT CAPTURE",C_DIM);
+            pd_text(10,y+17,"KNOB2: LOCK/UNLOCK RING",C_DIM);
             pd_text(10,y+35,"KNOB4: DELETE A RING",C_DIM);
         }
     }
 }
 
-/* GLO held: what every button does, where the buttons are (two rows of six), then the keys and the knobs */
+/* GLO tapped: persistent reference overlay with the same button layout as the FM-1. */
 static void pd_guide(void){
     static const char *const G[12][3]={
-        {"FX","MORPH","SYNTH"},{"SEL","RINGS","LIST"},{"ENV","SILT","SHAPE"},{"LFO","SILT","MOVE"},{"EDIT","SILT","PAGE"},{"GLO","THIS","GUIDE"},
+        {"FX","MORPH","SOURCE"},{"SEL","RINGS","LIST"},{"ENV","SILT","SHAPE"},{"LFO","SILT","MOTION"},{"EDIT","SILT","HOME"},{"GLO","HELP","TOGGLE"},
         {"HOME","SILT","HOME"},{"SAVE","-",""},{"ARP","MIX",""},{"SEQ","REC FX",""},{"PLAY","GRAIN","ON OFF"},{"REC","NEW","RING"}};
     int i;
     pd_text(4,2,"PALINDROME GUIDE",C_HI);
-    pd_text(236-text_w(&FONT_XS,"LET GO OF GLO"),2,"LET GO OF GLO",C_GRAY);
+    pd_text(236-text_w(&FONT_XS,"GLO TO CLOSE"),2,"GLO TO CLOSE",C_GRAY);
     for(i=0;i<12;i++){
         int32_t x=(i%6)*40,y=17+(i/6)*42;
         int used=G[i][1][0]!='-',here=i<6?(i==0&&page==PG_MORPH)||(i==1&&page==PG_RINGS)||(i==2&&page==PG_SHAPE)||(i==3&&page==PG_MOTION)||(i==4&&page==PG_SILT)
@@ -533,7 +547,11 @@ static void pd_scene(void){
             if(slot==cap&&cap>=0)pd_ring(slot,PD_R[i],C_WHITE,1);            /* being captured: filling, in white */
             else if(slot<0)pd_ring(-1,PD_R[i],C_LINE,0);
             else if(slot==sel)pd_ring(slot,PD_R[i],morph?C_GRAY:C_HI,!morph);
-            else pd_ring(slot,PD_R[i],morph?C_LINE:C_DIM,0);
+            else{
+                /* An unselected ring currently playing through WEAVE glows rather than disappearing. */
+                float share=pm_ring_mix_weight(slot);
+                pd_ring(slot,PD_R[i],morph?C_LINE:share>.04f?C_AMB:C_DIM,share>.25f&&!morph);
+            }
         }
         if(cap>=0&&norder<PM_RINGS){             /* the capture's head */
             uint32_t a=pd_turn(pm_capture_progress());
@@ -544,6 +562,10 @@ static void pd_scene(void){
             uint32_t a=pd_turn(pm_position());
             for(k=-half;k<=half;k+=3){pd_polar(r,a+(uint32_t)k,&x0,&y0);pd_box(x0,y0,1,1,C_AMB);}
             pd_polar(r-2,a,&x0,&y0);pd_polar(r+3,a,&x1,&y1);pd_line(x0,y0,x1,y1,C_WHITE);
+            /* Beads/PO-inspired direct scrub: amber notch is KNOB1, white notch is moving head. */
+            a=pd_turn(pm_get(S_POS));
+            pd_polar(r-PD_AMP-10,a,&x0,&y0);pd_polar(r-PD_AMP-5,a,&x1,&y1);
+            pd_line(x0,y0,x1,y1,C_AMB);
         }
         for(i=0;i<PM_GRAINS;i++)if(g_dir[i]){    /* the grains, each on the ring it plays, a tail where it has been */
             int k=place_of(g_slot[i]);
@@ -590,7 +612,7 @@ static void pd_scene(void){
     /* --- under the rings: what REC would capture, and how REC stands --- */
     {
         int src=pm_capture_state()!=PM_CAP_IDLE?pm_capture_source():source_now();
-        e=put(t,src==PM_SRC_MORPH?"MORPH":"SILT ");
+        e=put(t,src==PM_SRC_MORPH?"MORPH":pm_get(S_WEAVE)>.02f?"MIX RING ":"PASS RING ");
         if(src==PM_SRC_SILT)two(ring_id(sel),e);
         tx=pd_text(4,184,"SOURCE:",C_GRAY);
         pd_text(tx+4,184,t,src==PM_SRC_MORPH?C_HI:C_AMB);
@@ -598,14 +620,19 @@ static void pd_scene(void){
             number((int)(pm_capture_progress()*100.f),t);e=t;while(*e)e++;put(e,"%");
             x0=236-text_w(&FONT_XS,t);pd_text(x0,184,t,C_WHITE);
         }else if(armed){x0=236-text_w(&FONT_XS,"ARMED");pd_text(x0,184,"ARMED",(plat_ms()>>8)&1u?C_WHITE:C_AMB);}
+        else if(drifting()&&pm_ring_count()>=PM_RINGS){
+            x0=236-text_w(&FONT_XS,"DRIFT FULL");pd_text(x0,184,"DRIFT FULL",C_AMB);
+        }
         else if(drifting()&&sel>=0&&page!=PG_MORPH&&page!=PG_RINGS&&(running||pm_active_grains()>0)){
             /* DRIFT at work: how long until the loop is made again */
             uint32_t w=drift_wait(),d=plat_ms()-idle_since;
             e=put(t,"NEXT ");number(d<w?(int)((w-d+999u)/1000u):0,e);while(*e)e++;put(e,"s");
             x0=236-text_w(&FONT_XS,t);pd_text(x0,184,t,C_AMB);
         }
-        else if(would_drop()){                  /* no room: which ring the next capture gives up */
-            e=put(t,"DROPS ");two(would_drop(),e);
+        else if(would_drop()){                  /* only unlocked/unselected rings can be recycled */
+            int drop=would_drop();
+            if(drop<0)put(t,"FULL: LOCKED");
+            else{e=put(t,"DROPS ");two(drop,e);}
             x0=236-text_w(&FONT_XS,t);pd_text(x0,184,t,C_AMB);
         }else{x0=236-text_w(&FONT_XS,"READY");pd_text(x0,184,"READY",C_HI);}
         {
@@ -646,10 +673,17 @@ static void pd_scene(void){
                 int at=place_of(sel);
                 if(at>=0){two(ring_id(sel),t);pd_knob(COL[i],ROW[i],"RING",(float)(at+1)/(float)norder,lit==i,C_WHITE,t);}
                 else pd_knob(COL[i],ROW[i],"RING",0,lit==i,C_WHITE,"--");
-            }else if(page==PG_RINGS&&i==3)
+            }else if(page==PG_RINGS&&i==1)
+                pd_knob(COL[i],ROW[i],"LOCK",pm_ring_locked(sel)?1.f:0.f,lit==i,C_WHITE,pm_ring_locked(sel)?"YES":"NO");
+            else if(page==PG_RINGS&&i==3)
                 pd_knob(COL[i],ROW[i],"DEL",(float)arm*.5f,lit==i,C_WHITE,arm==2?"ALL":arm?"ONE":"NO");
             else if(id==M_SUSTAIN&&held())pd_knob(COL[i],ROW[i],labels[id],1,lit==i,fill,"HOLD");
             else if(id==G_DRIFT&&!drifting())pd_knob(COL[i],ROW[i],labels[id],0,lit==i,fill,"OFF");
+            else if(id==S_MODE){
+                static const char *const modes[]={"LOOP","CLOUD","PULSE","FRACT"};
+                int mode=(int)(pm_get(S_MODE)*3.999f);if(mode>3)mode=3;
+                pd_knob(COL[i],ROW[i],"MODE",pm_get(S_MODE),lit==i,fill,modes[mode]);
+            }
             else if(id==S_LOOP&&pm_get(S_LOOP)<.03f)pd_knob(COL[i],ROW[i],labels[id],0,lit==i,fill,"OFF");
             else if(id>=0)pd_knob(COL[i],ROW[i],labels[id],pm_get(id),lit==i,fill,0);
         }
@@ -694,6 +728,11 @@ int app_expect(const char *what,int *got){
     else if(!strcmp(what,"armed"))*got=armed;
     else if(!strcmp(what,"gen"))*got=gen;
     else if(!strcmp(what,"drift"))*got=(int)(pm_get(G_DRIFT)*100+.5f);
+    else if(!strcmp(what,"flow"))*got=(int)(pm_get(G_SCAN)*100+.5f);
+    else if(!strcmp(what,"scan"))*got=(int)(pm_get(S_POS)*100+.5f);
+    else if(!strcmp(what,"weave"))*got=(int)(pm_get(S_WEAVE)*100+.5f);
+    else if(!strcmp(what,"mode"))*got=(int)(pm_get(S_MODE)*3.999f);
+    else if(!strcmp(what,"locked"))*got=pm_ring_locked(pm_ring_selected());
     else if(!strcmp(what,"loop"))*got=(int)(pm_get(S_LOOP)*100+.5f);
     else if(!strcmp(what,"root"))*got=root_k;
     else if(!strcmp(what,"sustain"))*got=(int)(pm_get(M_SUSTAIN)*100+.5f);

@@ -2,14 +2,20 @@
 # the next by itself. (page: 0 SILT, 1 MORPH, 2 RINGS, 3 SHAPE, 4 MOTION, 5 MIX, 6 REC FX)
 wait 3000
 expect page 0
+expect flow 18
+expect scan 30
 expect rings 0
 expect ring 0
 expect voices 0
 shot silt0.png
-# DRIFT off for the walk by hand (its own part is at the end)
-turn ALGO -64
+# DRIFT starts OFF and is controlled from LFO.
+tap LFO
 wait 100
+expect page 4
 expect drift 0
+tap EDIT
+wait 100
+expect page 0
 # REC with nothing sounding: armed, no capture, no ring; REC again: not armed
 tap REC
 wait 100
@@ -59,7 +65,16 @@ shot silt1.png
 # ring as it was recorded), MORPH's notes stay as they were
 expect grains 1
 expect root 7
+# K1 SCRUBS audio directly; FLOW makes the playback point drift when PLAY runs.
+turn K1 8
+wait 100
+expect scan 43
+turn K1 -8
+wait 100
+expect scan 30
 turn K3 30
+wait 100
+expect flow 65
 turn K2 20
 key 7 down
 wait 60
@@ -110,6 +125,36 @@ expect ring 2
 expect size 49
 turn SELECT -1
 wait 100
+
+# Three-ring performance controls: LOOP/CLOUD/PULSE/FRACTURE and WEAVE.
+expect mode 1
+turn ALGO -16
+wait 100
+expect mode 0
+turn ALGO 48
+wait 100
+expect mode 3
+turn ALGO -32
+wait 100
+expect mode 1
+turn K4 64
+wait 200
+expect weave 100
+tap SEL
+wait 100
+expect page 2
+turn K2 1
+wait 100
+expect locked 1
+turn K2 -1
+wait 100
+expect locked 0
+tap EDIT
+wait 100
+turn K4 -64
+wait 100
+expect weave 0
+
 # the other pages: one press each, and they stay
 tap ENV
 wait 100
@@ -137,18 +182,22 @@ turn K1 -8
 tap ARP
 wait 100
 expect page 5
-# GLO held: the guide on the screen, the page as it was; let go, the page again
-press GLO
+# GLO is persistent Info: one tap opens it; release does not close it.
+tap GLO
 wait 200
 expect guide 1
 expect page 5
 shot guide.png
-release GLO
+tap GLO
 wait 100
 expect guide 0
 expect page 5
+tap GLO
+wait 100
+expect guide 1
 tap HOME
 wait 100
+expect guide 0
 expect page 0
 # a branch: back on 01, captured again: ring 03's parent is 01
 expect ring 1
@@ -297,10 +346,15 @@ wait 60
 key 12 up
 wait 100
 expect gkeys 1
-# DRIFT: left alone, the loop is made again from itself: a new ring from the one played, the page as it was
+# DRIFT: enable it on MOTION, then return to SILT while it runs.
+tap LFO
+wait 100
 turn ALGO 40 2
 wait 100
 expect drift 63
+tap EDIT
+wait 100
+expect page 0
 wait 2700
 expect gen 1
 expect capturing 1
@@ -320,9 +374,13 @@ wait 700
 wavstop
 expect peak_db_min -45
 # ...and with DRIFT off it stays as it is
+tap LFO
+wait 100
 turn ALGO -64 2
 wait 100
 expect drift 0
+tap EDIT
+wait 100
 wait 6000
 expect capturing 0
 expect rings 3

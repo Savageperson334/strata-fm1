@@ -41,13 +41,13 @@ a{{color:#c7a6fa}}h1{{letter-spacing:.08em;margin:0 0 .3rem}}figure{{display:inl
 img{{width:100%;height:auto;image-rendering:pixelated;border:1px solid #3a3550}}figcaption{{font-size:.85rem;color:#c4b6d0}}
 .go{{display:inline-block;margin:.6rem 0;padding:.6rem 1.2rem;border-radius:999px;background:#c7a6fa;color:#151420;font-weight:700;text-decoration:none}}</style>
 <main><h1>PALINDROME next</h1>
-<p><strong>SILT is the instrument. MORPH is the injector. Each recording becomes a new ring.</strong></p>
+<p><strong>PLAY drifts. SCAN scrubs. WEAVE combines one, two or three independent audio rings. REC prints the next generation.</strong></p>
 <p>This is a preview of the redesign, build {html.escape(commit[:7])}. It is not released: there is no installer for
 it, and it has never run on an FM-1. <a href="../">The released PALINDROME</a> is unchanged.</p>
 <p><a class="go" href="emu/">Play the preview in the browser</a></p>
 <p>In the emulator, <strong>Guide</strong> walks through the first two rings on the live panel;
-<strong>Reference</strong> says what every control does. One press does everything: nothing is held.
-<a href="https://github.com/Savageperson334/strata-fm1/blob/feature/silt-first/instruments/palindrome/docs/MANUAL.md">The
+<strong>Reference</strong> says what every control does. Press GLO once for on-device Info; press it again to close. PLAY creates slow movement, not automatic recording.
+<a href="manual.md">The
 manual for this build</a> is on its branch.</p>
 <h2>The screens, from the simulator</h2>{shots}</main></html>
 """, encoding="utf-8")
