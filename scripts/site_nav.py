@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MPL-2.0
-"""One navigation on every page of both firmwares' sites, so STRATA's and PALINDROME's mirror each other.
+"""Shared website navigation across three released instruments and one planned combined project.
 
     scripts/site_nav.py SITE_DIR strata|palindrome|babblebeat
 
@@ -27,6 +27,7 @@ from pathlib import Path
 
 REPO = "https://github.com/Savageperson334/strata-fm1"
 SOURCE = {"strata": REPO, "palindrome": REPO + "/tree/main/instruments/palindrome", "babblebeat": REPO + "/tree/main/instruments/babblebeat"}
+STRABBLEDROME_SOURCE = REPO + "/tree/main/instruments/strabbledrome"
 PAGES = (("", "index.html"), ("emu", "emu/index.html"), ("manual", "manual/index.html"),
          ("install", "install/index.html"))
 LINKS = (("emu", "Emulator"), ("manual", "Manual"), ("install", "Install"))
@@ -44,6 +45,7 @@ border-bottom:2px solid currentColor;box-sizing:border-box}
 font-size:12px;letter-spacing:.07em}
 #fm1nav .fm1nav-swap a{padding:5px 14px;opacity:.72}
 #fm1nav .fm1nav-swap a:hover{opacity:1}
+#fm1nav .fm1nav-swap a[data-project="strabbledrome"]{border-left:1px solid currentColor;letter-spacing:0}
 #fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
 @media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
 </style>"""
@@ -101,8 +103,9 @@ body:has(.devicebox) > header h1 { color: var(--accent); }
 @media(max-width:540px) {
   #fm1nav { align-items: stretch; }
   #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
-  #fm1nav .fm1nav-swap { display: flex; width: 100%; }
-  #fm1nav .fm1nav-swap a { flex: 1; text-align: center; padding: 8px 5px; font-size: 11px; }
+  #fm1nav .fm1nav-swap { display: flex; flex-wrap: wrap; width: 100%; border-radius:12px; }
+  #fm1nav .fm1nav-swap a { flex: 1 1 42%; text-align: center; padding: 8px 5px; font-size: 11px; }
+  #fm1nav .fm1nav-swap a[data-project="strabbledrome"] { border-left:0; border-top:1px solid var(--rule); }
 }
 """
 
@@ -166,8 +169,11 @@ def nav(instrument, section):
         f'<a href="{relative(name, section)}"{" aria-current=" + chr(34) + "true" + chr(34) if name == instrument else ""}>{name.upper()}</a>'
         for name in ("strata", "palindrome", "babblebeat")
     )
+    # STRABBLEDROME has a GitHub project, but not yet an installable firmware or website.
+    swap += (f'<a href="{STRABBLEDROME_SOURCE}" data-project="strabbledrome" '
+             f'title="Three-in-one switching firmware — in development">STRABBLEDROME · WIP</a>')
     return (f'<nav id="fm1nav" aria-label="{instrument.upper()}"><div class="fm1nav-links">{links}</div>'
-            f'<div class="fm1nav-swap" role="group" aria-label="Firmware">{swap}</div></nav>')
+            f'<div class="fm1nav-swap" role="group" aria-label="Firmware projects">{swap}</div></nav>')
 
 
 def apply(html, instrument, section):

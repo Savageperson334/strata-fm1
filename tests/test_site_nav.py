@@ -18,7 +18,10 @@ COLORS = {"strata": "#eaf7f7", "palindrome": "#f2edfa", "babblebeat": "#191b23"}
 for current in FIRMWARES:
     for section in SECTIONS:
         n = site_nav.nav(current, section)
-        assert n.count('<a href=') == 7, (current, section, n)
+        assert n.count('<a href=') == 8, (current, section, n)
+        assert 'STRABBLEDROME · WIP' in n
+        assert f'href="{site_nav.STRABBLEDROME_SOURCE}"' in n
+        assert n.count('data-project="strabbledrome"') == 1
         for target in FIRMWARES:
             assert target.upper() in n
         import posixpath
@@ -43,4 +46,4 @@ for current in FIRMWARES:
     assert again.count("fm1theme-style") == 1
     assert again.count("fm1theme-meta") == 1
     assert again.count('<nav id="fm1nav"') == 1
-print("3 firmware themes and cross-page navigation passed")
+print("3 firmware themes, shared navigation, and STRABBLEDROME project link passed")
