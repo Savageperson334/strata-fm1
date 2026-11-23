@@ -64,6 +64,7 @@ float pm_morph_x(void);
 float pm_morph_y(void);
 int pm_active_grains(void);
 int pm_grains_on_ring(int slot);
+float pm_ring_mix_weight(int slot);   /* last audio-block mix share; for on-screen activity */
 
 /* --- the rings. Called from the UI (never from the render); a slot is 0..PM_RINGS-1, a ring's id counts up from 1
  * and is never used twice, so a ring's parent stays the same ring's whatever is deleted --- */

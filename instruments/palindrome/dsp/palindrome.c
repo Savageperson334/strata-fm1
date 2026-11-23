@@ -80,14 +80,13 @@ static float gate_env,noise_lp,write_amt;   /* the gate's ear on the sound; the 
 static int dropping;
 static const float defaults[PM_PARAMS]={
  .35f,.65f,.35f,.5f,.4f,0,.55f,
- .0f,.55f,.42f,.08f,.5f,0,0,             /* (grains long and close enough to run together, hardly scattered: the
-                                          * ring is heard as the loop it is. CARRY 0: a capture is the source alone) */
- 1.f,.20f,0,.5f,.65f,.35f,.75f,          /* (MIX: while grains sound they are what is heard; SHAPE: a bell) */
+ .30f,.55f,.42f,.08f,.5f,0,0,            /* SCAN begins within the audio instead of at the silent seam */
+ 1.f,.20f,.18f,.5f,.65f,.35f,.75f,          /* (MIX: while grains sound they are what is heard; SHAPE: a bell) */
  0,.5f,0,0,0,                            /* a clean recording: no hiss, no crush, no gate, no dropouts */
  0,0,0,0,0,                              /* grains on an even pulse, all one length and pitch, one at a time */
  .7f,                                    /* DECAY: a struck note, gone in a few seconds */
  0.f,                                    /* DRIFT: off until the user enables it */
- .5f,                                    /* LOOP: natural-speed playhead */
+ .15f,                                   /* slow moving readhead; FLOW adds a wandering offset */
  0.f,                                    /* WEAVE: selected ring only */
  .375f};                                 /* CLOUD mode (legacy grain behavior) */
 static float fclamp(float x,float a,float b){return x<a?a:x>b?b:x;}
@@ -112,6 +111,9 @@ int pm_grains_on_ring(int slot){
     int n=0;if(slot<0||slot>=PM_RINGS)return 0;
     for(int i=0;i<PM_GRAINS;i++)if(grain[i].active&&grain[i].slot==slot)n++;
     return n;
+}
+float pm_ring_mix_weight(int slot){
+    return slot>=0&&slot<PM_RINGS&&ring[slot].ready?lane_weight[slot]:0.f;
 }
 void pm_burst(void){burst_request++;}
 void pm_grain_pitch(int slot,int semis){
@@ -277,7 +279,11 @@ int pm_service(int *slot){
         if(old>=0&&ring[old].ready)keep(old);
         /* the new ring starts with the settings in use. Made from SILT's grains, what those already did to its
          * sound is set back, so that it is not done twice over */
-        if(cap_source==PM_SRC_SILT){target[S_PITCH]=.5f;target[S_REVERSE]=0;target[S_SCATTER]=0;target[S_DETUNE]=0;}
+        if(cap_source==PM_SRC_SILT){
+            target[S_PITCH]=.5f;target[S_REVERSE]=0;target[S_SCATTER]=0;target[S_DETUNE]=0;
+            /* The mix is PRINTED into this ring; don't immediately layer the ancestors again. */
+            target[S_WEAVE]=0;
+        }
         r->id=next_id++;r->parent=cap_parent;r->source=cap_source;r->locked=0;
         keep(cap_slot);
         r->ready=1;
@@ -377,10 +383,28 @@ void pm_render(float *left,float *right,uint32_t n){
     w[0]=(1-mx)*my;w[1]=mx*my;w[2]=(1-mx)*(1-my);w[3]=mx*(1-my);
     float fade=1.0f/(441.f+88200.f*p[G_FADE]*p[G_FADE]);
     float tone=.02f+.62f*p[M_TONE]*p[M_TONE];
+    /* WEAVE: 0 selected solo; 50 selected + parent/nearest; 100 all rings.
+     * Each blend is normalized, so more recordings do not multiply output gain. */
     float sum=0.f,weave=fclamp(p[S_WEAVE],0,1);
+    int first=-1,second=-1;
+    if(selected>=0&&ring[selected].ready){
+        int sid=ring[selected].id,parent=ring[selected].parent;
+        for(int ri=0;ri<PM_RINGS;ri++)if(ri!=selected&&ring[ri].ready&&ring[ri].id==parent)first=ri;
+        if(first<0){
+            int best=0x7fffffff;
+            for(int ri=0;ri<PM_RINGS;ri++)if(ri!=selected&&ring[ri].ready){
+                int d=ring[ri].id-sid;if(d<0)d=-d;
+                if(d<best){best=d;first=ri;}
+            }
+        }
+        for(int ri=0;ri<PM_RINGS;ri++)if(ri!=selected&&ri!=first&&ring[ri].ready)second=ri;
+    }
     for(int ri=0;ri<PM_RINGS;ri++){
-        lane_weight[ri]=ring[ri].ready?(ri==selected?1.f:weave*.75f):0.f;
-        sum+=lane_weight[ri];
+        float w=0;
+        if(ri==selected&&ring[ri].ready)w=1.f;
+        if(ri==first)w=.8f*fclamp(weave*2.f,0,1);
+        if(ri==second)w=.8f*fclamp((weave-.5f)*2.f,0,1);
+        lane_weight[ri]=w;sum+=w;
     }
     for(int ri=0;ri<PM_RINGS;ri++){
         lane_weight[ri]=sum>0?lane_weight[ri]/sum:0.f;
@@ -559,8 +583,11 @@ void pm_render(float *left,float *right,uint32_t n){
                 out=in*write_amt;                                /* (gated or dropped: silence) */
                 if(under){
                     float old=(float)under[ci]*(1.f/32768.f),k=cap_keep;
-                    if(k<0)out+=old*p[R_CARRY];                  /* CARRY: the selected ring under it */
-                    else out=out*(1.f-k)*GEN_GAIN+old*k;         /* a generation: so much of it the ring as it was */
+                    if(k<0){
+                        /* Never sum two full-scale recordings into a runaway feedback source. */
+                        k=fclamp(p[R_CARRY],0,1);
+                        out=out*(1.f-k)+old*k;
+                    }else out=out*(1.f-k)*GEN_GAIN+old*k;
                 }
                 if(steps>0)out=fm_floorf(out*steps+.5f)/steps;    /* CRUSH */
                 if(ci<SEAM)out*=(float)ci*(1.f/SEAM);            /* the ends eased: the loop closes without a click */
