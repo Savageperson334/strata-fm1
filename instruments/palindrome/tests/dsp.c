@@ -95,6 +95,17 @@ int main(void){
   for(int k=0;k<40;k++){pm_ring_select(k&1?r1:r2);run(3);}}
  assert(sum_of(r1)==sum1&&sum_of(r2)==sum2);
 
+ /* Independent ring scheduling: WEAVE mixes two preserved sources at bounded
+  * density while each ring keeps its own read position and playback mode. */
+ assert(pm_ring_select(r2)==0);
+ pm_set(S_DENSITY,1);pm_set(S_WEAVE,1);pm_set(S_MODE,0);
+ run(270);
+ assert(pm_grains_on_ring(r1)>0&&pm_grains_on_ring(r2)>0);
+ for(int mode=0;mode<4;mode++){
+  pm_set(S_MODE,(float)mode/3.f);run(170);
+  assert(pm_active_grains()<=PM_GRAINS);
+ }
+ pm_set(S_WEAVE,0);pm_set(S_MODE,.375f);run(160);
  /* A branch: back on 01, changed again and captured: RING 03's parent is 01, and 02 is untouched. */
  assert(pm_ring_select(r1)==0);pm_set(S_REVERSE,1);run(60);
  assert(capture(PM_SRC_SILT,&slot)==PM_EV_COMMITTED);
@@ -267,5 +278,19 @@ int main(void){
   {float p0,p1;
    pm_set(S_LOOP,.5f);run(4);p0=pm_position();run(40);p1=pm_position();assert(p0!=p1);
    pm_set(S_LOOP,0);run(40);p0=pm_position();run(40);p1=pm_position();assert(p0==p1);}}
+ /* LOCK protects full rings from recycling, while the selected ring remains
+  * a capture source regardless of lock state. */
+ pm_init();pm_set(M_SUSTAIN,1);pm_note(0,48);run(30);
+ assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);int lock1=slot;
+ assert(pm_ring_lock(lock1,1)==0&&pm_ring_locked(lock1));
+ assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);int lock2=slot;
+ assert(pm_ring_lock(lock2,1)==0&&pm_ring_locked(lock2));
+ assert(capture(PM_SRC_MORPH,&slot)==PM_EV_COMMITTED);int active_slot=slot;
+ assert(pm_capture(PM_SRC_SILT)==PM_ERR_FULL&&pm_ring_count()==3);
+ assert(pm_ring_lock(lock1,0)==0);
+ pm_grains(1);run(100);
+ assert(capture(PM_SRC_SILT,&slot)==PM_EV_COMMITTED);
+ assert(slot==lock1&&pm_ring_locked(lock2)&&pm_ring_count()==3);
+ assert(pm_ring_info(active_slot,&id,&parent,&source));
  puts("PALINDROME DSP smoke passed");
 }

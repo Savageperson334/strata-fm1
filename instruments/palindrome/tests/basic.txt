@@ -6,10 +6,14 @@ expect rings 0
 expect ring 0
 expect voices 0
 shot silt0.png
-# DRIFT off for the walk by hand (its own part is at the end)
-turn ALGO -64
+# DRIFT starts OFF and is controlled from LFO.
+tap LFO
 wait 100
+expect page 4
 expect drift 0
+tap EDIT
+wait 100
+expect page 0
 # REC with nothing sounding: armed, no capture, no ring; REC again: not armed
 tap REC
 wait 100
@@ -110,6 +114,36 @@ expect ring 2
 expect size 49
 turn SELECT -1
 wait 100
+
+# Three-ring performance controls: LOOP/CLOUD/PULSE/FRACTURE and WEAVE.
+expect mode 1
+turn ALGO -16
+wait 100
+expect mode 0
+turn ALGO 48
+wait 100
+expect mode 3
+turn ALGO -32
+wait 100
+expect mode 1
+turn K4 64
+wait 200
+expect weave 100
+tap SEL
+wait 100
+expect page 2
+turn K2 1
+wait 100
+expect locked 1
+turn K2 -1
+wait 100
+expect locked 0
+tap EDIT
+wait 100
+turn K4 -64
+wait 100
+expect weave 0
+
 # the other pages: one press each, and they stay
 tap ENV
 wait 100
@@ -297,10 +331,15 @@ wait 60
 key 12 up
 wait 100
 expect gkeys 1
-# DRIFT: left alone, the loop is made again from itself: a new ring from the one played, the page as it was
+# DRIFT: enable it on MOTION, then return to SILT while it runs.
+tap LFO
+wait 100
 turn ALGO 40 2
 wait 100
 expect drift 63
+tap EDIT
+wait 100
+expect page 0
 wait 2700
 expect gen 1
 expect capturing 1
@@ -320,9 +359,13 @@ wait 700
 wavstop
 expect peak_db_min -45
 # ...and with DRIFT off it stays as it is
+tap LFO
+wait 100
 turn ALGO -64 2
 wait 100
 expect drift 0
+tap EDIT
+wait 100
 wait 6000
 expect capturing 0
 expect rings 3
