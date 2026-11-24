@@ -37,12 +37,19 @@ enum {
     P_BKIT,                              /* the kit: dark and low .. bright and snappy */
     P_BROOM,                             /* how much of the drums goes into the reverb */
     P_BDUCK,                             /* the drone ducks under the kick: none .. deep pumping */
+    /* the bitcrusher's (the panel's PLAY-held layer): after the filter, before the reverb */
+    P_CBITS,                             /* 16 bits .. 2 */
+    P_CRATE,                             /* the sample rate it holds to, 44.1 kHz .. about 400 Hz */
+    P_CDRIVE,                            /* how hard it is pushed in: clean .. folded and clipped */
+    P_CMIX,                              /* how much of it: none (off) .. all */
     SD_NPARAM
 };
 
 void sd_init(void);
 void sd_param(int id, float v);          /* any time, from any context: glides there over ~50 ms */
 float sd_param_get(int id);
+int sd_crush_bits(float v);              /* BITS as bits, 16 .. 2 */
+float sd_crush_hz(float v);              /* SAMPLE as Hz */
 void sd_voice_on(int slot, int note);    /* fade a voice in at a MIDI note (a sounding voice crossfades to it) */
 void sd_voice_off(int slot);             /* fade it out */
 int sd_voice_busy(int slot);             /* still audible (or fading) */

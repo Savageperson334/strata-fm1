@@ -56,7 +56,7 @@ static const float DEFAULTS[NPAGE][7]={
 };
 static float params[NPAGE][7];
 static const char *const NAMES[NPAGE][7]={
- {"PITCH","RATE","TONE","BREATH","LEVEL","STUTTER","INFLECT"},
+ {"PITCH","SPEED","TONE","BREATH","LEVEL","GLITCH","INFLECT"},
  {"GRAMMAR","WANDER","RECALL","DAMAGE","WORLD","LENGTH","STYLE"},
  {"SIZE","SLUR","GAP","WAVER","","",""}
 };

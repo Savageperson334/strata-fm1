@@ -7,14 +7,18 @@
  *   between sounds  nothing switches: the formants and the levels move toward each phone's targets over a few
  *                   milliseconds, which is most of what makes speech out of a row of vowels. A stop is a closure,
  *                   a burst and (unvoiced) a breath; its formants start from where the lips or the tongue were
- *   pitch           one line over the sentence: a little higher at the start, a lift on each word, a fall at the
- *                   end or a rise for a question (INFLECT). A word played from a key holds the key's pitch
+ *   stress          a ' before a vowel (the lexicon's, from the CMU dictionary): longer, fuller, the pitch lifted;
+ *                   the vowels without it shorter, @ the reduced "uh" of "about"
+ *   pitch           one line over the sentence: a little higher at the start, a lift on each stressed syllable, a
+ *                   fall at the end or a rise for a question (INFLECT). A word played from a key holds the key's pitch
+ *   GLITCH          the start of a word caught as it is said and played again, two to five times, then on: "th-th-the"
  *
  * What to say arrives from the panel while the sound is being made (on the FM-1, in an interrupt): it is written
  * into a slot the voice is not reading and taken over at a control step, the voice fading first, so nothing is
  * read half written and nothing is cut with a click. Single-precision floats, no library. */
 #include "babble_voice.h"
 #include "fastmath.h"
+#include "plat.h"                        /* PLAT_POOL only: GLITCH's buffer goes in the FM-1's RAM pool */
 #define BB_SR 44100.f
 #define CTL 64u                          /* samples in a control step (1.45 ms) */
 #define STEP_MS (1000.f*(float)CTL/BB_SR)
@@ -31,7 +35,7 @@ static float clip(float x,float a,float b){return x<a?a:x>b?b:x;}
 /* ----------------------------------------------------------------------------- the phones --- */
 enum {K_VOW,K_DIP,K_GLI,K_NAS,K_FRI,K_VFR,K_ASP,K_STP,K_VST,K_AFF,K_VAF};
 typedef struct {char c;uint8_t kind;float f1,f2,f3,g1,g2,g3,ms,amp,ff,fbw;} phone;
-/* Formants in Hz (a diphthong: where it starts, then where it ends); ms: its length at RATE's middle; amp: how
+/* Formants in Hz (a diphthong: where it starts, then where it ends); ms: its length at SPEED's middle; amp: how
  * loud its voice (vowels, glides, nasals) or its hiss or burst (the rest) is; ff, fbw: the hiss's centre and width.
  * A stop's f1..f3 are its locus: where the formants start from when it opens.
  * The spellings (lang/babble_lang.c): i ee, I ih, e eh, A a(t), a ah, O aw, U uh, V oo(k), u oo, E er, o o(r);
@@ -48,6 +52,7 @@ static const phone PH[]={
  {'u',K_VOW,310,900,2250,0,0,0,115,1.f,0,0},
  {'E',K_VOW,490,1350,1700,0,0,0,115,1.f,0,0},
  {'o',K_VOW,480,860,2450,0,0,0,110,1.f,0,0},
+ {'@',K_VOW,520,1400,2450,0,0,0,55,.8f,0,0},
  {'1',K_DIP,520,1850,2500,330,2200,2750,150,1.f,0,0},
  {'2',K_DIP,740,1200,2500,360,2100,2700,165,1.f,0,0},
  {'3',K_DIP,740,1250,2500,400,900,2300,165,1.f,0,0},
@@ -67,6 +72,7 @@ static const phone PH[]={
  {'z',K_VFR,260,1700,2700,0,0,0,75,.40f,5800,2600},
  {'v',K_VFR,250,1100,2300,0,0,0,55,.12f,4600,6000},
  {'D',K_VFR,270,1500,2600,0,0,0,45,.10f,5200,6000},
+ {'Z',K_VFR,260,1800,2600,0,0,0,80,.45f,2900,1400},
  {'h',K_ASP,0,0,0,0,0,0,55,.55f,0,0},
  {'p',K_STP,200,900,2200,0,0,0,55,.40f,900,1600},
  {'t',K_STP,200,1750,2700,0,0,0,50,.75f,4600,2600},
@@ -88,7 +94,7 @@ static void ahead(const bb_voice*v,float f[3]){
  f[0]=500;f[1]=1500;f[2]=2500;
  for(unsigned i=v->pos,n=0;i<v->used&&n<4;i++){
   const phone*p=find(v->queue[i]);
-  if(!p){if(v->queue[i]!=' ')break;continue;}
+  if(!p){if(v->queue[i]!=' '&&v->queue[i]!='\'')break;continue;}
   n++;
   if(p->kind==K_VOW||p->kind==K_DIP){f[0]=p->f1;f[1]=p->f2;f[2]=p->f3;return;}
  }
@@ -106,27 +112,23 @@ void bb_voice_init(bb_voice*v){
  for(int i=0;i<BB_LEVELS;i++)v->level[i]=0;
  v->level_at=0;v->level_peak=0;v->level_n=0;
  v->noise=0xBABB1Eu;v->note=-1;
- v->pitch=.32f;v->rate=.52f;v->tone=.5f;v->breath=.18f;v->volume=.78f;v->stutter=0;v->inflect=.3f;
+ v->pitch=.32f;v->rate=.52f;v->tone=.5f;v->breath=.18f;v->volume=.78f;v->glitch=0;v->inflect=.3f;
+ v->stress_next=v->auto_stress=0;v->word_start=1;
+ v->g_w=v->g_mark=v->g_len=v->g_rd=0;v->g_armed=v->g_count=v->g_reps=0;v->g_amp=1;v->g_live=1;v->g_rng=0x6117C4u;
  v->size=.5f;v->slur=.5f;v->gap=.5f;v->waver=0;
  v->f1=500;v->f2=1500;v->f3=2500;v->f0=120;v->ff=4000;v->fbw=2000;
  v->closing=.16f;v->inv_closing=1.f/.16f;v->peak=1;
 }
 void bb_voice_controls(bb_voice*v,const float k[7]){
  v->pitch=k[0];v->rate=k[1];v->tone=k[2];v->breath=k[3];
- v->volume=k[4];v->stutter=k[5];v->inflect=k[6];
+ v->volume=k[4];v->glitch=k[5];v->inflect=k[6];
 }
 /* MOUTH. SIZE: the whole mouth smaller or larger (every formant up or down); SLUR: how lazily it moves from sound
  * to sound; GAP: the quiet between words; WAVER: how much the pitch trembles */
 void bb_voice_mouth(bb_voice*v,const float k[4]){v->size=k[0];v->slur=k[1];v->gap=k[2];v->waver=k[3];}
-/* (a private generator for STUTTER's doubling: the sound's own belongs to the other side) */
-static uint32_t stutter_rng=0x51A77E5u;
-static uint16_t put(char *q,uint16_t n,const char*s,float stutter){
+static uint16_t put(char *q,uint16_t n,const char*s){
  if(!s)return n;
- while(*s&&n<BB_QUEUE-3){
-  char c=*s++;q[n++]=c;
-  stutter_rng=stutter_rng*1664525u+1013904223u;
-  if((stutter_rng>>24)<(unsigned)(stutter*50.f)&&n<BB_QUEUE-3)q[n++]=c;
- }
+ while(*s&&n<BB_QUEUE-3)q[n++]=*s++;
  return n;
 }
 static void hand_over(bb_voice*v,uint32_t req,uint16_t used,int note){
@@ -142,7 +144,7 @@ void bb_voice_say(bb_voice*v,const bb_mind*m,int note){
   if(t->role==BB_PUNCT){                 /* a comma is a pause; the last mark says how the pitch ends */
    if(t->text&&n<BB_QUEUE-3&&(t->text[0]==','||t->text[0]=='?'||t->text[0]=='.'))q[n++]=t->text[0];
   }else if(t->phones&&t->phones[0]){
-   n=put(q,n,t->phones,v->stutter);
+   n=put(q,n,t->phones);
    if(n<BB_QUEUE-3)q[n++]=' ';
   }
  }
@@ -150,7 +152,7 @@ void bb_voice_say(bb_voice*v,const bb_mind*m,int note){
 }
 void bb_voice_word(bb_voice*v,const bb_token*w,int note){
  uint32_t req=v->request+1u;
- hand_over(v,req,w?put(v->slot[req&1u],0,w->phones,v->stutter):0,note);
+ hand_over(v,req,w?put(v->slot[req&1u],0,w->phones):0,note);
 }
 void bb_voice_transpose(bb_voice*v,int semis){v->shift=semis<-36?-36:semis>36?36:semis;}
 void bb_voice_stop(bb_voice*v){uint32_t req=v->request+1u;hand_over(v,req,0,-1);}
@@ -169,12 +171,36 @@ void bb_voice_levels(const bb_voice*v,float *out,int n){
 /* ----------------------------------------------------------------------------- the voice's side --- */
 static bb_seg *stretch(bb_voice*v,float ms,float f1,float f2,float f3,float av,float ah,float af,float kf,float ka){
  bb_seg *s=&v->seg[v->nseg++];
- float scale=1.6f-v->rate;               /* RATE: slow .. fast */
+ float scale=1.08f*fm_exp2f(3.2f*(.52f-v->rate));   /* SPEED: about three times slower .. three times faster */
  s->n=ms*scale*DUR/STEP_MS;
  if(s->n<3)s->n=3;
  s->nz=0;
  s->f1=f1;s->f2=f2;s->f3=f3;s->av=av;s->ah=ah;s->af=af;s->kf=kf*GLIDE*(1.65f-1.3f*v->slur);s->ka=ka;
  return s;
+}
+/* a word begins at pos: is its stress marked? If not, a word of two vowels or more is stressed on its first */
+static int vowel(char c){const phone*p=find(c);return p&&(p->kind==K_VOW||p->kind==K_DIP);}
+static void word_begins(bb_voice*v){
+ int marked=0,vowels=0;
+ for(unsigned i=v->pos;i<v->used&&v->queue[i]!=' '&&v->queue[i]!=',';i++){
+  if(v->queue[i]=='\'')marked=1;
+  else if(vowel(v->queue[i]))vowels++;
+ }
+ v->auto_stress=!marked&&vowels>=2;
+ v->word_start=0;
+}
+/* GLITCH: at a word's start, now and then (and more often, and shorter, as GLITCH goes up), the next 35..160 ms
+ * caught to be played again */
+static uint32_t g_roll(bb_voice*v,uint32_t n){v->g_rng=v->g_rng*1664525u+1013904223u;return (v->g_rng>>8)%n;}
+#define G_RING 8192u
+#define G_EDGE 88u                        /* 2 ms fades at the edges of a repeat */
+static PLAT_POOL int16_t g_ring[G_RING];
+static void glitch_arm(bb_voice*v,float chance){
+ if(v->g_armed||v->glitch<.01f||g_roll(v,1000u)>=(uint32_t)(chance*1000.f))return;
+ v->g_armed=1;v->g_mark=v->g_w;
+ v->g_len=(uint32_t)((35.f+125.f*(1.f-v->glitch)*(float)(1u+g_roll(v,100u))*.01f)*BB_SR*.001f)+G_EDGE*2u;
+ v->g_count=1+(int)g_roll(v,1u+(uint32_t)(v->glitch*4.f));
+ v->g_amp=1;
 }
 /* the next thing in the queue, as one to three stretches. 0: nothing left */
 static int next_phone(bb_voice*v){
@@ -183,20 +209,33 @@ static int next_phone(bb_voice*v){
  while(v->pos<v->used){
   char c=v->queue[v->pos++];
   const phone*p=find(c);
-  if(c==' '){                            /* between words: a breath of quiet, and the next word's lift in pitch */
+  if(c==' '){                            /* between words: a breath of quiet, and the next word's small lift */
    stretch(v,34.f*.25f*fm_exp2f(4.f*v->gap),v->f1,v->f2,v->f3,0,0,0,.1f,.22f);
-   v->accent=1;
+   v->accent+=.3f*(1.f-v->accent);
+   v->word_start=1;
    return 1;
   }
+  if(c=='\''){v->stress_next=1;continue;}
   if(c==','){stretch(v,200.f*(.5f+v->gap),v->f1,v->f2,v->f3,0,0,0,.1f,.2f);return 1;}
   if(!p)continue;                        /* (the final mark, or a letter the table lacks) */
+  if(v->word_start){                     /* (the ' of a word's first vowel comes before the vowel: already past) */
+   v->pos--;word_begins(v);v->pos++;    /* (a ' already passed has set stress_next: the first vowel, as auto_stress) */
+   glitch_arm(v,.85f*v->glitch);
+  }else glitch_arm(v,.25f*v->glitch*v->glitch);
   ahead(v,f);
+  if(p->kind==K_VOW||p->kind==K_DIP){    /* the stressed vowel: longer, fuller, lifted; the rest lighter */
+   int st=v->stress_next||v->auto_stress;
+   float len=st?1.22f:p->c=='@'?1.f:.78f,amp=st?1.f:.86f;
+   v->stress_next=v->auto_stress=0;
+   if(st)v->accent=1;
+   if(p->kind==K_VOW)stretch(v,p->ms*len,p->f1,p->f2,p->f3,p->amp*amp,0,0,.11f,.2f);
+   else{
+    stretch(v,p->ms*len*.35f,p->f1,p->f2,p->f3,p->amp*amp,0,0,.11f,.2f);
+    stretch(v,p->ms*len*.65f,p->g1,p->g2,p->g3,p->amp*amp,0,0,.035f,.2f);
+   }
+   return 1;
+  }
   switch(p->kind){
-  case K_VOW:stretch(v,p->ms,p->f1,p->f2,p->f3,p->amp,0,0,.11f,.2f);break;
-  case K_DIP:
-   stretch(v,p->ms*.35f,p->f1,p->f2,p->f3,p->amp,0,0,.11f,.2f);
-   stretch(v,p->ms*.65f,p->g1,p->g2,p->g3,p->amp,0,0,.035f,.2f);
-   break;
   case K_GLI:stretch(v,p->ms,p->f1,p->f2,p->f3,p->amp,0,0,.07f,.2f);break;
   case K_NAS:stretch(v,p->ms,p->f1,p->f2,p->f3,p->amp,0,0,.2f,.25f)->nz=1;break;
   case K_FRI:v->ff=p->ff;v->fbw=p->fbw;stretch(v,p->ms,f[0],f[1],f[2],0,0,p->amp,.08f,.14f);break;
@@ -249,7 +288,8 @@ static void control(bb_voice*v){
    v->used=n;v->pos=0;v->note=v->slot_note[req&1u];
    v->question=0;
    for(uint16_t i=0;i<n;i++)if(v->queue[i]=='?')v->question=1;
-   v->seen=req;v->fading=0;v->nseg=v->iseg=0;v->left=0;v->accent=1;
+   v->seen=req;v->fading=0;v->nseg=v->iseg=0;v->left=0;v->accent=.3f;
+   v->word_start=1;v->stress_next=v->auto_stress=0;v->g_armed=0;v->g_reps=0;
    v->talking=n>0;
    if(!n)v->av=v->ah=v->af=0;
   }
@@ -282,7 +322,7 @@ static void control(bb_voice*v){
   goal*=(1.05f-.10f*prog)*(1.f+.25f*v->inflect*v->accent);
   goal*=v->question?1.f+.6f*v->inflect*t*t:1.f-.3f*v->inflect*t;
  }
- v->accent*=.985f;
+ v->accent*=.988f;
  v->flutter+=5.3f*(float)CTL/BB_SR;
  if(v->flutter>=1)v->flutter-=1;
  goal*=1.f+(.006f+.07f*v->waver*v->waver)*fm_sin_turns(v->flutter);
@@ -300,15 +340,50 @@ static void control(bb_voice*v){
  v->ra[4]=(1.f+v->rc[4])*.5f;             /* (the hiss's: a band-pass, unity at its centre, nothing at 0 Hz) */
  v->out_gain=v->volume*1.5f;
 }
+static float synth(bb_voice*v);
+static void meter(bb_voice*v,float out){
+ float a=out<0?-out:out;
+ if(a>v->level_peak)v->level_peak=a;
+ if(++v->level_n>=1024u){
+  v->level_n=0;
+  v->level[v->level_at%BB_LEVELS]=(uint8_t)(v->level_peak*255.f);
+  v->level_at=v->level_at+1u;v->level_peak=0;
+ }
+}
+/* GLITCH around the voice: what it says goes into a ring as it is said; a caught start is played back from the ring
+ * (each time a little quieter, faded at its edges) while the voice waits, then the voice goes on from where it was */
 float bb_voice_sample(bb_voice*v){
- float white,src,x,hiss,out,a;
+ float out;
+ if(v->g_reps>0){                        /* playing the caught start again */
+  uint32_t i=v->g_rd-v->g_mark,e;
+  if(v->request!=v->seen)v->g_reps=0;    /* (something new to say: the glitch gives way) */
+  e=i<G_EDGE?i:v->g_len-i<G_EDGE?v->g_len-i:G_EDGE;
+  out=(float)g_ring[v->g_rd%G_RING]*(1.f/32767.f)*v->g_amp*(float)e*(1.f/(float)G_EDGE);
+  if(++v->g_rd-v->g_mark>=v->g_len){v->g_rd=v->g_mark;v->g_amp*=.82f;if(--v->g_reps<=0){v->g_reps=0;v->g_armed=0;v->g_live=0;}}
+  meter(v,out);
+  return out;
+ }
+ out=synth(v);
+ if(!v->talking){v->g_armed=0;v->g_live=1;return out;}
+ g_ring[v->g_w%G_RING]=(int16_t)(out*32767.f);
+ v->g_w++;
+ if(v->g_live<1.f){v->g_live+=1.f/(float)G_EDGE;if(v->g_live>1.f)v->g_live=1.f;}   /* (back from a glitch: faded in) */
+ if(v->g_armed){                         /* the caught start: faded out at its end, then played again */
+  uint32_t i=v->g_w-v->g_mark;
+  if(i+G_EDGE>=v->g_len)out*=(float)(v->g_len-i)*(1.f/(float)G_EDGE);
+  if(i>=v->g_len){v->g_rd=v->g_mark;v->g_reps=v->g_count;}
+ }
+ return out*v->g_live;
+}
+static float synth(bb_voice*v){
+ float white,src,x,hiss,out;
  if(!v->ctl){
   v->ctl=CTL;
   if(v->talking||v->request!=v->seen)control(v);
  }
  v->ctl--;
  if(!v->talking){
-  if(++v->level_n>=1024u){v->level_n=0;v->level[v->level_at%BB_LEVELS]=0;v->level_at=v->level_at+1u;v->level_peak=0;}
+  meter(v,0);
   return 0;
  }
  /* the glottal pulse, as the flow's derivative: a slow rise, a quicker fall to a sharp closing edge (TONE: how
@@ -339,12 +414,6 @@ float bb_voice_sample(bb_voice*v){
  out=(x*GAIN_VOICE+hiss*v->af*GAIN_HISS)*v->out_gain;
  out=out/(1.f+(out<0?-out:out)*.7f);      /* loud, and never past full scale */
  out=clip(out,-.98f,.98f);
- a=out<0?-out:out;
- if(a>v->level_peak)v->level_peak=a;
- if(++v->level_n>=1024u){
-  v->level_n=0;
-  v->level[v->level_at%BB_LEVELS]=(uint8_t)(v->level_peak*255.f);
-  v->level_at=v->level_at+1u;v->level_peak=0;
- }
+ meter(v,out);
  return out;
 }

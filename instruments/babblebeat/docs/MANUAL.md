@@ -114,15 +114,17 @@ When a white key's word moves, the black key beside it follows the next time it 
 
 ## VOICE — FX
 
+Each word is said with its stress where a dictionary puts it: the stressed syllable longer, fuller and lifted in pitch, the others lighter, and the "uh" of "about" reduced. Little words (the, of, is) are said lightly.
+
 | Knob | Control | Function |
 | --- | --- | --- |
 | KNOB1 | **PITCH** | Base pitch for automatic speech |
-| KNOB2 | **RATE** | Phoneme length / speaking speed |
+| KNOB2 | **SPEED** | How fast it talks: about three times slower to three times faster than the middle |
 | KNOB3 | **TONE** | A darker, larger voice to a brighter, smaller one |
 | KNOB4 | **BREATH** | Breath noise in the voiced sounds |
 | SELECT | **LEVEL** | Synthesizer voice volume |
-| ALGORITHM | **STUTTER** | Repeat individual pronunciation codes |
-| PRESETS | **INFLECT** | How much the pitch moves: a lift on each word, a fall at the end, a rise for a question |
+| ALGORITHM | **GLITCH** | Stutters: the start of a word caught as it is said and played again, two to five times, before the word goes on ("th-th-the mirror"). Higher: more often, shorter, and sometimes in the middle of a word |
+| PRESETS | **INFLECT** | How much the pitch moves: a lift on each stressed syllable, a fall at the end, a rise for a question |
 
 ## MOUTH — SEL
 
@@ -147,8 +149,8 @@ The first four worlds loosely echo an earlier Python WordNet/Dracula experiment 
 
 ## Voice limitations
 
-The voice is a small formant synthesizer with a hand-phonemized word list:
-a glottal pulse and breath noise through four gliding formants, with shaped
+The voice is a small formant synthesizer, its words spelled from the CMU
+Pronouncing Dictionary with their stress: a glottal pulse and breath noise through four gliding formants, with shaped
 noise for hisses and stops. It is robotic on purpose, and it is
 not a general English TTS engine or CHIMERA's modeled vocal tract.
 There is no text input, no recording, no save/load of patches and no MIDI

@@ -324,10 +324,26 @@ int main(void)
     memset(&set, 0, sizeof set);
     app_init();
     run_ms(50);
-    expect("beat", 1);
+    expect("beat", 0);                   /* the drums never start at power-on, saved or not */
     expect("p18", 32);
     btn_tap(B_SEQ);
+    expect("beat", 1);
+    btn_tap(B_SEQ);
     expect("beat", 0);
+
+    printf("PLAY held: the crusher's layer; a turn does not fade the chord\n");
+    expect("p28", 0);
+    btn_now |= 1u << B_PLAY;
+    run_ms(50);
+    expect("layer", 5);
+    enc_pending[EN_K4] = 20;             /* MIX */
+    run_ms(150);
+    btn_now &= ~(1u << B_PLAY);
+    run_ms(50);
+    expect("layer", 0);
+    if (set.param[P_CMIX] < 0.2f) { printf("  FAIL MIX %.2f\n", set.param[P_CMIX]); fails++; } else printf("  ok   MIX up\n");
+    set.param[P_CMIX] = 0.0f;
+    sd_param(P_CMIX, 0.0f);
 
     printf("EDIT: a tap switches the lanes, a hold and a turn sets the picked lane\n");
     expect("euc", 0);
@@ -381,10 +397,12 @@ int main(void)
     memset(&set, 0, sizeof set);
     app_init();
     run_ms(50);
-    expect("euc", 1);
+    expect("euc", 0);                    /* the lanes kept, but silent until EDIT starts them */
     expect("L0s", 4);
     expect("L0c", 85);
     expect("L1t", ET_OPEN);
+    btn_tap(B_EDIT);
+    expect("euc", 1);
     btn_tap(B_EDIT);
     expect("euc", 0);
     run_ms(100);
@@ -408,13 +426,11 @@ int main(void)
         app_init();
         run_ms(50);
         expect("p18", 80);
-        expect("beat", 1);
+        expect("beat", 0);
         expect("octave", 1);
         expect("euc", 0);
         expect("L0s", 16);               /* the lanes at their defaults */
         expect("L2t", ET_ARP);
-        btn_tap(B_SEQ);
-        expect("beat", 0);
     }
 
     printf("0.2's saved sound carries over\n");

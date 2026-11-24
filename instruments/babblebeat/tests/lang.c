@@ -127,7 +127,7 @@ int main(void){
  /* The whole lexicon: every world's every noun has a text the screen can show and a spelling the voice can say
   * (the voice's own letters and no others), and makes a sentence that fits; so do sentences at large, which
   * draw on every adjective and verb. */
- {bb_mind k;const char *voice="iIeAaOUVuEo12345wyrlmnNsSfTzvDhptkbdgCJ";long nouns=0;
+ {bb_mind k;const char *voice="iIeAaOUVuEo12345wyrlmnNsSfTzvDhptkbdgCJ@Z'";long nouns=0;
   bb_init(&k,2026);k.recall=0;k.damage=0;k.wander=1.f;
   for(int t=1;t<bb_worlds();t++)for(int i=0;i<bb_world_size(t);i++){
    bb_token word=bb_noun_of(t,i);

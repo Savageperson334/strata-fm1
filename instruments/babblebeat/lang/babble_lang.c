@@ -38,13 +38,14 @@ static const char *const BB_PATTERNS[BB_KINDS_N]={
 static const char *const BB_LEVELS[BB_LEVELS_N]={"BARE","SIMPLE","PLAIN","JOINED","NESTED"};
 #define BB_PATTERNS_N BB_KINDS_N
 /* the small words the forms are written with (the voice's spelling beside each) */
+/* (unmarked: said lightly, as these little words are; ' before a vowel: the word's stress there) */
 static const word FW[]={
- {"the","DU"},{"is","Iz"},{"not","nat"},{"inside","Ins2d"},{"and","And"},{"why","w2"},{"does","dUz"},
- {"if","If"},{"when","wen"},{"because","bIkUz"},{"but","bUt"},{"that","DAt"},{"will","wIl"},{"did","dId"},
- {"was","wUz"},{"may","m1"},{"used","yuzd"},{"to","tu"},{"no","n5"},{"once","wUns"},{"never","nevEr"},
- {"still","stIl"},{"then","Den"},{"only","5nli"},{"so","s5"},{"or","or"},{"soon","sun"},{"maybe","m1bi"},
- {"until","UntIl"},{"after","AftEr"},{"more","mor"},{"here","hir"},{"of","Uv"},{"than","DAn"},{"like","l2k"},
- {"every","evri"},{"this","DIs"},{"there","Der"},{"very","veri"},{"almost","Olm5st"},{"as","Az"}
+ {"the","D@"},{"is","Iz"},{"not","n'at"},{"inside","Ins'2d"},{"and","And"},{"why","w'2"},{"does","dUz"},
+ {"if","If"},{"when","wen"},{"because","bIk'Uz"},{"but","bUt"},{"that","DAt"},{"will","wIl"},{"did","dId"},
+ {"was","wUz"},{"may","m1"},{"used","y'uzd"},{"to","tu"},{"no","n'5"},{"once","w'Uns"},{"never","n'evEr"},
+ {"still","st'Il"},{"then","Den"},{"only","'5nli"},{"so","s5"},{"or","or"},{"soon","s'un"},{"maybe","m'1bi"},
+ {"until","Unt'Il"},{"after","'AftEr"},{"more","m'or"},{"here","h'ir"},{"of","@v"},{"than","DAn"},{"like","l2k"},
+ {"every","'evri"},{"this","DIs"},{"there","Der"},{"very","v'eri"},{"almost","'Olm5st"},{"as","Az"}
 };
 /* GRAMMAR. Every kind of phrase has a form at each of five levels of structure, bare to nested (alternatives
  * after a |). In a form: N the word's noun phrase ("the mirror"), aN the same with an adjective, n a bare noun,

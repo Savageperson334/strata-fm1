@@ -58,8 +58,8 @@
           "Base pitch for autonomously spoken phrases."
         ],
         "KNOB2": [
-          "RATE",
-          "Pronunciation code timing."
+          "SPEED",
+          "How fast it talks: about three times slower at the left, three times faster at the right."
         ],
         "KNOB3": [
           "TONE",
@@ -74,12 +74,12 @@
           "Internal voice level."
         ],
         "ALGORITHM": [
-          "STUTTER",
-          "Chance of repeating individual pronunciation codes."
+          "GLITCH",
+          "Stutters. The start of a word is caught and played again, two to five times, before the word goes on: \"th-th-the mirror\". Higher: more often and choppier."
         ],
         "PRESETS": [
           "INFLECT",
-          "Pitch contour across the successive words of a phrase."
+          "How much the pitch moves: a lift on each stressed syllable, a fall at the end, a rise for a question."
         ]
       }
     },

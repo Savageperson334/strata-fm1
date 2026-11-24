@@ -5,6 +5,7 @@
  *              a sub sine an octave down, and white noise band-passed around the voice's pitch (AIR).
  * Then:        stereo TPT state-variable low-pass (FILTER, RESO), swept by the LFO (MOTION, DEPTH)
  *              a 4-line feedback-delay-network reverb with input diffusion and two modulated lines (SPACE, DECAY)
+ *              a bitcrusher between the filter and the reverb (BITS, SAMPLE, DRIVE, MIX)
  *              a soft clip and a DC blocker.
  * Single-precision float throughout (the AC79's FPU); no double literals. */
 #include "strata_dsp.h"
@@ -24,6 +25,7 @@ static const float P_DEFAULT[SD_NPARAM] = {
     0.45f, /* ARATE: ~1.2 steps/s */ 0.55f, /* ASHAPE */ 0.00f, /* AORDER: UP */ 0.15f, /* AFLOOR */
     0.30f, /* BTEMPO: 90 BPM */ 0.00f, /* BGROOVE: PULSE */ 0.20f, /* BSWING */ 0.60f, /* BLEVEL */
     0.40f, /* BKIT */ 0.25f, /* BROOM */ 0.35f, /* BDUCK */
+    0.55f, /* CBITS: 8 */ 0.45f, /* CRATE */ 0.20f, /* CDRIVE */ 0.00f, /* CMIX: off */
 };
 
 static float clamp01(float v) { return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v; }
@@ -56,6 +58,8 @@ float sd_decay_s(float v) { return 1.5f * fm_exp2f(clamp01(v) * 5.3219f); }     
 float sd_beat_hz(float v) { float x = clamp01(v); return 3.0f * x * x; }            /* 0 .. 3 Hz */
 float sd_arp_hz(float v) { return 0.1f * fm_exp2f(clamp01(v) * 6.3219f); }          /* 0.1 .. 8 steps/s */
 int sd_arp_order(float v) { int o = (int)(clamp01(v) * 4.0f); return o > 3 ? 3 : o; }
+int sd_crush_bits(float v) { int b = 16 - (int)(clamp01(v) * 14.0f + 0.5f); return b < 2 ? 2 : b; }
+float sd_crush_hz(float v) { return SD_RATE * fm_exp2f(-clamp01(v) * 6.8f); }      /* 44.1 kHz .. ~400 Hz */
 float sd_tempo_bpm(float v) { return 60.0f + 100.0f * clamp01(v); }                 /* 60 .. 160 BPM */
 float sd_swing_pct(float v) { return 50.0f + 25.0f * clamp01(v); }                  /* 50 .. 75 % */
 static int groove_of(float v) { int g = (int)(clamp01(v) * (float)SD_GROOVES); return g >= SD_GROOVES ? SD_GROOVES - 1 : g; }
@@ -126,6 +130,7 @@ static SD_POOL float rv_buf[4][RV_LEN];
 static const uint32_t RV_DLY[4] = {1777u, 2137u, 2593u, 3083u};
 static float rv_lp[4];
 static uint32_t rv_w;
+static float cr_ph, cr_hold[2];          /* the bitcrusher: where it is between held samples, and what it holds */
 static float rv_mod_ph;
 #define AP_LEN 512u
 #define AP_MASK (AP_LEN - 1u)
@@ -663,6 +668,7 @@ void sd_render(float *outl, float *outr, uint32_t n)
     float swing = sd_swing_pct(p[P_BSWING]) * 0.01f;
     float step_len = 15.0f / sd_tempo_bpm(p[P_BTEMPO]) * SD_RATE;   /* a sixteenth, in samples */
     float dlev = p[P_BLEVEL] * p[P_BLEVEL] * 1.3f, droom = p[P_BROOM] * 0.8f;
+    float cr_mix, cr_inc, cr_q, cr_iq, cr_drive, cr_make;
 
     /* the controls, smoothed once a block (~50 ms) */
     for (s = 0; s < SD_NPARAM; s++)
@@ -699,6 +705,14 @@ void sd_render(float *outl, float *outr, uint32_t n)
     a1 = 1.0f / (1.0f + g * (g + k));
     a2 = g * a1;
     a3 = g * a2;
+
+    /* the bitcrusher: the steps of BITS, the hold of SAMPLE, the push of DRIVE (and back down after it) */
+    cr_mix = p[P_CMIX];
+    cr_inc = sd_crush_hz(p[P_CRATE]) * (1.0f / SD_RATE);
+    cr_q = (float)(1u << (sd_crush_bits(p[P_CBITS]) - 1));
+    cr_iq = 1.0f / cr_q;
+    cr_drive = 1.0f + 7.0f * p[P_CDRIVE] * p[P_CDRIVE];
+    cr_make = 1.0f / (1.0f + 0.35f * (cr_drive - 1.0f));
 
     /* the reverb's feedback per line from DECAY (RT60) */
     rt60 = sd_decay_s(p[P_DECAY]);
@@ -872,6 +886,23 @@ void sd_render(float *outl, float *outr, uint32_t n)
             q->ic1 = 2.0f * v1 - q->ic1;
             q->ic2 = 2.0f * v2 - q->ic2;
             y[c] = v2;
+        }
+        if (cr_mix > 0.002f) {                           /* the bitcrusher, before the reverb */
+            int held = 0;
+            cr_ph += cr_inc;
+            if (cr_ph >= 1.0f) {
+                cr_ph -= 1.0f;
+                held = 1;
+            }
+            for (c = 0; c < 2; c++) {
+                if (held) {
+                    float u = soft(y[c] * cr_drive * 0.8f) * 1.2f;   /* pushed in, clipped */
+                    float r = u * cr_q;
+                    int32_t k = (int32_t)(r < 0.0f ? r - 0.5f : r + 0.5f);
+                    cr_hold[c] = (float)k * cr_iq * cr_make;
+                }
+                y[c] += (cr_hold[c] - y[c]) * cr_mix;
+            }
         }
         /* reverb: diffuse each side, then into the network */
         denorm = -denorm;

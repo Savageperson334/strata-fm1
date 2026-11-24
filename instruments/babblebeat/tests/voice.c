@@ -73,12 +73,23 @@ int main(void){
   for(int i=0;i<600;i++)prev=bb_voice_sample(&v);
   for(int i=0;i<2000;i++)assert(bb_voice_sample(&v)==0);}
  /* Every sound the lexicon spells is in the voice's table (a letter it lacked would be silently left out). */
- {static const char all[]="iIeAaOUVuEo12345wyrlmnNsSfTzvDhptkbdgCJ";
+ {static const char all[]="iIeAaOUVuEo12345wyrlmnNsSfTzvDhptkbdgCJ@Z'";
   bb_init(&m,5);m.grammar=1;m.damage=0;
   for(int th=0;th<4;th++){m.theme=(unsigned)th;
    for(int i=0;i<800;i++){bb_generate(&m);
     for(unsigned k=0;k<m.count;k++)for(const char*c=m.tok[k].phones;c&&*c;c++){
      int known=0;for(const char*q=all;*q;q++)if(*q==*c)known=1;
      if(!known){printf("no sound for '%c' in %s\n",*c,m.tok[k].text);return 1;}}}}}
+ /* GLITCH: the same sentence, caught and repeated, takes longer; it stays in range and it ends. SPEED: faster is
+  * shorter. */
+ {float k[7]={.32f,.52f,.5f,.18f,.78f,0,.3f};long len[3];
+  for(int r=0;r<3;r++){
+   bb_init(&m,77);bb_generate(&m);bb_voice_init(&v);
+   k[5]=r==1?1.f:0;k[1]=r==2?.9f:.52f;bb_voice_controls(&v,k);bb_voice_say(&v,&m,-1);
+   len[r]=0;while(bb_voice_active(&v)&&len[r]<44100L*30){float x=bb_voice_sample(&v);assert(isfinite(x)&&fabsf(x)<1.f);len[r]++;}
+   assert(!bb_voice_active(&v));
+  }
+  printf("  plain %.2f s, glitched %.2f s, fast %.2f s\n",len[0]/44100.,len[1]/44100.,len[2]/44100.);
+  assert(len[1]>len[0]*1.1);assert(len[2]<len[0]*.7);}
  puts("BabbleBeat voice tests passed");
 }
