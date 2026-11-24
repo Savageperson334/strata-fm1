@@ -38,15 +38,33 @@ WORLDS = [
     ("ANIMAL", ["noun.animal"]), ("PLANT", ["noun.plant"]), ("FOOD", ["noun.food"]), ("THING", ["noun.artifact"]),
     ("PLACE", ["noun.location", "noun.object"]), ("MATTER", ["noun.substance", "noun.phenomenon"]),
     ("TIME", ["noun.time"]), ("MIND", ["noun.cognition", "noun.feeling"]), ("TALK", ["noun.communication"]),
-    ("DEED", ["noun.act", "noun.event"]),
+    ("DEED", ["noun.act", "noun.event"]), ("PERSON", ["noun.person"]), ("GROUP", ["noun.group"]),
+    ("FLESH", ["noun.body"]), ("SHAPE", ["noun.shape", "noun.relation"]), ("TRAIT", ["noun.attribute"]),
+    ("STATE", ["noun.state", "noun.process"]), ("MONEY", ["noun.possession", "noun.quantity"]),
 ]
-PER_WORLD, N_ADJ, N_TRANS, N_INTR = 220, 500, 350, 250
+PER_WORLD, N_ADJ, N_TRANS, N_INTR, N_ADV = 450, 1400, 800, 450, 350
+# which worlds a kind of verb suits (WordNet's verb files): "the toad eats the bean" sooner than "the toad audits it"
+SUITS = {
+    "verb.consumption": "FOOD ANIMAL FLESH BODY", "verb.communication": "TALK PERSON GROUP",
+    "verb.cognition": "MIND PERSON DREAM", "verb.emotion": "MIND PERSON DREAM GOTHIC",
+    "verb.perception": "ANIMAL PERSON DREAM GOTHIC MACHINE", "verb.motion": "ANIMAL PERSON PLACE MACHINE THING",
+    "verb.weather": "MATTER PLACE TIME", "verb.creation": "THING PERSON MACHINE TALK",
+    "verb.body": "FLESH BODY ANIMAL PERSON", "verb.possession": "MONEY PERSON GROUP",
+    "verb.social": "PERSON GROUP DEED", "verb.change": "MATTER TIME STATE PLANT SHAPE TRAIT",
+    "verb.contact": "THING MACHINE FLESH BODY", "verb.competition": "DEED GROUP PERSON ANIMAL",
+}
+ADVERBS = set("""always never often again soon twice once forever somewhere nowhere everywhere together alone away
+backward forward upward downward sideways tonight tomorrow yesterday sometimes anyway elsewhere underground overhead
+indoors outdoors abroad aloud apart ahead afterward""".split())
+PREPOSITIONS = """inside under over behind beside near without against beyond through across toward above below among
+around before after with upon within outside past beneath between into onto underneath despite like""".split()
 
 # ---- the voice's letters for the dictionary's sounds (dsp/babble_voice.c PH[]) ----
 SOUND = {"AA": "a", "AE": "A", "AH": "U", "AO": "O", "AW": "3", "AY": "2", "EH": "e", "ER": "Er", "EY": "1", "IH": "I",
          "IY": "i", "OW": "5", "OY": "4", "UH": "V", "UW": "u", "B": "b", "CH": "C", "D": "d", "DH": "D", "F": "f",
          "G": "g", "HH": "h", "JH": "J", "K": "k", "L": "l", "M": "m", "N": "n", "NG": "N", "P": "p", "R": "r",
-         "S": "s", "SH": "S", "T": "t", "TH": "T", "V": "v", "W": "w", "Y": "y", "Z": "z"}      # (ZH: the voice has none)
+         "S": "s", "SH": "S", "T": "t", "TH": "T", "V": "v", "W": "w", "Y": "y", "Z": "z",
+         "ZH": "z"}                                 # (the voice has no "zh": "measure" with the z of "maze")
 VOICE = set("iIeAaOUVuEo12345wyrlmnNsSfTzvDhptkbdgCJ")
 
 # ---- words a talking toy is better without: the rude, the cruel, the clinical, and words about kinds of people ----
@@ -85,7 +103,7 @@ def say(word):
     if not prons:
         return None
     p = [re.sub(r"\d", "", s) for s in prons[0]]
-    if any(s not in SOUND for s in p) or len(p) > 9:
+    if any(s not in SOUND for s in p) or len(p) > 10:
         return None
     out = ""
     for i, s in enumerate(p):
@@ -121,10 +139,10 @@ def nouns_of(files, taken):
             if w in taken or not plain(w) or wn.synsets(w, "n")[0] != s:      # (its commonest sense is this one)
                 continue
             n, v, a = count(w, "n"), count(w, "v"), count(w, "a") + count(w, "s")
-            if n < 1 or n < v or n < a or not say(w) or re.search(r"[^su]s$", w):   # (no plurals: "cows")
+            if n < v or n < a or not say(w) or re.search(r"[^su]s$", w):   # (no plurals: "cows")
                 continue
             path = max(s.hypernym_paths(), key=len)
-            best[w] = (n, "/".join(x.name() for x in path))
+            best[w] = (n * 8 + len(wn.synsets(w)), "/".join(x.name() for x in path))   # (how common: counted uses, then senses)
     keep = sorted(best, key=lambda w: (-best[w][0], len(w), w))[:PER_WORLD]
     return sorted(keep, key=lambda w: (best[w][1], w))                         # (the tree's order: kin side by side)
 
@@ -137,14 +155,25 @@ def adjectives(taken):
             if w in taken or w in STOP_ADJ or NUMBER.match(w) or not plain(w):
                 continue
             a = count(w, "a") + count(w, "s")
-            if a < 4 or a < count(w, "n") or a < count(w, "v") or not say(w):
+            if a < count(w, "n") or a < count(w, "v") or not say(w):
                 continue
-            best[w] = a
+            best[w] = a * 8 + len(wn.synsets(w))
     return sorted(sorted(best, key=lambda w: (-best[w], len(w), w))[:N_ADJ])
 
 
-def verbs(taken):
-    trans, intr = {}, {}
+def adverbs(taken):
+    best = {}
+    for s in wn.all_synsets("r"):
+        for l in s.lemmas():
+            w = l.name()
+            if w in taken or not plain(w, 3, 10) or not (w.endswith("ly") or w in ADVERBS) or not say(w):
+                continue
+            best[w] = count(w, "r") * 8 + len(wn.synsets(w))
+    return sorted(sorted(best, key=lambda w: (-best[w], len(w), w))[:N_ADV])
+
+
+def verbs(taken, bit):
+    trans, intr, suits = {}, {}, {}
     for s in wn.all_synsets("v"):
         for l in s.lemmas():
             w = l.name()
@@ -152,16 +181,17 @@ def verbs(taken):
                 continue
             v = count(w, "v")
             t = third(w)
-            if v < 5 or v < count(w, "n") or rude(t) or not say(w) or not say(t):
+            if v < 1 or v < count(w, "n") or rude(t) or not say(w) or not say(t):
                 continue
+            suits[w] = sum(bit[x] for x in SUITS.get(s.lexname(), "").split())
             frames = set(l.frame_ids()) | set(s.frame_ids())
             if frames & {8, 9, 10, 11}:                 # "Somebody ----s something" and its like
                 trans[w] = v
             elif frames & {1, 2}:                       # "Something ----s", "Somebody ----s"
                 intr[w] = v
     pick = lambda d, n: sorted(sorted(d, key=lambda w: (-d[w], len(w), w))[:n])
-    return ([(third(w), w, say(third(w)), say(w)) for w in pick(trans, N_TRANS)],
-            [(third(w), w, say(third(w)), say(w)) for w in pick(intr, N_INTR)])
+    return ([(third(w), w, say(third(w)), say(w), suits[w]) for w in pick(trans, N_TRANS)],
+            [(third(w), w, say(third(w)), say(w), suits[w]) for w in pick(intr, N_INTR)])
 
 
 def main():
@@ -175,8 +205,12 @@ def main():
         worlds.append((name, [(w, say(w)) for w in ws]))
     adj = CORE_ADJ + [(w, say(w)) for w in adjectives(taken)]
     taken |= {w for w, _ in adj}
-    t, i = verbs(taken)
-    trans, intr = CORE_TRANS + t, CORE_INTR + i
+    adv = [(w, say(w)) for w in adverbs(taken)]
+    prep = [(w, say(w)) for w in PREPOSITIONS]
+    assert all(p for _, p in prep)
+    bit = {name: 1 << k for k, (name, _) in enumerate(worlds)}
+    t, i = verbs(taken | {w for w, _ in adv} | set(PREPOSITIONS), bit)
+    trans, intr = [v + (0,) for v in CORE_TRANS] + t, [v + (0,) for v in CORE_INTR] + i
     q = lambda s: '"' + s + '"'
     o = ["/* SPDX-License-Identifier: MPL-2.0",
          " * BabbleBeat's words. GENERATED by tools/gen_lexicon.py: change that, not this.",
@@ -191,19 +225,21 @@ def main():
     o += [f" {{{q(name)},W_{name},{len(ws)}u}}," for name, ws in worlds]
     o.append("};")
     o.append(f"#define BB_WORLDS_N {len(worlds)}")
-    o.append("static const word adj[]={")
-    for k in range(0, len(adj), 6):
-        o.append(" " + ",".join("{" + q(w) + "," + q(p) + "}" for w, p in adj[k:k + 6]) + ",")
-    o.append("};")
+    for label, ws in (("adj", adj), ("adv", adv), ("prep", prep)):
+        o.append(f"static const word {label}[]={{")
+        for k in range(0, len(ws), 6):
+            o.append(" " + ",".join("{" + q(w) + "," + q(p) + "}" for w, p in ws[k:k + 6]) + ",")
+        o.append("};")
     for label, vs in (("intr", intr), ("trans", trans)):
         o.append(f"static const verb {label}[]={{")
         for k in range(0, len(vs), 3):
-            o.append(" " + ",".join("{" + ",".join(q(x) for x in v) + "}" for v in vs[k:k + 3]) + ",")
+            o.append(" " + ",".join("{" + ",".join(q(x) for x in v[:4]) + f",{v[4]:#x}u}}" for v in vs[k:k + 3]) + ",")
         o.append("};")
     OUT.write_text("\n".join(o) + "\n")
     nn = sum(len(ws) for _, ws in worlds)
     print(f"{nn} nouns in {len(worlds)} worlds ({', '.join(f'{n} {len(w)}' for n, w in worlds)}); "
-          f"{len(adj)} adjectives; {len(trans)} + {len(intr)} verbs; {nn + len(adj) + len(trans) + len(intr)} words")
+          f"{len(adj)} adjectives; {len(adv)} adverbs; {len(prep)} prepositions; {len(trans)} + {len(intr)} verbs; "
+          f"{nn + len(adj) + len(adv) + len(prep) + len(trans) + len(intr)} words")
 
 
 if __name__ == "__main__":

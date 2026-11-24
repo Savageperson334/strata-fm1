@@ -7,7 +7,7 @@
 ## Play
 
 - **White key:** its word, in a phrase. **Black key:** the word on its left as a question, a "not", a "was" and eight more.
-- **WORLD:** about 2,900 words in fourteen worlds, from machines and ghosts to animals, places and deeds.
+- **WORLD:** about 9,800 words in twenty-one worlds, from machines and ghosts to animals, people and money.
 - **GRAMMAR:** bare ("the mirror.") → simple → plain → joined → nested ("the mirror that waits follows the signal when the static sings.").
 - **SEQ** a new word. **REC** remembers it. **PLAY** babbles about it. **SEL** steps through the knobs: voice, mouth, words.
 

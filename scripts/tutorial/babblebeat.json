@@ -21,7 +21,7 @@
         ],
         "KNOB2": [
           "WANDER",
-          "How often a key's word moves when it is played: one step to the next word of its world, never a jump. At 0 it never moves."
+          "How often a key's word moves when it is played: one step to the next word of its world. Also how loosely the words go together: low, verbs suit what they are about; high, anything goes with anything."
         ],
         "KNOB3": [
           "RECALL",
@@ -33,7 +33,7 @@
         ],
         "SELECT": [
           "WORLD",
-          "Where the keys' words come from. It starts on ALL: every world, about 1,800 nouns. Turn it to keep to one world: MACHINE, DREAM, BODY, GOTHIC, ANIMAL, PLANT, FOOD, THING, PLACE, MATTER, TIME, MIND, TALK, DEED. Turned into another, every key takes a new word from it."
+          "Where the keys' words come from. It starts on ALL: every world, about 6,800 nouns. Turn it to keep to one of twenty-one worlds, from MACHINE and GOTHIC to ANIMAL, FOOD, PERSON, MONEY. Turned into another, every key takes a new word from it."
         ],
         "ALGORITHM": [
           "LENGTH",

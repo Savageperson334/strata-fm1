@@ -11,6 +11,7 @@ typedef struct {const char *text,*phones;uint8_t role;} bb_token;
 typedef struct {
  uint32_t rng;bb_token tok[BB_MAX_TOKENS],remembered;
  unsigned count,theme,has_memory,pattern,level,drift_theme,memory_theme,force_once,change;
+ unsigned about;                        /* the world of the noun the sentence being made is about (0: not known) */
  bb_token forced;
  float grammar,wander,recall,damage,length,style;
  char text[BB_TEXT_SIZE];

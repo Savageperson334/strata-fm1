@@ -56,29 +56,26 @@ Custom firmware, installed at your own risk. It has not run on a real FM-1 yet. 
 
 ## WORLD and the words
 
-BabbleBeat knows about **2,900 words**: 1,796 nouns, 512 adjectives and 590 verbs. The nouns are in fourteen worlds. **WORLD** (EDIT, SELECT) chooses the world the keys draw from; the screen names it as you turn. It starts on **ALL**, which is every world one after another, so the whole vocabulary is in play from the first key.
+BabbleBeat knows about **9,800 words**: 6,807 nouns, 1,412 adjectives, 1,183 verbs, 350 adverbs and 30 prepositions. The nouns are in twenty-one worlds. **WORLD** (EDIT, SELECT) chooses the world the keys draw from; the screen names it as you turn. It starts on **ALL**, which is every world one after another, so the whole vocabulary is in play from the first key.
 
 | WORLD | Nouns | Such as |
 | --- | ---: | --- |
-| **ALL** (where it starts) | 1,796 | every world below, in turn |
+| **ALL** (where it starts) | 6,807 | every world below, in turn |
 | **MACHINE**, **DREAM**, **BODY**, **GOTHIC** | 12 each | the original hand-made worlds: circuit, ghost, tongue, crypt |
-| **ANIMAL** | 146 | frog, owl, spaniel, walrus |
-| **PLANT** | 80 | grass, poppy, lilac, bramble |
-| **FOOD** | 98 | bean, radish, bacon, butter |
-| **THING** | 220 | kitchen, bridge, painting, sword |
-| **PLACE** | 220 | meadow, island, campus, graveyard |
-| **MATTER** | 220 | mist, smoke, dust, radiation |
-| **TIME** | 104 | dawn, midnight, year, twilight |
-| **MIND** | 220 | longing, boredom, intuition, scorn |
-| **TALK** | 220 | headline, lyric, phrase, verb |
-| **DEED** | 220 | arrival, ballet, merger, removal |
+| **ANIMAL**, **PLANT**, **FOOD** | 450, 450, 436 | peacock, asp · bluebell, soybean · scone, tripe |
+| **THING**, **PLACE**, **MATTER** | 450 each | headlight, vase · hideout, shoreline · nylon, downpour |
+| **TIME**, **MIND**, **TALK** | 172, 450, 450 | preseason · tendency, piety · jargon, libretto |
+| **DEED**, **PERSON**, **GROUP** | 450, 450, 344 | haircut, coup · novelist, commander · synod, court |
+| **FLESH**, **SHAPE**, **TRAIT** | 260, 147, 450 | sartorius · whorl · leniency, timbre |
+| **STATE**, **MONEY** | 450 each | honour, suffering · bankroll, surtax |
 
-- **Neighbouring keys are kin.** A world's words are in a family order, so the sixteen keys hold related words (frog, toad, fish, salmon, shark...), and a word that moves (WANDER) steps to a relative.
+- **Neighbouring keys are kin.** A world's words are in a family order, so the sixteen keys hold related words, and a word that moves (WANDER) steps to a relative.
 - **Each power-on starts somewhere else** in the world, so the keys are not always the same sixteen.
 - **Turn WORLD into another world** and every key takes a new word from it: the key on the screen at once, the others when played.
-- Adjectives and verbs are shared by all worlds.
+- **Verbs lean toward their subject.** A sentence about an animal prefers verbs of moving, eating and sensing; one about money, verbs of having and giving. **WANDER** loosens this: at the top, any verb goes with anything.
+- Adjectives, adverbs and prepositions are shared by all worlds and are unrestrained.
 
-The words outside the first four worlds were chosen by a script, not one by one. Expect the odd strange one.
+The words outside the first four worlds were chosen by a script, not one by one, and it was told to be generous. It says strange things. That is the idea.
 
 ## GRAMMAR
 
@@ -108,10 +105,10 @@ When a white key's word moves, the black key beside it follows the next time it 
 | Knob | Control | Function |
 | --- | --- | --- |
 | KNOB1 | **GRAMMAR** | How every phrase on the unit is built: BARE, SIMPLE, PLAIN, JOINED, NESTED |
-| KNOB2 | **WANDER** | How often a key's word moves a step; also, other nouns borrowed from outside the world |
+| KNOB2 | **WANDER** | How often a key's word moves a step; also, nouns borrowed from outside the world and verbs that do not suit their subject |
 | KNOB3 | **RECALL** | How often the remembered word returns. Past 70 the phrases fix on it and loop back on themselves: "the mirror was, the mirror was pale." |
 | KNOB4 | **DAMAGE** | How often a key's phrase is made again as it is played; past 60 it may be broken instead |
-| SELECT | **WORLD** | ALL, or one of the fourteen worlds, for the keys' words. Turned into another, every key takes a new word from it |
+| SELECT | **WORLD** | ALL, or one of the twenty-one worlds, for the keys' words. Turned into another, every key takes a new word from it |
 | ALGORITHM | **LENGTH** | High values can append a further clause (from PLAIN up) |
 | PRESETS | **STYLE** | Statements at low values; mixed in middle; questions at high values |
 

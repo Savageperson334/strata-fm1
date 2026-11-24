@@ -136,12 +136,20 @@ int main(void){
    for(const char *c=word.text;*c;c++)assert(*c>='a'&&*c<='z');
    nouns++;
   }
-  assert(nouns>1500);
+  assert(nouns>5000);
   for(int i=0;i<40000;i++){
    k.grammar=(float)(i%5)/5.f+.1f;k.theme=(unsigned)(i%bb_worlds());k.length=(i&1)?1.f:0.f;
    bb_generate(&k);
    assert(k.count>=2&&k.count<=BB_MAX_TOKENS&&strlen(k.text)<BB_TEXT_SIZE);
    for(unsigned j=0;j<k.count;j++)for(const char *c=k.tok[j].phones;*c;c++)assert(strchr(voice,*c));
   }}
+ /* Verbs lean toward what the sentence is about: with WANDER at nothing, a sentence about an animal takes a verb
+  * that suits animals (or suits anything) far more often than not; with WANDER full, any verb. */
+ {bb_mind k;int t=0;long fits=0;
+  bb_init(&k,5);k.recall=0;k.damage=0;k.length=0;k.grammar=.5f;k.wander=0;
+  while(t<bb_worlds()&&strcmp(bb_world_label(t),"ANIMAL"))t++;
+  assert(t<bb_worlds());
+  for(int i=0;i<2000;i++){bb_token w=bb_noun_of(t,i);bb_phrase(&k,&w,BB_WILL);fits+=k.about==(unsigned)t;}
+  assert(fits==2000);}
  puts("BabbleBeat grammar tests passed");
 }

@@ -144,13 +144,13 @@ turn K1 32
 wait 60
 expect grammar 50
 expect level 2
-# WORLD: ALL (every world, where it starts), then fourteen worlds of nouns. Turned into another, every key gives up its word: the one on the screen takes
+# WORLD: ALL (every world, where it starts), then twenty-one worlds of nouns. Turned into another, every key gives up its word: the one on the screen takes
 # a new one at once (and says its phrase), the others when they are played
-expect worlds 15
+expect worlds 22
 expect words 4
 turn SELECT 20
 wait 60
-expect theme 4
+expect theme 6
 expect words 1
 expect has 1
 expect voice 1

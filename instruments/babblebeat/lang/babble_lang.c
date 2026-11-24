@@ -5,11 +5,13 @@
  * o=o(r); the diphthongs 1=ay 2=eye 3=ow 4=oy 5=oh; S=sh T=th(in) D=th(e) C=ch J=j N=ng; others as written. */
 #include "babble_lang.h"
 typedef struct {const char *text,*phones;} word;
-typedef struct {const char *third,*base,*phones,*base_phones;} verb;
+/* a verb as said of something (third) and plain (base), and the worlds it suits (a bit a world, WORLD[]'s order;
+ * 0: any): the kind of doing it is, by WordNet, against the kind of thing the worlds hold */
+typedef struct {const char *third,*base,*phones,*base_phones;unsigned suits;} verb;
 #define SZ(a) ((int)(sizeof(a)/sizeof((a)[0])))
-/* the words: fourteen worlds of nouns (WORLD[]: the first four BabbleBeat's own, twelve each; the rest from
- * WordNet, their words in the order of its tree, so that neighbours are kin), adjectives, and verbs that take an
- * object (trans) or none (intr). Generated: tools/gen_lexicon.py */
+/* the words: worlds of nouns (WORLD[]: the first four BabbleBeat's own, twelve each; the rest from WordNet, their
+ * words in the order of its tree, so that neighbours are kin), adjectives (adj), adverbs (adv), prepositions
+ * (prep), and verbs that take an object (trans) or none (intr). Generated: tools/gen_lexicon.py */
 #include "babble_words.h"
 /* The worlds as the rest of the file knows them: world 0 is ALL, every world's nouns one after another (so its
  * neighbours are kin too, and it runs from machines to deeds); worlds 1.. are WORLD[0..] themselves. */
@@ -20,10 +22,11 @@ static unsigned theme_size(int t){
  for(int w=0;w<BB_WORLDS_N;w++)n+=WORLD[w].n;
  return n;
 }
-static word theme_word(int t,unsigned i){
- if(t)return WORLD[t-1].w[i%WORLD[t-1].n];
+/* (world: the word's own world, 1.., whichever theme it was asked of) */
+static word theme_word(int t,unsigned i,int *world){
+ if(t){*world=t;return WORLD[t-1].w[i%WORLD[t-1].n];}
  i%=theme_size(0);
- for(int w=0;;w++){if(i<WORLD[w].n)return WORLD[w].w[i];i-=WORLD[w].n;}
+ for(int w=0;;w++){if(i<WORLD[w].n){*world=w+1;return WORLD[w].w[i];}i-=WORLD[w].n;}
 }
 static int theme_of(int t){return ((t%BB_THEMES_N)+BB_THEMES_N)%BB_THEMES_N;}
 static const bb_token THE={"the","DU",BB_OTHER},AND={"and","And",BB_OTHER},AGAIN={"again","Ugen",BB_OTHER},
@@ -40,29 +43,30 @@ static const word FW[]={
  {"if","If"},{"when","wen"},{"because","bIkUz"},{"but","bUt"},{"that","DAt"},{"will","wIl"},{"did","dId"},
  {"was","wUz"},{"may","m1"},{"used","yuzd"},{"to","tu"},{"no","n5"},{"once","wUns"},{"never","nevEr"},
  {"still","stIl"},{"then","Den"},{"only","5nli"},{"so","s5"},{"or","or"},{"soon","sun"},{"maybe","m1bi"},
- {"until","UntIl"},{"after","AftEr"},{"more","mor"},{"here","hir"}
+ {"until","UntIl"},{"after","AftEr"},{"more","mor"},{"here","hir"},{"of","Uv"},{"than","DAn"},{"like","l2k"},
+ {"every","evri"},{"this","DIs"},{"there","Der"},{"very","veri"},{"almost","Olm5st"},{"as","Az"}
 };
 /* GRAMMAR. Every kind of phrase has a form at each of five levels of structure, bare to nested (alternatives
  * after a |). In a form: N the word's noun phrase ("the mirror"), aN the same with an adjective, n a bare noun,
  * O another noun phrase, V v a verb that takes an object (as said of it; plain), I i one that takes none,
- * A an adjective; anything else is itself. The first noun in a form is the key's word. */
+ * A an adjective, R an adverb, P a preposition; anything else is itself. The first noun in a form is the key's word. */
 static const char *const FORM[BB_KINDS_N][BB_LEVELS_N]={
- /* STATEMENT */{"N .|aN .|only N .|n , n .|here , N .",
-                 "N I .|N is A .|aN I .",
-                 "aN V O .|N V O .|N I inside O .|N is A and A .",
-                 "N I , but O V O .|N V O , and O I .|N is A , so O I .|N I and O I .",
-                 "N that V O I .|N V O that V O .|N that I V O when O I .|N V O because O that I is A ."},
+ /* STATEMENT */{"N .|aN .|only N .|n , n .|here , N .|every n .|N of O .|almost N .|N P O .",
+                 "N I .|N is A .|aN I .|N I R .|every n I .|N is very A .|this n I .|there is N .",
+                 "aN V O .|N V O .|N I P O .|N is A and A .|N R V O .|N of O V O .|N is more A than O .|no n V O .|N V O like O .|N I P aN .|N is as A as O .",
+                 "N I , but O V O .|N V O , and O I .|N is A , so O I .|N I and O I .|N I P O , and O I R .|every n V O , but this n I .",
+                 "N that V O I .|N V O that V O .|N that I V O when O I .|N V O because O that I is A .|N that I P O V O R .|N of O that I V O like O ."},
  /* WHY? */     {"why N ?","why does N i ?|why is N A ?","why does N v O ?","why does N v O , and why does O i ?",
                  "why does N that I v O when O I ?"},
- /* NOT */      {"no n .|not N .","N does not i .|N is not A .","N does not v O .","N does not v O , and O does not i .",
+ /* NOT */      {"no n .|not N .","N does not i .|N is not A .|N does not i R .","N does not v O .|N does not i P O .","N does not v O , and O does not i .",
                  "N that I does not v O because O is not A ."},
- /* WAS */      {"once , aN .","N was A .","N was A inside O .","N was A , but O was A .",
+ /* WAS */      {"once , aN .","N was A .|N was very A .","N was A P O .|N was more A than O .","N was A , but O was A .",
                  "N that was A used to v O when O was A ."},
  /* IF */       {"if N , O .","if N I , O I .","if N I , O V O .","if N I and O I , O V O .",
                  "if N that I V O , then O will i because O is A ."},
- /* WILL */     {"soon , N .","N will i .","N will v O .","N will i , and then O will v O .",
+ /* WILL */     {"soon , N .","N will i .|N will i R .","N will v O .|N will i P O .","N will i , and then O will v O .",
                  "N that I will v O after O I ."},
- /* IS IT? */   {"N ?|A n ?","is N A ?","is N A inside O ?|does N v O ?","is N A , or is O A ?",
+ /* IS IT? */   {"N ?|A n ?|N of O ?","is N A ?|is N very A ?","is N A P O ?|does N v O ?|does N i P O ?","is N A , or is O A ?",
                  "is N that V O A when O I ?"},
  /* DID NOT */  {"never N .","N did not i .","N did not v O .","N did not v O , but O did not i .",
                  "N that I did not v O until O was A ."},
@@ -70,7 +74,7 @@ static const char *const FORM[BB_KINDS_N][BB_LEVELS_N]={
                  "N that used to i still V O when O I ."},
  /* BECAUSE */  {"because N .","because N I .","N V O because O I .","N V O because O I , and O I because O is A .",
                  "N that I V O because O that I is A ."},
- /* MAY */      {"maybe N .","N may i .","N may v O .","N may v O , or O may i .",
+ /* MAY */      {"maybe N .","N may i .|N may i R .","N may v O .|N may i P O .","N may v O , or O may i .",
                  "N that I may v O if O that is A will i ."},
  /* WHEN */     {"when N , O .","when N I , O I .","when N I , O will v O .","when N I and O I , O will i .",
                  "when N that I V O , O that is A will i ."}
@@ -83,20 +87,40 @@ static int roll(bb_mind*m,int n){return (int)(next(m)%(unsigned)n);}
 static bb_token make(word w,unsigned role){bb_token x={w.text,w.phones,(uint8_t)role};return x;}
 static void add(bb_mind*m,bb_token x){if(m->count<BB_MAX_TOKENS)m->tok[m->count++]=x;}
 static void lit(bb_mind*m,const bb_token *t){add(m,*t);}
+static int where(const char *text,int *theme,int *at);
+/* a noun. The first one of a sentence is what the sentence is about: its world is kept (about), for the verbs */
 static bb_token noun(bb_mind*m){
- if(m->force_once){m->force_once=0;return m->forced;}
- int theme=theme_of((int)m->theme);
- if(roll(m,100)<(int)(m->wander*100.f)){
-  /* Recalled nouns attract nearby words toward their original world. */
-  theme=theme_of((int)m->drift_theme);
+ int world=0,at;
+ bb_token t;
+ if(m->force_once){
+  m->force_once=0;t=m->forced;
+  if(!where(t.text,&world,&at))world=0;
+ }else{
+  int theme=theme_of((int)m->theme);
+  if(roll(m,100)<(int)(m->wander*100.f)){
+   /* Recalled nouns attract nearby words toward their original world. */
+   theme=theme_of((int)m->drift_theme);
+  }
+  if(m->has_memory&&roll(m,100)<(int)(m->recall*100.f)){t=m->remembered;world=(int)m->memory_theme;}
+  else t=make(theme_word(theme,(unsigned)roll(m,(int)theme_size(theme)),&world),BB_NOUN);
  }
- if(m->has_memory&&roll(m,100)<(int)(m->recall*100.f))return m->remembered;
- return make(theme_word(theme,(unsigned)roll(m,(int)theme_size(theme))),BB_NOUN);
+ if(!m->about)m->about=(unsigned)world;
+ return t;
 }
 static void N(bb_mind*m){add(m,noun(m));}
 static void A(bb_mind*m){add(m,make(adj[roll(m,SZ(adj))],BB_ADJ));}
+static void R(bb_mind*m){add(m,make(adv[roll(m,SZ(adv))],BB_OTHER));}
+static void P(bb_mind*m){add(m,make(prep[roll(m,SZ(prep))],BB_OTHER));}
+/* a verb for what the sentence is about: one that suits its world, looked for a few times; with WANDER up, more
+ * and more often any verb at all */
+static verb pick(bb_mind*m,const verb *table,int n){
+ verb v=table[roll(m,n)];
+ if(!m->about||roll(m,100)<(int)(m->wander*100.f))return v;
+ for(int tries=0;tries<10&&v.suits&&!((v.suits>>(m->about-1))&1u);tries++)v=table[roll(m,n)];
+ return v;
+}
 static void I(bb_mind*m,int base){
- verb v=intr[roll(m,SZ(intr))];
+ verb v=pick(m,intr,SZ(intr));
  bb_token t={base?v.base:v.third,base?v.base_phones:v.phones,BB_VERB};
  add(m,t);
 }
@@ -105,7 +129,7 @@ static void subj(bb_mind*m,int with_adj){
 }
 static void obj(bb_mind*m){lit(m,&THE);N(m);}
 static void V(bb_mind*m,int base){
- verb v=trans[roll(m,SZ(trans))];
+ verb v=pick(m,trans,SZ(trans));
  bb_token t={base?v.base:v.third,base?v.base_phones:v.phones,BB_VERB};add(m,t);
 }
 void bb_rebuild(bb_mind*m){
@@ -168,6 +192,8 @@ static void build(bb_mind*m,const char *t){
   else if(same(w,"I"))I(m,0);
   else if(same(w,"i"))I(m,1);
   else if(same(w,"A"))A(m);
+  else if(same(w,"R"))R(m);
+  else if(same(w,"P"))P(m);
   else if(same(w,"."))lit(m,&DOT);
   else if(same(w,"?"))lit(m,&QUERY);
   else if(same(w,","))lit(m,&COMMA);
@@ -178,7 +204,7 @@ int bb_level(const bb_mind*m){int l=(int)(m->grammar*(float)BB_LEVELS_N);return 
 const char *bb_level_label(int level){return BB_LEVELS[level<0?0:level>=BB_LEVELS_N?BB_LEVELS_N-1:level];}
 /* a phrase of a kind (BB_STATE..), in the form GRAMMAR's level gives it */
 void bb_generate_pattern(bb_mind*m,int pattern){
- m->count=0;
+ m->count=0;m->about=0;
  m->pattern=(unsigned)(pattern<0?0:pattern%BB_PATTERNS_N);
  m->level=(unsigned)bb_level(m);
  build(m,FORM[m->pattern][m->level]);
@@ -249,7 +275,8 @@ void bb_remember_word(bb_mind*m,const bb_token *w){
 }
 bb_token bb_noun_of(int theme,int i){
  int t=theme_of(theme),n=(int)theme_size(t);
- return make(theme_word(t,(unsigned)(((i%n)+n)%n)),BB_NOUN);
+ int world;
+ return make(theme_word(t,(unsigned)(((i%n)+n)%n),&world),BB_NOUN);
 }
 int bb_worlds(void){return BB_THEMES_N;}
 const char *bb_world_label(int theme){int t=theme_of(theme);return t?WORLD[t-1].name:"ALL";}
