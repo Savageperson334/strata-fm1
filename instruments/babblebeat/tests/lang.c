@@ -99,8 +99,9 @@ int main(void){
  /* A key's word. Every kind of phrase made about a word has the word in it; the word next to it is another word,
   * and a step back from there can be the word again (a walk along its world, not a jump). */
  {bb_mind k;bb_init(&k,99);k.recall=0;
-  for(int w=0;w<48;w++){
-   bb_token word=bb_noun_of(w/12,w),nearby;
+  assert(bb_worlds()>=4&&bb_world_size(0)==12&&bb_world_label(0)[0]);
+  for(int w=0;w<bb_worlds()*40;w++){
+   bb_token word=bb_noun_of(w/40,w*7),nearby;
    assert(word.text&&word.role==BB_NOUN);
    for(int pattern=0;pattern<BB_KINDS_N;pattern++){bb_phrase(&k,&word,pattern);assert(strstr(k.text,word.text)!=0);}
    bb_phrase(&k,&word,bb_statement(&k));assert(k.text[strlen(k.text)-1]=='.');
@@ -121,5 +122,24 @@ int main(void){
    {const char *c=strstr(k.text,", ");if(c&&!strncmp(c+2,k.text,4))again++;}
   }
   assert(looped>plain+600);assert(again>150);}
+ /* The whole lexicon: every world's every noun has a text the screen can show and a spelling the voice can say
+  * (the voice's own letters and no others), and makes a sentence that fits; so do sentences at large, which
+  * draw on every adjective and verb. */
+ {bb_mind k;const char *voice="iIeAaOUVuEo12345wyrlmnNsSfTzvDhptkbdgCJ";long nouns=0;
+  bb_init(&k,2026);k.recall=0;k.damage=0;k.wander=1.f;
+  for(int t=0;t<bb_worlds();t++)for(int i=0;i<bb_world_size(t);i++){
+   bb_token word=bb_noun_of(t,i);
+   assert(word.text&&word.text[0]&&strlen(word.text)<=12&&word.phones[0]);
+   for(const char *c=word.phones;*c;c++)assert(strchr(voice,*c));
+   for(const char *c=word.text;*c;c++)assert(*c>='a'&&*c<='z');
+   nouns++;
+  }
+  assert(nouns>1500);
+  for(int i=0;i<40000;i++){
+   k.grammar=(float)(i%5)/5.f+.1f;k.theme=(unsigned)(i%bb_worlds());k.length=(i&1)?1.f:0.f;
+   bb_generate(&k);
+   assert(k.count>=2&&k.count<=BB_MAX_TOKENS&&strlen(k.text)<BB_TEXT_SIZE);
+   for(unsigned j=0;j<k.count;j++)for(const char *c=k.tok[j].phones;*c;c++)assert(strchr(voice,*c));
+  }}
  puts("BabbleBeat grammar tests passed");
 }

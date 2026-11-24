@@ -30,7 +30,8 @@ typedef struct {bb_token tok[BB_MAX_TOKENS];uint8_t count,pattern,level,used;con
 static phrase phrases[NSLOT];            /* each key's phrase, as it was left, and the word it was made about */
 static bb_token words[NPHRASE];          /* each white key's word (text 0: not given yet) */
 static int cur;                          /* the key (0..26) whose phrase is the one on the screen (mind's) */
-static uint8_t word_at;                  /* where in the world's list this session's words start */
+static uint16_t word_at;                 /* where in the world's list this session's words start */
+static int world_now;                    /* WORLD as last seen (a turn into another world: every key's word again) */
 /* the black keys' kinds of phrase, left to right (the language's patterns), and what the screen calls them */
 static const uint8_t SHARP[NMUTE]={BB_WHY,BB_NOT,BB_WAS,BB_IF,BB_WILL,BB_ISIT,BB_DIDNOT,BB_USEDTO,BB_BECAUSE,BB_MAY,BB_WHEN};
 static int grammar_level;                /* GRAMMAR's level as last seen (a turn across a level: every phrase again) */
@@ -75,7 +76,7 @@ static void apply(void){
  bb_voice_controls(&mouth,params[0]);bb_voice_mouth(&mouth,params[2]);
  mind.grammar=params[1][0];mind.wander=params[1][1];
  mind.recall=params[1][2];mind.damage=params[1][3];
- mind.theme=(unsigned)(params[1][4]*3.999f);
+ mind.theme=(unsigned)(params[1][4]*((float)bb_worlds()-.001f));
  mind.length=params[1][5];mind.style=params[1][6];
 }
 static int black_of(int k){for(int j=0;j<NMUTE;j++)if(BLACK_K[j]==k)return j;return -1;}
@@ -86,10 +87,10 @@ static int white_of(int k){
  return 0;
 }
 /* a key's word, given the first time it is wanted: the WORLD's nouns in order along the keys (twelve to a world;
- * the last four keys reach into the next) */
+ * (they are in an order: neighbouring keys are neighbouring words), from where this session starts in it */
 static bb_token *word_of(int k){
  int w=white_of(k);
- if(!words[w].text)words[w]=bb_noun_of((int)mind.theme+w/12,w+(int)word_at);
+ if(!words[w].text)words[w]=bb_noun_of((int)mind.theme,w+(int)word_at);
  return &words[w];
 }
 /* the phrase on the screen kept on its key; a key's phrase brought to the screen */
@@ -150,7 +151,7 @@ void app_init(void){
  page=1;autoplay=0;octave=0;old_keys=old_buttons=frames=last_spoken=0;stirred=0;guide=0;word_at=0;
  for(int k=0;k<NSLOT;k++){phrases[k].used=phrases[k].count=phrases[k].pattern=0;phrases[k].word=0;}
  for(int k=0;k<NPHRASE;k++)words[k]=(bb_token){0,0,BB_NOUN};
- grammar_level=bb_level(&mind);
+ grammar_level=bb_level(&mind);world_now=(int)mind.theme;
  cur=11;compose(cur);keep();             /* (the first phrase: on a middle key, the C) */
  gain_now=0;message_until=0;touched=-1;
 }
@@ -175,7 +176,7 @@ void app_input_only(void){
  uint32_t nb=btn&~old_buttons,nk=keys&~old_keys,now=plat_ms();
  /* the same sentences after every power-on would be a recital: the moment of the first press makes them this
   * session's own */
- if((nb||nk)&&!stirred){stirred=1;mind.rng^=now*2654435761u;if(!mind.rng)mind.rng=0xBABB1E25u;word_at=(uint8_t)(mind.rng%12u);}
+ if((nb||nk)&&!stirred){stirred=1;mind.rng^=now*2654435761u;if(!mind.rng)mind.rng=0xBABB1E25u;word_at=(uint16_t)(mind.rng%4096u);}
  if(nb&(1u<<B_FX))page=0;
  if(nb&(1u<<B_EDIT))page=1;
  if(nb&(1u<<B_PLAY)){
@@ -218,6 +219,14 @@ void app_input_only(void){
   grammar_level=bb_level(&mind);
   compose(cur);keep();speak();
   app_say("GRAMMAR:",bb_level_label(grammar_level));
+ }
+ /* WORLD turned into another world: every key gives up its word and takes one from there when it is next
+  * played; the key on the screen at once, and said */
+ if(turned&&(int)mind.theme!=world_now){
+  world_now=(int)mind.theme;
+  for(int k=0;k<NPHRASE;k++)words[k]=(bb_token){0,0,BB_NOUN};
+  compose(cur);keep();speak();
+  app_say("WORLD:",bb_world_label(world_now));
  }
  old_buttons=btn;old_keys=keys;
  if(autoplay&&!bb_voice_active(&mouth)&&now-last_spoken>350u)babble();
@@ -341,6 +350,7 @@ int app_expect(const char*name,int*got){
  else if(!strcmp(name,"remember"))*got=mind.has_memory;
  else if(!strcmp(name,"grammar"))*got=(int)(params[1][0]*100.f+.5f);
  else if(!strcmp(name,"theme"))*got=(int)mind.theme;
+ else if(!strcmp(name,"worlds"))*got=bb_worlds();
  else if(!strcmp(name,"voice"))*got=bb_voice_active(&mouth);
  else if(!strcmp(name,"key"))*got=cur;
  else if(!strcmp(name,"white"))*got=white_of(cur);

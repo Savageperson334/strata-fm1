@@ -12,7 +12,7 @@
       "how": "tap EDIT, or SEL",
       "keys": [
         "WORDS + KINDS OF PHRASE",
-        "White keys: sixteen words, one a key (the WORLD's nouns in order). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
+        "White keys: sixteen words, one a key (neighbouring nouns of the WORLD, which are kin). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
       ],
       "knobs": {
         "KNOB1": [
@@ -33,7 +33,7 @@
         ],
         "SELECT": [
           "WORLD",
-          "Four vocabulary banks: Machine, Dream, Body, and Gothic."
+          "Which of fourteen worlds the keys' words come from: MACHINE, DREAM, BODY, GOTHIC, then ANIMAL, PLANT, FOOD, THING, PLACE, MATTER, TIME, MIND, TALK, DEED. About 2,900 words in all. Turned into another world, every key takes a new word from it."
         ],
         "ALGORITHM": [
           "LENGTH",
@@ -50,7 +50,7 @@
       "how": "tap FX, or SEL",
       "keys": [
         "WORDS + KINDS OF PHRASE",
-        "White keys: sixteen words, one a key (the WORLD's nouns in order). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
+        "White keys: sixteen words, one a key (neighbouring nouns of the WORLD, which are kin). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
       ],
       "knobs": {
         "KNOB1": [
@@ -88,7 +88,7 @@
       "how": "tap SEL",
       "keys": [
         "WORDS + KINDS OF PHRASE",
-        "White keys: sixteen words, one a key (the WORLD's nouns in order). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
+        "White keys: sixteen words, one a key (neighbouring nouns of the WORLD, which are kin). A key says a phrase about its word and keeps it; lower keys speak lower. Black keys: the word of the white key on their left in another kind of phrase, left to right: WHY?, NOT, WAS, IF, WILL, IS IT?, DID NOT, USED TO, BECAUSE, MAY, WHEN. A word moves a step now and then (WANDER); a phrase is made again now and then (DAMAGE)."
       ],
       "knobs": {
         "KNOB1": [

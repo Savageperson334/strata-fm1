@@ -7,31 +7,10 @@
 typedef struct {const char *text,*phones;} word;
 typedef struct {const char *third,*base,*phones,*base_phones;} verb;
 #define SZ(a) ((int)(sizeof(a)/sizeof((a)[0])))
-static const word nouns[4][12]={
- {{"machine","mUSin"},{"signal","sIgnUl"},{"circuit","sErkIt"},{"engine","enJIn"},{"robot","r5bat"},{"speaker","spikEr"},{"voltage","v5ltIJ"},{"static","stAtIk"},{"terminal","tErmInUl"},{"mirror","mIrEr"},{"antenna","AntenU"},{"filter","fIltEr"}},
- {{"ghost","g5st"},{"shadow","SAd5"},{"moon","mun"},{"window","wInd5"},{"planet","plAnIt"},{"garden","gardUn"},{"ritual","rICuUl"},{"memory","memEri"},{"door","dor"},{"fog","fag"},{"language","lANgwIJ"},{"dream","drim"}},
- {{"mouth","m3T"},{"throat","Tr5t"},{"tongue","tUN"},{"bone","b5n"},{"skin","skIn"},{"nerve","nErv"},{"lung","lUN"},{"insect","Insekt"},{"vowel","v3Ul"},{"breath","breT"},{"spine","sp2n"},{"voice","v4s"}},
- {{"castle","kAsUl"},{"coffin","kOfIn"},{"vampire","vAmp2r"},{"crypt","krIpt"},{"blood","blUd"},{"wolf","wVlf"},{"night","n2t"},{"diary","d2Uri"},{"chapel","CApUl"},{"letter","letEr"},{"count","k3nt"},{"grave","gr1v"}}
-};
-static const word adj[]={
- {"pale","p1l"},{"electric","IlektrIk"},{"ancient","1nSUnt"},{"silent","s2lUnt"},
- {"hidden","hIdUn"},{"crooked","krVkId"},{"synthetic","sInTetIk"},
- {"hollow","hal5"},{"broken","br5kUn"},{"restless","restlIs"},
- {"silver","sIlvEr"},{"strange","str1nJ"}
-};
-static const verb intr[]={
- {"waits","wait","w1ts","w1t"},{"sleeps","sleep","slips","slip"},
- {"whispers","whisper","wIspErz","wIspEr"},{"dreams","dream","drimz","drim"},
- {"shivers","shiver","SIvErz","SIvEr"},{"sings","sing","sINz","sIN"},
- {"returns","return","rItErnz","rItErn"},{"vanishes","vanish","vAnISIz","vAnIS"}
-};
-static const verb trans[]={
- {"remembers","remember","rImembErz","rImembEr"},
- {"follows","follow","fal5z","fal5"},{"haunts","haunt","hOnts","hOnt"},
- {"watches","watch","waCIz","waC"},{"forgets","forget","fErgets","fErget"},
- {"opens","open","5pUnz","5pUn"},{"swallows","swallow","swal5z","swal5"},
- {"corrupts","corrupt","kUrUpts","kUrUpt"}
-};
+/* the words: fourteen worlds of nouns (WORLD[]: the first four BabbleBeat's own, twelve each; the rest from
+ * WordNet, their words in the order of its tree, so that neighbours are kin), adjectives, and verbs that take an
+ * object (trans) or none (intr). Generated: tools/gen_lexicon.py */
+#include "babble_words.h"
 static const bb_token THE={"the","DU",BB_OTHER},AND={"and","And",BB_OTHER},AGAIN={"again","Ugen",BB_OTHER},
  DOT={".","",BB_PUNCT},QUERY={"?","",BB_PUNCT},COMMA={",","",BB_PUNCT};
 /* the kinds of phrase (BB_STATE..BB_WHEN) and GRAMMAR's five ways of building one, as the screen names them */
@@ -91,13 +70,13 @@ static void add(bb_mind*m,bb_token x){if(m->count<BB_MAX_TOKENS)m->tok[m->count+
 static void lit(bb_mind*m,const bb_token *t){add(m,*t);}
 static bb_token noun(bb_mind*m){
  if(m->force_once){m->force_once=0;return m->forced;}
- int theme=(int)m->theme&3;
+ int theme=(int)(m->theme%BB_WORLDS_N);
  if(roll(m,100)<(int)(m->wander*100.f)){
   /* Recalled nouns attract nearby words toward their original world. */
-  theme=(int)m->drift_theme&3;
+  theme=(int)(m->drift_theme%BB_WORLDS_N);
  }
  if(m->has_memory&&roll(m,100)<(int)(m->recall*100.f))return m->remembered;
- return make(nouns[theme][roll(m,12)],BB_NOUN);
+ return make(WORLD[theme].w[roll(m,(int)WORLD[theme].n)],BB_NOUN);
 }
 static void N(bb_mind*m){add(m,noun(m));}
 static void A(bb_mind*m){add(m,make(adj[roll(m,SZ(adj))],BB_ADJ));}
@@ -210,7 +189,7 @@ const char *bb_pattern_label(const bb_mind*m){
 void bb_generate(bb_mind*m){
  if(roll(m,100)<(int)(m->wander*65.f)){
   m->drift_theme=(m->has_memory&&roll(m,100)<(int)(m->recall*100.f))
-   ?m->memory_theme:(unsigned)roll(m,4);
+   ?m->memory_theme:(unsigned)roll(m,BB_WORLDS_N);
  }
  /* STYLE: statements only .. any kind (half of them plain statements) .. questions only */
  static const uint8_t SAYS[]={BB_STATE,BB_STATE,BB_STATE,BB_NOT,BB_WAS,BB_WILL,BB_DIDNOT,BB_USEDTO,BB_MAY};
@@ -234,27 +213,36 @@ void bb_rewrite(bb_mind*m,int pattern){
  bb_generate_pattern(m,pattern);
  m->change=3;
 }
+/* where a noun is: its world and its place there (by its text's address: the words are the tables' own) */
+static int where(const char *text,int *theme,int *at){
+ for(int t=0;t<BB_WORLDS_N;t++)for(unsigned i=0;i<WORLD[t].n;i++)if(WORLD[t].w[i].text==text){*theme=t;*at=(int)i;return 1;}
+ return 0;
+}
 void bb_remember(bb_mind*m){
  int ids[BB_MAX_TOKENS],n=0;
  for(unsigned i=0;i<m->count;i++)if(m->tok[i].role==BB_NOUN)ids[n++]=(int)i;
  if(n){
   m->remembered=m->tok[ids[roll(m,n)]];
   m->has_memory=1;
-  for(int theme=0;theme<4;theme++)
-   for(int w=0;w<12;w++)
-    if(m->remembered.text==nouns[theme][w].text)m->memory_theme=(unsigned)theme;
+  {int theme,at;if(where(m->remembered.text,&theme,&at))m->memory_theme=(unsigned)theme;}
  }
 }
 void bb_remember_word(bb_mind*m,const bb_token *w){
  if(!w||!w->text)return;
  m->remembered=*w;m->has_memory=1;
- for(int theme=0;theme<4;theme++)for(int i=0;i<12;i++)if(w->text==nouns[theme][i].text)m->memory_theme=(unsigned)theme;
+ {int theme,at;if(where(w->text,&theme,&at))m->memory_theme=(unsigned)theme;}
 }
-bb_token bb_noun_of(int theme,int i){return make(nouns[theme&3][((i%12)+12)%12],BB_NOUN);}
+bb_token bb_noun_of(int theme,int i){
+ int t=((theme%BB_WORLDS_N)+BB_WORLDS_N)%BB_WORLDS_N,n=(int)WORLD[t].n;
+ return make(WORLD[t].w[((i%n)+n)%n],BB_NOUN);
+}
+int bb_worlds(void){return BB_WORLDS_N;}
+const char *bb_world_label(int theme){return WORLD[((theme%BB_WORLDS_N)+BB_WORLDS_N)%BB_WORLDS_N].name;}
+int bb_world_size(int theme){return (int)WORLD[((theme%BB_WORLDS_N)+BB_WORLDS_N)%BB_WORLDS_N].n;}
 bb_token bb_noun_near(bb_mind*m,const bb_token *w){
- for(int theme=0;theme<4;theme++)for(int i=0;i<12;i++)if(w&&w->text==nouns[theme][i].text)
-  return bb_noun_of(theme,i+(roll(m,2)?1:11));
- return bb_noun_of((int)m->theme,roll(m,12));
+ int theme,at;
+ if(w&&where(w->text,&theme,&at))return bb_noun_of(theme,at+(roll(m,2)?1:-1));
+ return bb_noun_of((int)m->theme,roll(m,bb_world_size((int)m->theme)));
 }
 void bb_phrase(bb_mind*m,const bb_token *w,int pattern){
  if(w&&w->text){m->forced=*w;m->force_once=1;}

@@ -54,6 +54,31 @@ Custom firmware, installed at your own risk. It has not run on a real FM-1 yet. 
 | 10 | **MAY** | the mirror may follow the voltage. |
 | 11 | **WHEN** | when the mirror vanishes, the antenna will forget the engine. |
 
+## WORLD and the words
+
+BabbleBeat knows about **2,900 words**: 1,796 nouns, 512 adjectives and 590 verbs. The nouns are in fourteen worlds. **WORLD** (EDIT, SELECT) chooses the world the keys draw from; the screen names it as you turn.
+
+| WORLD | Nouns | Such as |
+| --- | ---: | --- |
+| **MACHINE**, **DREAM**, **BODY**, **GOTHIC** | 12 each | the original hand-made worlds: circuit, ghost, tongue, crypt |
+| **ANIMAL** | 146 | frog, owl, spaniel, walrus |
+| **PLANT** | 80 | grass, poppy, lilac, bramble |
+| **FOOD** | 98 | bean, radish, bacon, butter |
+| **THING** | 220 | kitchen, bridge, painting, sword |
+| **PLACE** | 220 | meadow, island, campus, graveyard |
+| **MATTER** | 220 | mist, smoke, dust, radiation |
+| **TIME** | 104 | dawn, midnight, year, twilight |
+| **MIND** | 220 | longing, boredom, intuition, scorn |
+| **TALK** | 220 | headline, lyric, phrase, verb |
+| **DEED** | 220 | arrival, ballet, merger, removal |
+
+- **Neighbouring keys are kin.** A world's words are in a family order, so the sixteen keys hold related words (frog, toad, fish, salmon, shark...), and a word that moves (WANDER) steps to a relative.
+- **Each power-on starts somewhere else** in the world, so the keys are not always the same sixteen.
+- **Turn WORLD into another world** and every key takes a new word from it: the key on the screen at once, the others when played.
+- Adjectives and verbs are shared by all worlds.
+
+The words outside the first four worlds were chosen by a script, not one by one. Expect the odd strange one.
+
 ## GRAMMAR
 
 GRAMMAR (EDIT, KNOB1) sets how **every phrase on the unit** is built: white keys, black keys and PLAY's babble. There are five levels. Turn across one and the phrase on the screen is built again that way and said; each other key follows when it is next played. The screen names the kind and the level under the phrase, for example `WHY?  NESTED`.
@@ -85,7 +110,7 @@ When a white key's word moves, the black key beside it follows the next time it 
 | KNOB2 | **WANDER** | How often a key's word moves a step; also, other nouns borrowed from outside the world |
 | KNOB3 | **RECALL** | How often the remembered word returns. Past 70 the phrases fix on it and loop back on themselves: "the mirror was, the mirror was pale." |
 | KNOB4 | **DAMAGE** | How often a key's phrase is made again as it is played; past 60 it may be broken instead |
-| SELECT | **WORLD** | Machine, Dream, Body or Gothic/Dracula vocabulary, for keys that have no word yet |
+| SELECT | **WORLD** | Which of the fourteen worlds the keys' words come from. Turned into another world, every key takes a new word from it |
 | ALGORITHM | **LENGTH** | High values can append a further clause (from PLAIN up) |
 | PRESETS | **STYLE** | Statements at low values; mixed in middle; questions at high values |
 
@@ -120,7 +145,7 @@ A compact lexicon tags parts of speech. There are twelve kinds of phrase (the st
 
 REC keeps a word in a small memory slot; RECALL governs whether a later phrase uses it. WORLD decides the nouns; WANDER can cross worlds. LENGTH can add a further clause. DAMAGE past 60 lets tokens repeat, disappear or be interrupted by "again".
 
-The four themed banks loosely echo an earlier Python WordNet/Dracula experiment. BabbleBeat does not include WordNet, a full novel or live dictionary downloads.
+The first four worlds loosely echo an earlier Python WordNet/Dracula experiment and are written by hand. The rest of the words are generated from two public word lists: see [the sources and their notices](https://github.com/Savageperson334/strata-fm1/blob/main/instruments/babblebeat/lang/LEXICON-SOURCES.md).
 
 ## Voice limitations
 

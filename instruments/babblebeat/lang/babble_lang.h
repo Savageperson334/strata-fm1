@@ -32,6 +32,9 @@ void bb_remember(bb_mind*);
 /* a key's word: the nouns of a world in order; the word next to one in its world (how a key's word moves: a
  * step, not a jump); a sentence of a pattern whose first noun is the word; that word made the memory */
 bb_token bb_noun_of(int theme,int i);
+int bb_worlds(void);                     /* how many worlds of nouns there are; a world's name; how many nouns in it */
+const char *bb_world_label(int theme);
+int bb_world_size(int theme);
 bb_token bb_noun_near(bb_mind*,const bb_token *word);
 void bb_phrase(bb_mind*,const bb_token *word,int pattern);
 void bb_remember_word(bb_mind*,const bb_token *word);
