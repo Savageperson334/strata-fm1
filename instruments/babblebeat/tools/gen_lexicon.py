@@ -233,7 +233,7 @@ def main():
     for label, vs in (("intr", intr), ("trans", trans)):
         o.append(f"static const verb {label}[]={{")
         for k in range(0, len(vs), 3):
-            o.append(" " + ",".join("{" + ",".join(q(x) for x in v[:4]) + f",{v[4]:#x}u}}" for v in vs[k:k + 3]) + ",")
+            o.append(" " + ",".join("{" + ",".join(q(x) for x in v[:4]) + f",{v[4]}u}}" for v in vs[k:k + 3]) + ",")
         o.append("};")
     OUT.write_text("\n".join(o) + "\n")
     nn = sum(len(ws) for _, ws in worlds)
