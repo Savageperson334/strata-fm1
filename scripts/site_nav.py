@@ -29,8 +29,8 @@ REPO = "https://github.com/Savageperson334/strata-fm1"
 SOURCE = {"strata": REPO, "palindrome": REPO + "/tree/main/instruments/palindrome", "babblebeat": REPO + "/tree/main/instruments/babblebeat",
           "strabbledrome": REPO + "/tree/main/instruments/strabbledrome"}
 STRABBLEDROME_SOURCE = SOURCE["strabbledrome"]
-# STRABBLEDROME (all three behind one menu) has an emulator and a manual, and no installer: it is not released
-NO_INSTALL = {"strabbledrome"}
+# every firmware has an installer now (STRABBLEDROME's: all three in one install)
+NO_INSTALL = set()
 PAGES = (("", "index.html"), ("emu", "emu/index.html"), ("manual", "manual/index.html"),
          ("install", "install/index.html"))
 LINKS = (("emu", "Emulator"), ("manual", "Manual"), ("install", "Install"))
@@ -182,10 +182,10 @@ def nav(instrument, section):
         f'<a href="{relative(name, section)}"{" aria-current=" + chr(34) + "true" + chr(34) if name == instrument else ""}>{name.upper()}</a>'
         for name in ("strata", "palindrome", "babblebeat")
     )
-    # STRABBLEDROME: all three behind one menu. An emulator and a manual; not released, no installer.
+    # STRABBLEDROME: all three behind one menu, in one install.
     swap += (f'<a href="{relative("strabbledrome", section)}" data-project="strabbledrome"'
              f'{" aria-current=" + chr(34) + "true" + chr(34) if instrument == "strabbledrome" else ""} '
-             f'title="All three in one firmware: preview, not released">STRABBLEDROME</a>')
+             f'title="All three in one firmware, one install">STRABBLEDROME</a>')
     return (f'<nav id="fm1nav" aria-label="{instrument.upper()}"><div class="fm1nav-links">{links}</div>'
             f'<div class="fm1nav-swap" role="group" aria-label="Firmware projects">{swap}</div></nav>')
 

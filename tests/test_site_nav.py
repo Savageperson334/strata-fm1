@@ -22,8 +22,8 @@ for current in FIRMWARES:
         assert n.count('<a href=') == 8, (current, section, n)
         assert 'STRABBLEDROME' in n and 'WIP' not in n
         assert n.count('data-project="strabbledrome"') == 1
-        # STRABBLEDROME has an emulator and a manual and no installer: from an installer, its front page
-        to = posixpath.relpath(posixpath.join("strabbledrome", "" if section == "install" else section),
+        # STRABBLEDROME: the same section of its site, its installer included
+        to = posixpath.relpath(posixpath.join("strabbledrome", section),
                                start=posixpath.join({"strata": "", "palindrome": "palindrome", "babblebeat": "babblebeat"}[current], section) or ".")
         assert f'href="{to}/" data-project="strabbledrome"' in n, (current, section, n)
         for target in FIRMWARES:
@@ -50,10 +50,10 @@ for current in FIRMWARES:
     assert again.count("fm1theme-style") == 1
     assert again.count("fm1theme-meta") == 1
     assert again.count('<nav id="fm1nav"') == 1
-# STRABBLEDROME's own pages: no Install link, itself current, the other three reachable
-for section in ("", "emu", "manual"):
+# STRABBLEDROME's own pages: an Install link, itself current, the other three reachable
+for section in ("", "emu", "manual", "install"):
     n = site_nav.nav("strabbledrome", section)
-    assert n.count('<a href=') == 7 and ">Install<" not in n, n
+    assert n.count('<a href=') == 8 and ">Install<" in n, n
     assert n.count('aria-current="true"') == 1 and 'data-project="strabbledrome" aria-current="true"' in n
     for target in FIRMWARES:
         assert target.upper() in n

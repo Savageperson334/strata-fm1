@@ -1,5 +1,8 @@
-# STRABBLEDROME: all three instruments behind one menu. This publishes its browser emulator, its manual and a
-# front page under /strabbledrome/. It makes no firmware package and no installer: STRABBLEDROME is not released.
+# STRABBLEDROME: STRATA, PALINDROME and BabbleBeat behind one menu, in one install. Every change to it or to any of
+# the three tests it on the simulator and rebuilds its emulator. When instruments/strabbledrome/VERSION names a
+# version not yet released, the firmware is built and attested (zvenson/fm1-build) and released as
+# strabbledrome-vX.Y, and its whole site published: front page, manual, emulator and installer, under /strabbledrome/.
+# A change with the version already released republishes the site with that release's package.
 name: STRABBLEDROME
 on:
   push:
@@ -12,22 +15,40 @@ on:
       - '.github/workflows/strabbledrome.yml'
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: strabbledrome-build
   cancel-in-progress: false
 jobs:
   preview:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      released: ${{ steps.version.outputs.released }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check its release tag
+        id: version
+        run: |
+          set -euo pipefail
+          version=$(tr -d ' \r\n' < instruments/strabbledrome/VERSION)
+          if git ls-remote --exit-code --tags origin "refs/tags/strabbledrome-v$version" >/dev/null 2>&1; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Host tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq python3-pil xz-utils rsync
+          sudo apt-get install -y -qq libfribidi0 xz-utils rsync
+          python3 -m pip install -q Pillow
       - name: Simulator test, and the manual's screenshots
         run: |
           set -euo pipefail
@@ -45,20 +66,98 @@ jobs:
           "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.10
           set +u; source "$RUNNER_TEMP/emsdk/emsdk_env.sh"; set -u
           python3 base/tools/build.py instruments/strabbledrome --web
-      - name: The pages, and their publication under /strabbledrome/
+      - name: The site again, with the released package (a version already released)
+        if: steps.version.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           p=instruments/strabbledrome
-          out="$RUNNER_TEMP/sd-site"
-          rm -rf "$out"; mkdir -p "$out/manual"
-          meta=(--name STRABBLEDROME --repo "https://github.com/${GITHUB_REPOSITORY}" --tagline "STRATA, PALINDROME and BabbleBeat behind one menu")
-          python3 base/tools/manual_html.py "$p/site/landing.md" "$out/index.html" "${meta[@]}" --home
-          python3 base/tools/manual_html.py "$p/docs/MANUAL.md" "$out/manual/index.html" "${meta[@]}"
-          cp -r "$p/docs/img" "$out/manual/img"
-          cp -r "$p/build/emu" "$out/emu"
-          cp -r base/web/fonts "$out/fonts"
-          if [ -d "$p/web/words" ]; then cp -r "$p/web/words" "$out/words"; fi
-          test -f "$out/emu/app.wasm" && test -f "$out/index.html" && test -f "$out/manual/index.html"
-          bash scripts/publish-instrument-site.sh "$out" strabbledrome
+          version=$(tr -d ' \r\n' < "$p/VERSION")
+          mkdir -p "$RUNNER_TEMP/sd-release"
+          gh release download "strabbledrome-v$version" --pattern 'strabbledrome-*.fwsc' --dir "$RUNNER_TEMP/sd-release"
+          python3 base/tools/make_site.py "$p" "$RUNNER_TEMP/sd-release/strabbledrome-$version.fwsc" "$version" "$RUNNER_TEMP/sd-site"
+          bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/sd-site" strabbledrome
+      - uses: actions/upload-artifact@v4
+        with:
+          name: strabbledrome-preview
+          path: |
+            instruments/strabbledrome/build/emu/
+            instruments/strabbledrome/docs/img/
+  firmware:
+    needs: preview
+    if: needs.preview.outputs.released == 'false'
+    uses: zvenson/fm1-build/.github/workflows/build.yml@v1
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    with:
+      sdk: true
+      tests-block: true
+      build: |
+        set -euo pipefail
+        git submodule update --init --recursive
+        sudo apt-get install -y -qq libfribidi0
+        p=instruments/strabbledrome
+        python3 base/tools/build.py "$p" --host
+        mkdir -p "$p/docs/img" build/release-assets
+        "$p/build/host/strabbledrome_host" "$p/tests/basic.txt" "$p/docs/img"
+        version=$(tr -d ' \r\n' < "$p/VERSION")
+        python3 base/tools/build.py "$p" --release "$version"
+        cp "$p/build/strabbledrome-$version.fwsc" build/release-assets/
+        cp "$p/build/strabbledrome.bin" "build/release-assets/strabbledrome-$version-app.bin"
+        cp "$p/build/firmware.json" build/release-assets/
+      test: |
+        set -euo pipefail
+        p=instruments/strabbledrome
+        "$p/build/host/strabbledrome_host" "$p/tests/basic.txt" "$p/docs/img"
+      packages: build/release-assets/*
+  release:
+    needs: [preview, firmware]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      attestations: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: build/attested
+      - uses: actions/download-artifact@v4
+        with:
+          name: strabbledrome-preview
+          path: instruments/strabbledrome
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify and publish the prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd build/attested
+          sha256sum --check SHA256SUMS
+          for f in build/release-assets/*; do
+            gh attestation verify "$f" --repo "$GITHUB_REPOSITORY" --signer-workflow zvenson/fm1-build/.github/workflows/build.yml --source-ref "$GITHUB_REF" --source-digest "$GITHUB_SHA"
+          done
+          version=$(tr -d ' \r\n' < ../../instruments/strabbledrome/VERSION)
+          if ! gh release view "strabbledrome-v$version" >/dev/null 2>&1; then
+            gh release create "strabbledrome-v$version" --target "$GITHUB_SHA" --title "STRABBLEDROME $version (experimental)" --prerelease --latest=false --notes "STRATA, PALINDROME and BabbleBeat in one firmware, behind one menu (GLO). Hardware validation pending; try the emulator first." build/release-assets/* SHA256SUMS
+          fi
+      - name: The whole site, with the installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          p=instruments/strabbledrome
+          version=$(tr -d ' \r\n' < "$p/VERSION")
+          mkdir -p "$RUNNER_TEMP/sd-release"
+          gh release download "strabbledrome-v$version" --pattern 'strabbledrome-*.fwsc' --dir "$RUNNER_TEMP/sd-release"
+          sudo apt-get install -y -qq rsync
+          python3 -m pip install -q Pillow
+          python3 base/tools/make_site.py "$p" "$RUNNER_TEMP/sd-release/strabbledrome-$version.fwsc" "$version" "$RUNNER_TEMP/sd-site"
+          bash scripts/publish-instrument-site.sh "$RUNNER_TEMP/sd-site" strabbledrome

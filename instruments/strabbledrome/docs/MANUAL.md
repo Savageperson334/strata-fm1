@@ -55,4 +55,4 @@ A `*` marks the instrument that is running.
 
 ## Status
 
-A preview: simulator-tested and built for the FM-1, playable [in the browser](../emu/), not yet run on a real FM-1, and not released: there is no installer. Every other control, sound and page belongs to the instrument you are in, and is described in its manual.
+An experimental prerelease: simulator-tested and built for the FM-1, playable [in the browser](../emu/), [installed from its page](../install/), and not yet run on a real FM-1. Every other control, sound and page belongs to the instrument you are in, and is described in its manual.

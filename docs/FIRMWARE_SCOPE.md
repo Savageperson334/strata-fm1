@@ -5,7 +5,7 @@
 
 ## 1. The organizing idea
 
-This repository contains **three existing custom firmwares for the M-VAVE FM-1** and a fourth, **[STRABBLEDROME](../instruments/strabbledrome/README.md)**, in development. It is a single installation with a menu for the three instruments: it builds for the FM-1 and passes its simulator test, but is not released and has not run on hardware. **Current firmware releases each run one instrument at a time.** They may share `fm1-base`, build/test support, the web emulator, documentation structure, and site navigation; they should retain distinct synthesis engines, performance identities, versioning and releases.
+This repository contains **three existing custom firmwares for the M-VAVE FM-1** and a fourth, **[STRABBLEDROME](../instruments/strabbledrome/README.md)**, a single installation with a menu for the three instruments, released with its own installer; like the others it has not yet run on hardware. **Current firmware releases each run one instrument at a time.** They may share `fm1-base`, build/test support, the web emulator, documentation structure, and site navigation; they should retain distinct synthesis engines, performance identities, versioning and releases.
 
 | Firmware | Creative object | What the player does | System's central memory | Short identity |
 | --- | --- | --- | --- | --- |
