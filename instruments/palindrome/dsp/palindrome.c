@@ -17,7 +17,13 @@
 #define GEN_GAIN 1.f                      /* a generation's grains against the ring kept under them (set by measurement) */
 #endif
 #define SEAM 256u                        /* a capture's ends are eased over this many samples: the loop closes clean */
+#ifdef FM1_WORKSPACE                     /* in a firmware of several instruments (STRABBLEDROME): the rings in the
+                                          * memory they share, of which only the instrument running has the use */
+extern uint32_t FM1_WORKSPACE[];
+#define memory ((int16_t (*)[PM_BUFFER])FM1_WORKSPACE)
+#else
 static int16_t memory[PM_RINGS][PM_BUFFER] PLAT_POOL;
+#endif
 typedef struct {
     float phase, m1, m2, env, modal, filt, inc;
     float life;                          /* 1 as it is struck, dying away from there (DECAY); held at 1 at its top */

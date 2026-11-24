@@ -1,72 +1,19 @@
-# STRABBLEDROME's launcher. (view: 0 menu, 1 an instrument, 2 help, 3 system; no instrument is built in yet)
+# STRABBLEDROME: three instruments behind one menu.
+# (view: 0 menu, 1 an instrument, 2 the launcher's help, 3 system, 4 the instrument's own guide;
+#  owner: the instrument that sounds, -1 none, 0 STRATA, 1 PALINDROME, 2 BabbleBeat)
 wait 3000
 expect view 0
 expect cursor 0
 expect chosen -1
 expect owner -1
-expect ready 0
+expect ready 3
 shot menu.png
-# with nothing chosen there is nowhere to go back to: GLO and HOME say so
+# with nothing chosen there is nowhere to go back to: GLO and HOME say so; HELP is the launcher's own
 tap GLO
 wait 100
 expect view 0
-expect note 1
-tap HOME
-wait 100
-expect view 0
-# SELECT moves the highlight and stops at the ends
-turn SELECT -3
-wait 100
-expect cursor 0
-turn SELECT 1
-wait 100
-expect cursor 1
-# SEL opens the instrument: not in this build, so its name, no sound, and GLO for the menu
-tap SEL
-wait 300
-expect view 1
-expect chosen 1
-expect owner -1
-expect changing -1
-shot placeholder.png
-# keys, knobs and other buttons do nothing here; one press of GLO is the menu, on the instrument chosen
-key 5 down
-wait 60
-key 5 up
-tap REC
-tap HOME
-wait 100
-expect view 1
-tap GLO
-wait 100
-expect view 0
-expect cursor 1
-shot menu-chosen.png
-# back with GLO, back again with HOME
-tap GLO
-wait 100
-expect view 1
-tap GLO
-wait 100
-tap HOME
-wait 100
-expect view 1
-tap GLO
-wait 100
-# another instrument
-turn SELECT 1
-wait 100
-tap SEL
-wait 300
-expect chosen 2
-expect view 1
-tap GLO
-wait 100
-# help and system: SEL opens, GLO or HOME goes back to the menu
-turn SELECT 9
-wait 100
-expect cursor 4
-turn SELECT -1
+expect said 1
+turn SELECT 3
 wait 100
 expect cursor 3
 tap SEL
@@ -85,25 +32,187 @@ shot system.png
 tap GLO
 wait 100
 expect view 0
-expect chosen 2
-# many changes in a row leave it where it should be
+# SELECT stops at the ends
 turn SELECT -9
 wait 100
+expect cursor 0
+# STRATA: SEL opens it; it starts, and the keys are its own
 tap SEL
+wait 400
+expect view 1
+expect chosen 0
+expect owner 0
+expect changing -1
+key 7 down
 wait 60
+key 7 up
+key 14 down
+wait 60
+key 14 up
+wait 1500
+expect voices 2
+shot strata.png
+wav strata.wav
+wait 700
+wavstop
+expect peak_db_min -45
+# GLO never reaches the instrument: it is the menu, and the instrument goes on sounding under it
 tap GLO
+wait 200
+expect view 0
+expect cursor 0
+expect owner 0
+expect voices 2
+expect guide 0
+shot menu-strata.png
+# keys and knobs do nothing while the menu is open
+key 3 down
 wait 60
-turn SELECT 2
+key 3 up
+turn K1 5
 wait 100
-tap SEL
-wait 60
+expect voices 2
+# back as it was: GLO, or HOME, or SEL on the same instrument
 tap GLO
-wait 60
-turn SELECT -1
+wait 200
+expect view 1
+expect owner 0
+expect voices 2
+# HELP with an instrument open is that instrument's own button guide; any of GLO, HOME, SEL leaves it
+tap GLO
+wait 100
+turn SELECT 3
 wait 100
 tap SEL
 wait 300
-expect chosen 1
+expect view 4
+expect guide 1
+shot strata-guide.png
+tap HOME
+wait 200
+expect view 0
+expect guide 0
+# PALINDROME: the other instrument is silenced, this one starts afresh
+turn SELECT -2
+wait 100
+expect cursor 1
+tap SEL
+wait 500
 expect view 1
-expect owner -1
+expect chosen 1
+expect owner 1
+expect page 0
+expect rings 0
+shot palindrome.png
+# its first key is caught as a ring, as in PALINDROME by itself
+key 12 down
+wait 60
+key 12 up
+wait 3000
+expect rings 1
+wav palindrome.wav
+wait 700
+wavstop
+expect peak_db_min -45
+# its own guide opens with one press of GLO and closes with another: HELP gives it both
+tap GLO
+wait 100
+turn SELECT 2
+wait 100
+tap SEL
+wait 300
+expect view 4
+expect guide 1
+shot palindrome-guide.png
+tap GLO
+wait 200
+expect view 0
+expect guide 0
+expect rings 1
+# BabbleBeat
+turn SELECT -1
+wait 100
+expect cursor 2
+tap SEL
+wait 500
+expect owner 2
+expect chosen 2
+key 9 down
+wait 60
+key 9 up
+wait 100
+expect voice 1
+expect key 9
+shot babblebeat.png
+wav babblebeat.wav
+wait 700
+wavstop
+expect peak_db_min -45
+tap GLO
+wait 100
+turn SELECT 1
+wait 100
+tap SEL
+wait 300
+expect view 4
+expect guide 1
+shot babblebeat-guide.png
+tap SEL
+wait 200
+expect view 0
+expect guide 0
+# back to PALINDROME: afresh, its ring gone (the workspace was cleared, and it starts as it does at power-on)
+turn SELECT -2
+wait 100
+tap SEL
+wait 500
+expect owner 1
+expect rings 0
+expect page 0
+# and to STRATA: afresh too
+tap GLO
+wait 100
+turn SELECT -1
+wait 100
+tap SEL
+wait 500
+expect owner 0
+expect voices 0
+key 7 down
+wait 60
+key 7 up
+wait 800
+expect voices 1
+# the press that opens an instrument is not the instrument's own: SEL held on the way in does nothing in it
+tap GLO
+wait 100
+press SEL
+wait 300
+expect view 1
+expect owner 0
+release SEL
+wait 100
+expect voices 1
+# changes in a hurry end where they should
+tap GLO
+wait 60
+turn SELECT 2
+wait 60
+tap SEL
+wait 40
+tap GLO
+wait 40
+turn SELECT -1
+wait 60
+tap SEL
+wait 40
+tap GLO
+wait 40
+turn SELECT -1
+wait 60
+tap SEL
+wait 600
+expect chosen 0
+expect owner 0
 expect changing -1
+expect view 1

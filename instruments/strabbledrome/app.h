@@ -6,6 +6,8 @@
 #define APP_SPLASH_RGB RGB(200, 200, 210)
 #define APP_PALETTE 2u                   /* as all three instruments: the screen in cyan */
 #define APP_BLOCK 256u                   /* as all three: 5.8 ms a block */
+#define APP_OVERLOAD                     /* the render ran late: STRATA lets a voice go (app_overload) */
+void app_overload(void);
 /* STRATA's store map and objects, so that its saved sound is where STRATA will look for it; the launcher itself
  * writes nothing but what the platform does (the panel's calibration) */
 enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_NOBJ };

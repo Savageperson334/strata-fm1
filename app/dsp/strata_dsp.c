@@ -115,14 +115,23 @@ static svf_t flt[2];
 /* ------------------------------------------------------------------ reverb --- */
 #define RV_LEN 4096u                     /* each line's buffer (a power of two) */
 #define RV_MASK (RV_LEN - 1u)
+#ifdef FM1_WORKSPACE                     /* in a firmware of several instruments (STRABBLEDROME): the reverb's
+                                          * buffers in the memory they share (the delay lines, then the all-passes) */
+extern uint32_t FM1_WORKSPACE[];
+#define rv_buf ((float (*)[RV_LEN])FM1_WORKSPACE)
+#define ap_buf ((float (*)[AP_LEN])(FM1_WORKSPACE + 4u * RV_LEN))
+#else
 static SD_POOL float rv_buf[4][RV_LEN];
+#endif
 static const uint32_t RV_DLY[4] = {1777u, 2137u, 2593u, 3083u};
 static float rv_lp[4];
 static uint32_t rv_w;
 static float rv_mod_ph;
 #define AP_LEN 512u
 #define AP_MASK (AP_LEN - 1u)
+#ifndef FM1_WORKSPACE
 static SD_POOL float ap_buf[4][AP_LEN];
+#endif
 static const uint32_t AP_DLY[4] = {142u, 379u, 107u, 277u};   /* L: 0, 1; R: 2, 3 */
 static uint32_t ap_w;
 
