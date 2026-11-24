@@ -12,7 +12,7 @@ Milestone 2 of [the plan](README.md). Measured 23 November 2026 on STRATA 0.4.2,
 | RAM (.data + .bss) | 48,532 | 48,756 of 98,304 |
 | RAM pool | 265,732 | 265,992 of 344,064 |
 
-The image is larger than the sum because each instrument's `app.c` is now compiled for speed in a unit of its own, as expected. It is 30% of the slot.
+The image is larger than the sum because each instrument's `app.c` is now compiled for speed in a unit of its own, as expected. With BabbleBeat 0.5's 2,900 words (70 KB, all of it flash) the image is 244,912 B, about 40% of the slot; RAM and pool are unchanged.
 
 ## Where the numbers come from
 

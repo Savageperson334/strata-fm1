@@ -5,7 +5,7 @@ set -euo pipefail
 src="$(realpath "$1")"
 instrument="$2"
 remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-case "$instrument" in strata|palindrome|babblebeat) ;; *) exit 2;; esac
+case "$instrument" in strata|palindrome|babblebeat|strabbledrome) ;; *) exit 2;; esac
 # The same 3-way navigation on every page (Emulator, Manual, Install, Source).
 python3 "$(dirname "$(realpath "$0")")/site_nav.py" "$src" "$instrument"
 tmp=$(mktemp -d)
@@ -19,7 +19,7 @@ for attempt in 1 2 3 4 5; do
   # (--checksum: a page whose only change is the version number has the same size as the one just cloned, and
   # often the same second on its clock, which rsync would otherwise take for unchanged)
   if [ "$instrument" = strata ]; then
-    rsync -a --checksum --delete --exclude=.git --exclude=/palindrome/ --exclude=/palimpsest/ --exclude=/babblebeat/ "$src/" ./
+    rsync -a --checksum --delete --exclude=.git --exclude=/palindrome/ --exclude=/palimpsest/ --exclude=/babblebeat/ --exclude=/strabbledrome/ "$src/" ./
   elif [ "$instrument" = palindrome ]; then
     # /palindrome/next is an independently staged experimental emulator.
     # The stable PALINDROME site publication must not delete it.

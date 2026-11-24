@@ -2,7 +2,7 @@
 
 **A fourth M-VAVE FM-1 firmware project: STRATA + PALINDROME + BabbleBeat, selectable from one instrument.**
 
-**Status: milestones 1 to 5 done; not released.** All three instruments are built in and switch from one menu (`app.c`). It passes its simulator test and builds for the FM-1 (174 KB image, 49 of 96 KB RAM, 266 of 336 KB pool) and for the browser on every push. It has not run on a real FM-1, and there is no installer, published emulator or package identity yet: that is milestone 7. [Manual: switching between the three](docs/MANUAL.md) · [Audit](AUDIT.md)
+**Status: milestones 1 to 5 done; not released.** All three instruments are built in and switch from one menu (`app.c`). It passes its simulator test and builds for the FM-1 (245 KB image, 49 of 96 KB RAM, 266 of 336 KB pool) on every push. Its [browser emulator and manual are published](https://savageperson334.github.io/strata-fm1/strabbledrome/) as a preview. It has not run on a real FM-1, and there is no installer or package identity yet: that is milestone 7. [Manual: switching between the three](docs/MANUAL.md) · [Audit](AUDIT.md)
 
 [STRATA source](../../app/) · [PALINDROME source](../palindrome/) · [BabbleBeat source](../babblebeat/) · [Repository](../../README.md)
 

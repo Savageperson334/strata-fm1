@@ -1,0 +1,64 @@
+# STRABBLEDROME: all three instruments behind one menu. This publishes its browser emulator, its manual and a
+# front page under /strabbledrome/. It makes no firmware package and no installer: STRABBLEDROME is not released.
+name: STRABBLEDROME
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'instruments/strabbledrome/**'
+      - 'instruments/palindrome/**'
+      - 'instruments/babblebeat/**'
+      - 'app/**'
+      - '.github/workflows/strabbledrome.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: strabbledrome-build
+  cancel-in-progress: false
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Host tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-pil xz-utils rsync
+      - name: Simulator test, and the manual's screenshots
+        run: |
+          set -euo pipefail
+          p=instruments/strabbledrome
+          python3 base/tools/build.py "$p" --host
+          mkdir -p "$p/docs/img"
+          "$p/build/host/strabbledrome_host" "$p/tests/basic.txt" "$p/docs/img"
+          rm -f "$p"/docs/img/*.wav "$p"/docs/img/midi_out.txt
+      - name: Browser emulator
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          git -C "$RUNNER_TEMP/emsdk" checkout -q a2b92777574c2feda07994cd4f1079a3dfc151f8
+          "$RUNNER_TEMP/emsdk/emsdk" install 6.0.10
+          "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.10
+          set +u; source "$RUNNER_TEMP/emsdk/emsdk_env.sh"; set -u
+          python3 base/tools/build.py instruments/strabbledrome --web
+      - name: The pages, and their publication under /strabbledrome/
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          p=instruments/strabbledrome
+          out="$RUNNER_TEMP/sd-site"
+          rm -rf "$out"; mkdir -p "$out/manual"
+          meta=(--name STRABBLEDROME --repo "https://github.com/${GITHUB_REPOSITORY}" --tagline "STRATA, PALINDROME and BabbleBeat behind one menu")
+          python3 base/tools/manual_html.py "$p/site/landing.md" "$out/index.html" "${meta[@]}" --home
+          python3 base/tools/manual_html.py "$p/docs/MANUAL.md" "$out/manual/index.html" "${meta[@]}"
+          cp -r "$p/docs/img" "$out/manual/img"
+          cp -r "$p/build/emu" "$out/emu"
+          cp -r base/web/fonts "$out/fonts"
+          if [ -d "$p/web/words" ]; then cp -r "$p/web/words" "$out/words"; fi
+          test -f "$out/emu/app.wasm" && test -f "$out/index.html" && test -f "$out/manual/index.html"
+          bash scripts/publish-instrument-site.sh "$out" strabbledrome

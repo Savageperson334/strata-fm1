@@ -17,11 +17,15 @@ COLORS = {"strata": "#eaf7f7", "palindrome": "#f2edfa", "babblebeat": "#191b23"}
 # Nav links are relative to the selected firmware and preserve section.
 for current in FIRMWARES:
     for section in SECTIONS:
+        import posixpath
         n = site_nav.nav(current, section)
         assert n.count('<a href=') == 8, (current, section, n)
-        assert 'STRABBLEDROME · WIP' in n
-        assert f'href="{site_nav.STRABBLEDROME_SOURCE}"' in n
+        assert 'STRABBLEDROME' in n and 'WIP' not in n
         assert n.count('data-project="strabbledrome"') == 1
+        # STRABBLEDROME has an emulator and a manual and no installer: from an installer, its front page
+        to = posixpath.relpath(posixpath.join("strabbledrome", "" if section == "install" else section),
+                               start=posixpath.join({"strata": "", "palindrome": "palindrome", "babblebeat": "babblebeat"}[current], section) or ".")
+        assert f'href="{to}/" data-project="strabbledrome"' in n, (current, section, n)
         for target in FIRMWARES:
             assert target.upper() in n
         import posixpath
@@ -46,4 +50,13 @@ for current in FIRMWARES:
     assert again.count("fm1theme-style") == 1
     assert again.count("fm1theme-meta") == 1
     assert again.count('<nav id="fm1nav"') == 1
+# STRABBLEDROME's own pages: no Install link, itself current, the other three reachable
+for section in ("", "emu", "manual"):
+    n = site_nav.nav("strabbledrome", section)
+    assert n.count('<a href=') == 7 and ">Install<" not in n, n
+    assert n.count('aria-current="true"') == 1 and 'data-project="strabbledrome" aria-current="true"' in n
+    for target in FIRMWARES:
+        assert target.upper() in n
+out = site_nav.apply(html, "strabbledrome", "")
+assert "fm1theme-style" in out and "#f1f1ee" in out and site_nav.apply(out, "strabbledrome", "").count('<nav id="fm1nav"') == 1
 print("3 firmware themes, shared navigation, and STRABBLEDROME project link passed")

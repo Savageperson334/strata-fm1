@@ -41,6 +41,9 @@ jobs:
             if [ -f "$tmp/pages/babblebeat/index.html" ]; then
               python3 scripts/site_nav.py "$tmp/pages/babblebeat" babblebeat
             fi
+            if [ -f "$tmp/pages/strabbledrome/index.html" ]; then
+              python3 scripts/site_nav.py "$tmp/pages/strabbledrome" strabbledrome
+            fi
             cd "$tmp/pages"
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

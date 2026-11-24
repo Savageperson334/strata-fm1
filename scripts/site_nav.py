@@ -26,8 +26,11 @@ import sys
 from pathlib import Path
 
 REPO = "https://github.com/Savageperson334/strata-fm1"
-SOURCE = {"strata": REPO, "palindrome": REPO + "/tree/main/instruments/palindrome", "babblebeat": REPO + "/tree/main/instruments/babblebeat"}
-STRABBLEDROME_SOURCE = REPO + "/tree/main/instruments/strabbledrome"
+SOURCE = {"strata": REPO, "palindrome": REPO + "/tree/main/instruments/palindrome", "babblebeat": REPO + "/tree/main/instruments/babblebeat",
+          "strabbledrome": REPO + "/tree/main/instruments/strabbledrome"}
+STRABBLEDROME_SOURCE = SOURCE["strabbledrome"]
+# STRABBLEDROME (all three behind one menu) has an emulator and a manual, and no installer: it is not released
+NO_INSTALL = {"strabbledrome"}
 PAGES = (("", "index.html"), ("emu", "emu/index.html"), ("manual", "manual/index.html"),
          ("install", "install/index.html"))
 LINKS = (("emu", "Emulator"), ("manual", "Manual"), ("install", "Install"))
@@ -78,6 +81,14 @@ THEMES = {
         "cool-t": "#303d37", "ground": "#191b23", "card": "#272b35",
         "accent": "#eda06b", "teal": "#a8d7bd", "bad": "#ff9696",
         "scheme": "dark"
+    },
+    "strabbledrome": {
+        "paper": "#f1f1ee", "sheet": "#e2e2dd", "rule": "#c6c6bf",
+        "ink": "#22252b", "muted": "#5b606b", "hot": "#3f5873",
+        "hot-t": "#dde3ea", "hot-ink": "#2f4660", "cool": "#5c6f58",
+        "cool-t": "#e0e6dd", "ground": "#eeeeea", "card": "#fbfbf9",
+        "accent": "#3a536e", "teal": "#4b6a67", "bad": "#a8484e",
+        "scheme": "light"
     }
 }
 
@@ -154,24 +165,27 @@ def emu_tutorial(html, instrument):
 def nav(instrument, section):
     """Cross-links among STRATA, PALINDROME, and BABBLEBEAT, in any section."""
     import posixpath
-    roots = {"strata": "", "palindrome": "palindrome", "babblebeat": "babblebeat"}
+    roots = {"strata": "", "palindrome": "palindrome", "babblebeat": "babblebeat", "strabbledrome": "strabbledrome"}
     current_dir = posixpath.join(roots[instrument], section) if section else roots[instrument]
     def relative(target_instrument, target_section):
+        if target_section == "install" and target_instrument in NO_INSTALL:
+            target_section = ""                     # (no installer there: its front page)
         target = posixpath.join(roots[target_instrument], target_section)
         rel = posixpath.relpath(target or ".", start=current_dir or ".")
         return "./" if rel == "." else rel + "/"
     links = "".join(
         f'<a href="{relative(instrument, s)}"{" aria-current=" + chr(34) + "page" + chr(34) if s == section else ""}>{label}</a>'
-        for s, label in LINKS
+        for s, label in LINKS if not (s == "install" and instrument in NO_INSTALL)
     )
     links += f'<a href="{SOURCE[instrument]}">Source</a>'
     swap = "".join(
         f'<a href="{relative(name, section)}"{" aria-current=" + chr(34) + "true" + chr(34) if name == instrument else ""}>{name.upper()}</a>'
         for name in ("strata", "palindrome", "babblebeat")
     )
-    # STRABBLEDROME has a GitHub project, but not yet an installable firmware or website.
-    swap += (f'<a href="{STRABBLEDROME_SOURCE}" data-project="strabbledrome" '
-             f'title="Three-in-one switching firmware — in development">STRABBLEDROME · WIP</a>')
+    # STRABBLEDROME: all three behind one menu. An emulator and a manual; not released, no installer.
+    swap += (f'<a href="{relative("strabbledrome", section)}" data-project="strabbledrome"'
+             f'{" aria-current=" + chr(34) + "true" + chr(34) if instrument == "strabbledrome" else ""} '
+             f'title="All three in one firmware: preview, not released">STRABBLEDROME</a>')
     return (f'<nav id="fm1nav" aria-label="{instrument.upper()}"><div class="fm1nav-links">{links}</div>'
             f'<div class="fm1nav-swap" role="group" aria-label="Firmware projects">{swap}</div></nav>')
 
@@ -245,13 +259,13 @@ def palindrome_manual(html):
 
 def main(site, instrument):
     if instrument not in SOURCE:
-        raise SystemExit("site_nav: strata, palindrome, or babblebeat")
+        raise SystemExit("site_nav: strata, palindrome, babblebeat or strabbledrome")
     done = []
     for section, rel in PAGES:
         f = Path(site) / rel
         if f.is_file():
             html = apply(f.read_text(encoding="utf-8"), instrument, section)
-            if section == "emu":
+            if section == "emu" and (TUTORIAL / f"{instrument}.json").is_file():   # (STRABBLEDROME has none)
                 html = emu_tutorial(html, instrument)
             if section == "manual" and instrument == "palindrome":
                 html = palindrome_manual(html)
