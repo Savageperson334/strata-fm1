@@ -39,18 +39,27 @@ key 19 up
 tap SEL
 expect pitchkeys 0
 # the SCAN knobs: SPEED still in the middle, back; POSITION scrubs
-turn ALGO -16 30
+turn ALGO -3
 expect speed 0
-turn ALGO 16 30
+turn ALGO 3
 expect speed 100
-turn K1 8 30
+turn K1 8
 expect pos 13
+# FREEZE (ENV) holds the head, again it goes on; REVERSE (LFO) runs it backward
+tap ENV
+expect speed 0
+tap ENV
+expect speed 100
+tap LFO
+expect speed -100
+tap LFO
+expect speed 100
 # MORPH: REC arms, the next note is caught in ring 2 (and the rings go round again)
 turn SELECT 1
 expect ring 2
 tap FX
 expect page 1
-turn PRESET 10 30
+turn PRESET 10
 tap REC
 expect armed 1
 key 0 down
@@ -63,7 +72,7 @@ shot morph.png
 wait 1500
 expect rings 2
 # MOVE: the hidden envelopes carry X toward its mirror and back over a note
-turn ALGO 20 30
+turn ALGO 20
 expect move 76
 # MIX, then the two rings resampled into ring 3
 tap ARP
@@ -88,3 +97,18 @@ release GLO
 wait 100
 expect guide 0
 shot rings.png
+# HOME held a second empties ring 3; REC held with a key catches a note in it at once
+press HOME
+wait 1200
+release HOME
+expect ready 0
+expect rings 2
+press REC
+key 3 down
+wait 60
+key 3 up
+release REC
+expect capturing 1
+expect armed 0
+wait 1800
+expect rings 3

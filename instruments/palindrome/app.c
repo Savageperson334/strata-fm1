@@ -9,11 +9,15 @@
  *   SEL         the keys on SCAN and MIX: SLICE (the white keys sixteen places round the ring, the black ones between)
  *               or PITCH (the ring transposed, the C as recorded)
  *   PLAY        the rings going round, on and off. A key held on SCAN or MIX sounds its ring either way
- *   REC         on MORPH's page: armed, and the next note is caught in the selected ring (a note lasts one ring).
- *               Elsewhere: all that is heard but the selected ring, caught in it now (the others resampled)
+ *   REC         held, with a key: that MORPH note caught in the selected ring, at once, from any page. Tapped: on
+ *               MORPH's page armed for the next note; elsewhere all that is heard but the selected ring caught in it
+ *               now (the others resampled)
+ *   ENV         FREEZE the selected ring (its head still); again, it goes on as it was
+ *   LFO         REVERSE the selected ring
+ *   HOME        SCAN; held a second, the selected ring emptied
  *   OCT- OCT+   the keys an octave down, up
  *   GLO (held)  the guide on the screen
- * With no ring yet, any key strikes MORPH and catches the note in the selected ring.
+ * On SCAN and MIX, while the selected ring is empty, a key strikes MORPH and catches the note in it.
  *
  * The screen: the three rings as circles, RING 1 innermost, each its recording's wave; the selected one bright. A
  * white notch is a ring's head, dots its grains. MORPH is the square in the middle (large on its own page, with the
@@ -39,6 +43,10 @@ static const int enc[7] = {EN_K1, EN_K2, EN_K3, EN_K4, EN_SELECT, EN_ALGO, EN_PR
 
 static int page, sel, octave, playing, pitch_keys, armed, guide;
 static int gate_ring = -1;               /* the ring the keys held are sounding, -1 none */
+static int rec_used;                     /* a key was played while REC was held: its release does nothing more */
+static int frozen[PM_RINGS];             /* FREEZE: the SPEED step it had, +1 (0: not frozen) */
+static uint32_t home_t;                  /* HOME went down (0: not held, or acted) */
+static uint32_t enc_at[7];               /* when each knob last moved: fast turns go further */
 static uint32_t old_keys, old_btn, frames, message_until;
 static int touched = -1;                 /* the knob turned last: its box white, its value in it, for a moment */
 static uint32_t touched_at;
@@ -105,7 +113,13 @@ static const char *value_text(int pg, int j, char *t)
     }
     case R_DENSITY: put(t, "x"); fixed1(pm_overlap(v), t + 1); return t;
     case R_PITCH: { int s = pm_semis(v); t[0] = s > 0 ? '+' : 0; t[1] = 0; number(s, s > 0 ? t + 1 : t); return t; }
-    case R_SPEED: { float s = pm_speed(v); if (s == 0) put(t, "STILL"); else { fixed1(s, t); put(end(t), "x"); } return t; }
+    case R_SPEED: {
+        float s = pm_speed(v);
+        if (s == 0) put(t, "STILL");
+        else if (s == .25f || s == -.25f) put(t, s > 0 ? "x1/4" : "-x1/4");
+        else { fixed1(s, t); put(end(t), "x"); }
+        return t;
+    }
     default: return 0;
     }
 }
@@ -116,13 +130,33 @@ static int white_index(int k) { int n = 0; for (int i = 0; i < k; i++) n += !bla
 static float slice_of(int k) { return ((float)white_index(k) - (black(k) ? .5f : 0.f)) * (1.f / 16.f); }
 static int any_ring(void) { return pm_ring_count() > 0; }
 /* a MORPH note; armed (or no ring yet), caught in the selected ring from its first sample */
-static void strike(int k)
+static void strike(int k, int catch_it)
 {
-    if ((armed || !any_ring()) && pm_capture_ring() < 0) {
-        if (!pm_capture(sel, PM_SRC_MORPH)) say_ring(armed ? "INTO RING " : "CAUGHT IN RING ", sel, "");
+    if ((armed || catch_it) && pm_capture_ring() < 0) {
+        if (!pm_capture(sel, PM_SRC_MORPH)) say_ring("CATCHING IN RING ", sel, "");
         armed = 0;
     }
     pm_note(41 + k + 12 * octave);
+}
+static void freeze(void)                 /* ENV: the selected ring's head still, or going on again */
+{
+    if (!pm_ring_ready(sel)) { say_ring("RING ", sel, " IS EMPTY"); return; }
+    if (frozen[sel]) { pm_rset(sel, R_SPEED, pm_speed_value(frozen[sel] - 1)); frozen[sel] = 0; say_ring("RING ", sel, " GOES ON"); }
+    else {
+        int s = pm_speed_step(pm_rget(sel, R_SPEED));
+        if (s == 4) { app_say("ALREADY STILL", ""); return; }
+        frozen[sel] = s + 1;
+        pm_rset(sel, R_SPEED, pm_speed_value(4));
+        say_ring("RING ", sel, " FROZEN");
+    }
+}
+static void reverse(void)                /* LFO: the selected ring's head the other way */
+{
+    static const uint8_t MIRROR[PM_SPEEDS] = {9, 7, 6, 5, 4, 3, 2, 1, 1, 0};   /* -2 <-> 2, -1 <-> 1 ... (1.5: -1) */
+    int s = MIRROR[frozen[sel] ? frozen[sel] - 1 : pm_speed_step(pm_rget(sel, R_SPEED))];
+    if (frozen[sel]) frozen[sel] = s + 1;
+    else pm_rset(sel, R_SPEED, pm_speed_value(s));
+    say_ring("RING ", sel, pm_speed(pm_speed_value(s)) < 0 ? " BACKWARD" : " FORWARD");
 }
 
 /* ------------------------------------------------------------------ the frame --- */
@@ -130,6 +164,9 @@ void app_init(void)
 {
     pm_init();
     page = PG_SCAN; sel = 0; octave = 0; playing = 0; pitch_keys = 0; armed = 0; guide = 0; gate_ring = -1;
+    rec_used = 0; home_t = 0;
+    for (int r = 0; r < PM_RINGS; r++) frozen[r] = 0;
+    for (int j = 0; j < 7; j++) enc_at[j] = 0;
     old_keys = old_btn = frames = message_until = 0; gain_now = 0; touched = -1;
 }
 void app_panic(void) { pm_panic(); playing = 0; armed = 0; gate_ring = -1; }
@@ -171,11 +208,22 @@ void app_input_only(void)
     guide = (int)((btn >> B_GLO) & 1u);
     if (guide) { newb &= 0; newk = 0; }
     if (newb & ((1u << B_EDIT) | (1u << B_HOME))) page = PG_SCAN;
+    if (newb & (1u << B_HOME)) home_t = now ? now : 1u;
+    if (home_t) {                        /* HOME held a second: the selected ring emptied */
+        if (!(btn >> B_HOME & 1u)) home_t = 0;
+        else if (now - home_t >= 1000u) {
+            home_t = 0;
+            if (pm_ring_ready(sel)) { pm_ring_clear(sel); frozen[sel] = 0; say_ring("RING ", sel, " EMPTIED"); }
+        }
+    }
+    if (newb & (1u << B_ENV)) freeze();
+    if (newb & (1u << B_LFO)) reverse();
     if (newb & (1u << B_FX)) page = PG_MORPH;
     if (newb & (1u << B_ARP)) page = PG_MIX;
     if (newb & (1u << B_SEL)) { pitch_keys = !pitch_keys; app_say("KEYS:", pitch_keys ? "PITCH" : "SLICE"); }
     if (newb & (1u << B_PLAY)) { playing = !playing; pm_play(playing); }
-    if (newb & (1u << B_REC)) rec();
+    if (newb & (1u << B_REC)) rec_used = 0;
+    if ((old_btn >> B_REC & 1u) && !(btn >> B_REC & 1u) && !rec_used && !guide) rec();   /* REC let go, no key: tapped */
     if (newb & (1u << B_SAVE)) app_say("SAVE:", "NOTHING TO SAVE");
     if ((newb & (1u << B_OCTDN)) && octave > -3) octave--;
     if ((newb & (1u << B_OCTUP)) && octave < 2) octave++;
@@ -183,8 +231,9 @@ void app_input_only(void)
      * or pitches, sounding while held */
     for (int k = 0; k < NKEYS; k++) {
         if (!(newk & (1u << k))) continue;
-        if (page == PG_MORPH || !any_ring()) { strike(k); continue; }
-        if (!pm_ring_ready(sel)) { say_ring("RING ", sel, " IS EMPTY"); continue; }
+        if (btn >> B_REC & 1u) { rec_used = 1; strike(k, 1); continue; }   /* REC held: this note, caught now */
+        if (page == PG_MORPH) { strike(k, 0); continue; }
+        if (!pm_ring_ready(sel)) { strike(k, pm_capture_ring() < 0); continue; }   /* an empty ring catches it */
         if (pitch_keys) pm_key_pitch(sel, k - 7 + 12 * octave);
         else pm_jump(sel, slice_of(k));
         if (gate_ring >= 0 && gate_ring != sel) pm_gate(gate_ring, 0);
@@ -196,6 +245,15 @@ void app_input_only(void)
         int d = plat_enc(enc[j]);
         if (!d || guide) continue;
         touched = j; touched_at = now;
+        if (j != 4 && now - enc_at[j] < 45u && PAGE[page][j] != (RING_PAR | R_SPEED) && PAGE[page][j] != (RING_PAR | R_PITCH))
+            d *= 4;                      /* (a fast turn goes further) */
+        enc_at[j] = now;
+        if (PAGE[page][j] == (RING_PAR | R_SPEED)) {   /* SPEED: one step a detent */
+            int s = pm_speed_step(pm_rget(sel, R_SPEED)) + (d > 0 ? 1 : -1);
+            pm_rset(sel, R_SPEED, pm_speed_value(s));
+            frozen[sel] = 0;
+            continue;
+        }
         if (j == 4) {                    /* SELECT: the ring, on every page */
             int s = sel + (d > 0 ? 1 : -1);
             sel = s < 0 ? 0 : s >= PM_RINGS ? PM_RINGS - 1 : s;
@@ -212,6 +270,8 @@ void app_input_only(void)
         if (pm_capture_ring() >= 0 || (armed && ((now >> 8) & 1u))) lit |= 1u << B_REC;
         if (guide) lit |= 1u << B_GLO;
         if (pitch_keys) lit |= 1u << B_SEL;
+        if (frozen[sel]) lit |= 1u << B_ENV;
+        if (pm_speed(pm_rget(sel, R_SPEED)) < 0) lit |= 1u << B_LFO;
         if (page != PG_MORPH && pm_ring_ready(sel)) {
             if (pitch_keys) {
                 int k = pm_key_semis(sel) + 7 - 12 * octave;
@@ -222,7 +282,7 @@ void app_input_only(void)
                 kl = 1u << k;
             }
         }
-        plat_lights(lit, kl, (1u << B_FX) | (1u << B_SEL) | (1u << B_EDIT) | (1u << B_GLO) | (1u << B_HOME) |
+        plat_lights(lit, kl, (1u << B_FX) | (1u << B_SEL) | (1u << B_EDIT) | (1u << B_ENV) | (1u << B_LFO) | (1u << B_GLO) | (1u << B_HOME) |
                              (1u << B_ARP) | (1u << B_PLAY) | (1u << B_REC) | (1u << B_OCTDN) | (1u << B_OCTUP), 0, 1);
     }
 }
@@ -356,13 +416,14 @@ static void pd_envelope(void)
 static void pd_guide(void)
 {
     static const char *const G[12][3] = {
-        {"FX", "MORPH", "SYNTH"}, {"SEL", "KEYS:", "SL/PI"}, {"ENV", "-", ""}, {"LFO", "-", ""}, {"EDIT", "SCAN", "PAGE"}, {"GLO", "THIS", "GUIDE"},
-        {"HOME", "SCAN", "PAGE"}, {"SAVE", "-", ""}, {"ARP", "MIX", "PAGE"}, {"SEQ", "-", ""}, {"PLAY", "RINGS", "ON OFF"}, {"REC", "CATCH", "RING"}};
+        {"FX", "MORPH", "SYNTH"}, {"SEL", "KEYS:", "SL/PI"}, {"ENV", "FREE-", "ZE"}, {"LFO", "REV-", "ERSE"}, {"EDIT", "SCAN", "PAGE"}, {"GLO", "THIS", "GUIDE"},
+        {"HOME", "SCAN", "PAGE"}, {"SAVE", "-", ""}, {"ARP", "MIX", "PAGE"}, {"SEQ", "-", ""}, {"PLAY", "RINGS", "ON OFF"}, {"REC", "+KEY:", "CATCH"}};
     pd_text(4, 2, "PALINDROME GUIDE", C_HI);
     pd_text(236 - text_w(&FONT_XS, "LET GO OF GLO"), 2, "LET GO OF GLO", C_GRAY);
     for (int i = 0; i < 12; i++) {
         int32_t x = (i % 6) * 40, y = 17 + (i / 6) * 42;
-        int used = G[i][1][0] != '-', here = (i == 0 && page == PG_MORPH) || (i == 4 && page == PG_SCAN) || (i == 8 && page == PG_MIX);
+        int used = G[i][1][0] != '-', here = (i == 0 && page == PG_MORPH) || (i == 4 && page == PG_SCAN) || (i == 8 && page == PG_MIX) ||
+                                             (i == 2 && frozen[sel]);
         pd_frame(x + 1, y, 38, 41, here ? C_HI : C_LINE);
         pd_text(x + 3, y + 1, G[i][0], used ? C_GRAY : C_DIM);
         pd_text(x + 3, y + 13, G[i][1], used ? C_WHITE : C_DIM);
@@ -370,10 +431,10 @@ static void pd_guide(void)
     }
     pd_text(4, 104, "SELECT: THE RING, ON EVERY PAGE", C_WHITE);
     pd_text(4, 122, "FX: KEYS STRIKE MORPH, ONE RING LONG", C_WHITE);
-    pd_text(4, 136, "REC THERE: THE NEXT NOTE IS CAUGHT", C_GRAY);
+    pd_text(4, 136, "REC HELD + A KEY: CAUGHT IN THE RING", C_GRAY);
     pd_text(4, 150, "SCAN: KEYS SLICE THE RING (OR PITCH)", C_WHITE);
-    pd_text(4, 164, "REC THERE: THE OTHERS RESAMPLED", C_GRAY);
-    pd_text(4, 180, "KNOBS: NAMED BELOW (MASTER = VOLUME)", C_GRAY);
+    pd_text(4, 164, "REC TAP THERE: THE OTHERS RESAMPLED", C_GRAY);
+    pd_text(4, 180, "HOME HELD: EMPTY THE RING", C_GRAY);
 }
 static void pd_scene(void)
 {

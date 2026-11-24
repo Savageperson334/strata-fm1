@@ -32,11 +32,11 @@ static Grain grain[PM_GRAINS];
 static volatile float target[PM_PARAMS], rtarget[PM_RINGS][PM_RPARAMS];
 static float p[PM_PARAMS], rp[PM_RINGS][PM_RPARAMS];
 static const float DEFAULTS[PM_PARAMS] = {
-    .30f, .65f, .40f, .55f, .45f, .25f,  /* X Y COMPLEX TONE MOVE SHAPE: modal-ish FM, moving, a bell */
+    .30f, .65f, .40f, .55f, .45f, .42f,  /* X Y COMPLEX TONE MOVE SHAPE: modal-ish FM, moving, a bell */
     .80f, .80f, .80f, .70f, .25f, .55f,  /* the rings' levels, MORPH's, DAMP, WIDTH */
 };
 static const float RDEFAULTS[PM_RPARAMS] = {
-    0.f, .55f, .70f, .5f, .75f, 0.f,     /* POSITION, SIZE 0.17 s, DENSITY 2 (the plain recording), PITCH 0,
+    0.f, .55f, .70f, .5f, 7.f / 9.f, 0.f,   /* POSITION, SIZE 0.17 s, DENSITY 2 (the plain recording), PITCH 0,
                                           * SPEED as recorded, SPREAD none */
 };
 /* requests from the panel: each a count the render follows */
@@ -84,12 +84,10 @@ float pm_rget(int r, int id) { return r >= 0 && r < PM_RINGS && id >= 0 && id < 
 float pm_size_s(float v) { return .02f * fm_exp2f(5.64f * fclamp(v, 0, 1)); }          /* 20 ms .. 1 s */
 float pm_overlap(float v) { return .25f * fm_exp2f(4.32f * fclamp(v, 0, 1)); }         /* .25 .. 5 */
 int pm_semis(float v) { float s = (fclamp(v, 0, 1) - .5f) * 48.f; return (int)(s < 0 ? s - .5f : s + .5f); }
-float pm_speed(float v)
-{
-    float s = (fclamp(v, 0, 1) - .5f) * 4.f;
-    if (s > -.12f && s < .12f) return 0.f;                     /* (a dead zone: the middle is still) */
-    return s;
-}
+static const float SPEED[PM_SPEEDS] = {-2.f, -1.f, -.5f, -.25f, 0.f, .25f, .5f, 1.f, 1.5f, 2.f};
+int pm_speed_step(float v) { int i = (int)(fclamp(v, 0, 1) * (float)(PM_SPEEDS - 1) + .5f); return i; }
+float pm_speed(float v) { return SPEED[pm_speed_step(v)]; }
+float pm_speed_value(int i) { return (float)(i < 0 ? 0 : i >= PM_SPEEDS ? PM_SPEEDS - 1 : i) * (1.f / (float)(PM_SPEEDS - 1)); }
 void pm_note(int note)
 {
     if (note < 0 || note > 127) return;
@@ -106,6 +104,12 @@ void pm_jump(int r, float pos) { if (r >= 0 && r < PM_RINGS) { jump_to[r] = wrap
 void pm_key_pitch(int r, int semis) { if (r >= 0 && r < PM_RINGS) key_semis[r] = semis < -48 ? -48 : semis > 48 ? 48 : semis; }
 int pm_key_semis(int r) { return r >= 0 && r < PM_RINGS ? key_semis[r] : 0; }
 int pm_ring_ready(int r) { return r >= 0 && r < PM_RINGS && ready[r]; }
+void pm_ring_clear(int r)
+{
+    if (r < 0 || r >= PM_RINGS || pm_capture_ring() == r) return;
+    ready[r] = 0;
+    for (int i = 0; i < PM_GRAINS; i++) if (grain[i].active && grain[i].ring == r) grain[i].dying = 1;
+}
 int pm_ring_count(void) { int n = 0; for (int r = 0; r < PM_RINGS; r++) n += ready[r]; return n; }
 float pm_head(int r) { return r >= 0 && r < PM_RINGS ? head_now[r] : 0; }
 float pm_ring_level(int r) { return r >= 0 && r < PM_RINGS ? level_now[r] : 0; }

@@ -66,12 +66,12 @@ int main(void)
 
     /* playing: grains sound; SPEED still holds the head, as recorded moves it a ring a ring's length */
     pm_play(1);
-    pm_rset(0, R_SPEED, .5f);
+    pm_rset(0, R_SPEED, pm_speed_value(4));
     run(20);
     float h0 = pm_head(0);
     a = run(40);
     assert(pm_active_grains() > 0 && a > .01 && fabsf(pm_head(0) - h0) < 1e-4);
-    pm_rset(0, R_SPEED, .75f);
+    pm_rset(0, R_SPEED, pm_speed_value(7));
     run(4); h0 = pm_head(0);
     run(NOTE_BLOCKS / 4);
     float moved = pm_head(0) - h0;
@@ -86,7 +86,7 @@ int main(void)
     run(200);
     for (int k = 0; k < PM_RPARAMS; k++) pm_rset(0, k, 0.f);
     run(200);
-    pm_rset(0, R_SIZE, .55f); pm_rset(0, R_DENSITY, .7f); pm_rset(0, R_PITCH, .5f); pm_rset(0, R_SPEED, .75f);
+    pm_rset(0, R_SIZE, .55f); pm_rset(0, R_DENSITY, .7f); pm_rset(0, R_PITCH, .5f); pm_rset(0, R_SPEED, pm_speed_value(7));
     printf("  ok   slices, and every SCAN control at its ends\n");
 
     /* resampling: ring 1 into ring 2 */

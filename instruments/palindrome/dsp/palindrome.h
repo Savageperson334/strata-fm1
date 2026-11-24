@@ -37,7 +37,10 @@ float pm_rget(int ring, int id);
 float pm_size_s(float v);                /* SIZE in seconds */
 float pm_overlap(float v);               /* DENSITY as grains overlapping */
 int pm_semis(float v);                   /* PITCH in semitones, -24..24 */
-float pm_speed(float v);                 /* SPEED: -2..2 times as recorded (0 in the middle: still) */
+#define PM_SPEEDS 10
+float pm_speed(float v);                 /* SPEED in steps: -2, -1, -.5, -.25, 0 (still), .25, .5, 1 (as recorded), 1.5, 2 */
+float pm_speed_value(int step);          /* the knob's value for a step, 0..PM_SPEEDS-1 */
+int pm_speed_step(float v);
 
 void pm_note(int note);                  /* a MORPH note struck (MIDI), for one ring's length */
 int pm_notes(void);                      /* notes sounding */
@@ -52,6 +55,7 @@ void pm_key_pitch(int ring, int semis);  /* added to PITCH, -48..48 */
 int pm_key_semis(int ring);
 
 int pm_ring_ready(int ring);             /* a finished recording there */
+void pm_ring_clear(int ring);            /* emptied (its grains fade out); not while it is being captured */
 int pm_ring_count(void);
 void pm_ring_wave(int ring, float *lo, float *hi, uint32_t n);   /* n arcs: lowest and highest sample; empty: lo > hi */
 float pm_head(int ring);                 /* where the grains start now, 0..1 round it */

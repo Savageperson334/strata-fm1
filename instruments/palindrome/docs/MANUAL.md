@@ -15,11 +15,12 @@ Nothing here has run on a real FM-1 yet.
 
 1. **Tap a key.** With no ring yet, MORPH strikes a note one ring long, ring 1 catches it from its first sample, and it
    starts going round.
-2. **Scan it.** KNOB1 POSITION scrubs through it; ALGORITHM SPEED in the middle freezes it; KNOB3 DENSITY thins it into
-   grains or thickens it into a cloud.
+2. **Scan it.** KNOB1 POSITION scrubs through it; ENV freezes it, LFO reverses it; KNOB3 DENSITY thins it into grains
+   or thickens it into a cloud.
 3. **Hold keys.** Each white key is one of sixteen places round the ring, the black keys the places between. A held key
    sounds the ring from there, with PLAY on or off.
-4. **Another ring.** Turn SELECT to ring 2, press FX, press REC, tap a key: that note is caught in ring 2.
+4. **Another ring.** Turn SELECT to ring 2 and tap a key: an empty ring catches the note. (Over a full ring: hold REC
+   and tap a key, from any page.)
 5. **From each other.** Press EDIT, turn SELECT to ring 3, press REC: what you hear of rings 1 and 2 (and MORPH) is
    resampled into ring 3.
 
@@ -27,18 +28,23 @@ Nothing here has run on a real FM-1 yet.
 
 | Button | Does |
 | --- | --- |
-| **EDIT**, **HOME** | SCAN page |
+| **EDIT**, **HOME** | SCAN page. HOME held a second empties the selected ring |
 | **FX** | MORPH page: the keys strike its notes |
 | **ARP** | MIX page |
 | **SEL** | The keys on SCAN and MIX: SLICE (places round the ring) or PITCH (the ring transposed; the C as recorded). Lit: PITCH |
 | **PLAY** | The rings going round, on and off |
-| **REC** | On MORPH: armed (blinking); the next note is caught in the selected ring. On SCAN or MIX: everything heard but the selected ring is resampled into it, now |
+| **REC** + a key | Held, with a key: that MORPH note is caught in the selected ring at once, from any page |
+| **REC** (tap) | On MORPH: armed (blinking); the next note is caught in the selected ring. On SCAN or MIX: everything heard but the selected ring is resampled into it, now |
+| **ENV** | FREEZE: the selected ring's head stops (lit); again, it goes on as it was |
+| **LFO** | REVERSE: the selected ring runs the other way (lit while backward) |
 | **OCT− / OCT+** | The keys an octave down or up |
 | **GLO** (hold) | The guide on the screen |
-| SAVE, ENV, LFO, SEQ | Nothing |
+| SAVE, SEQ | Nothing |
 
 **SELECT** chooses the ring on every page: the one the SCAN knobs set, the keys play and REC fills. RING 1 is the
-innermost circle. Recording into a ring replaces what was in it; nothing is saved at power-off.
+innermost circle. On SCAN and MIX, while the selected ring is empty, a key strikes MORPH and the ring catches the note.
+Recording into a ring replaces what was in it; nothing is saved at power-off. A fast turn of a knob goes four times
+further.
 
 ## SCAN — EDIT
 
@@ -50,7 +56,7 @@ Each ring keeps its own settings.
 | KNOB2 | **SIZE** | Each grain, 20 ms to 1 s |
 | KNOB3 | **DENSITY** | Grains overlapping: x0.25 (a grain now and then) to x5 (a cloud). About x2 is the plain recording |
 | KNOB4 | **PITCH** | Two octaves down to two up, in semitones |
-| ALGORITHM | **SPEED** | The head: backward (left), still (middle: a frozen moment), as recorded (1.0x), twice as fast (right) |
+| ALGORITHM | **SPEED** | The head, a step a detent: -2x, -1x, -0.5x, -1/4, STILL, 1/4, 0.5x, 1.0x (as recorded), 1.5x, 2x |
 | PRESETS | **SPREAD** | Grains scattered round the head and in time |
 
 ## MORPH — FX

@@ -9,7 +9,7 @@
   "screen": "The three rings are the circles, RING 1 innermost, each drawn as its recording's wave; the selected one is bright, a ring that is playing amber. The white notch outside a ring is its head; the dots on it are grains. MORPH is the square in the middle: large on its own page, with the path a note's hidden envelopes take and, underneath, a note's loudness over one ring. The foot names what each knob sets.",
   "keys": [
     "SLICE / PITCH",
-    "With no ring yet, a key strikes MORPH and the note is caught in ring 1. After that, on SCAN and MIX, the keys play the selected ring while held. SLICE (as it starts): the 16 white keys are 16 places round the ring and the black keys the places between, as on a pocket sampler. PITCH (SEL switches): the ring transposed, the C as recorded."
+    "With no ring yet (or the selected ring empty), a key strikes MORPH and the ring catches the note. After that, on SCAN and MIX, the keys play the selected ring while held. SLICE (as it starts): the 16 white keys are 16 places round the ring and the black keys the places between, as on a pocket sampler. PITCH (SEL switches): the ring transposed, the C as recorded."
   ],
   "select": [
     "RING",
@@ -38,7 +38,7 @@
         ],
         "ALGORITHM": [
           "SPEED",
-          "The head going round: backward on the left, still in the middle (a frozen moment), as recorded at 1.0x, twice as fast at the right."
+          "The head going round, a step a detent: -2x, -1x, -0.5x, -1/4, STILL, 1/4, 0.5x, 1.0x (as recorded), 1.5x, 2x. ENV freezes and LFO reverses it at a press."
         ],
         "PRESETS": [
           "SPREAD",
@@ -122,7 +122,7 @@
       "label": "SCAN",
       "sub": "home",
       "base": "scan",
-      "text": "Back to SCAN. It clears nothing."
+      "text": "Back to SCAN. Held a second, it empties the selected ring."
     },
     "FX": {
       "label": "MORPH",
@@ -149,7 +149,7 @@
     "REC": {
       "label": "REC",
       "sub": "catch a ring",
-      "text": "On MORPH: armed (blinking), and the next note is caught in the selected ring from its first sample: one note, one ring, a clean loop. On SCAN or MIX: everything heard except the selected ring is resampled into it now, so the rings can be made from each other."
+      "text": "Held with a key: that MORPH note is caught in the selected ring at once, from any page. Tapped on MORPH: armed (blinking), and the next note is caught. Tapped on SCAN or MIX: everything heard except the selected ring is resampled into it now."
     },
     "GLO": {
       "label": "GUIDE",
@@ -161,12 +161,14 @@
       "text": "Nothing: PALINDROME does not save its rings."
     },
     "ENV": {
-      "label": "-",
-      "text": "Nothing."
+      "label": "FREEZE",
+      "sub": "the ring still",
+      "text": "The selected ring's head stops where it is (ENV lit): grains keep sounding that moment. Again, it goes on at the speed it had."
     },
     "LFO": {
-      "label": "-",
-      "text": "Nothing."
+      "label": "REVERSE",
+      "sub": "the ring backward",
+      "text": "The selected ring runs the other way (LFO lit while backward)."
     },
     "SEQ": {
       "label": "-",
@@ -196,10 +198,11 @@
       },
       {
         "title": "Scan",
-        "text": "Turn KNOB1 POSITION to scrub through the ring, and ALGORITHM SPEED to the middle to freeze it. Then hold a few keys: each is a place in the ring.",
+        "text": "Turn KNOB1 POSITION to scrub through the ring, press ENV to freeze it and LFO to reverse it. Then hold a few keys: each is a place in the ring.",
         "show": [
           "KNOB1",
-          "ALGORITHM",
+          "ENV",
+          "LFO",
           "keys"
         ],
         "done": {
@@ -208,11 +211,9 @@
       },
       {
         "title": "Another ring",
-        "text": "Turn SELECT to ring 2 and press FX for MORPH. Press REC, then tap a key: that note is caught in ring 2.",
+        "text": "Turn SELECT to ring 2 and tap a key: an empty ring catches the note. (Over a full ring, hold REC and tap a key.)",
         "show": [
           "SELECT",
-          "FX",
-          "REC",
           "keys"
         ],
         "done": {
