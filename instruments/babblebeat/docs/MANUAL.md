@@ -56,10 +56,11 @@ Custom firmware, installed at your own risk. It has not run on a real FM-1 yet. 
 
 ## WORLD and the words
 
-BabbleBeat knows about **2,900 words**: 1,796 nouns, 512 adjectives and 590 verbs. The nouns are in fourteen worlds. **WORLD** (EDIT, SELECT) chooses the world the keys draw from; the screen names it as you turn.
+BabbleBeat knows about **2,900 words**: 1,796 nouns, 512 adjectives and 590 verbs. The nouns are in fourteen worlds. **WORLD** (EDIT, SELECT) chooses the world the keys draw from; the screen names it as you turn. It starts on **ALL**, which is every world one after another, so the whole vocabulary is in play from the first key.
 
 | WORLD | Nouns | Such as |
 | --- | ---: | --- |
+| **ALL** (where it starts) | 1,796 | every world below, in turn |
 | **MACHINE**, **DREAM**, **BODY**, **GOTHIC** | 12 each | the original hand-made worlds: circuit, ghost, tongue, crypt |
 | **ANIMAL** | 146 | frog, owl, spaniel, walrus |
 | **PLANT** | 80 | grass, poppy, lilac, bramble |
@@ -110,7 +111,7 @@ When a white key's word moves, the black key beside it follows the next time it 
 | KNOB2 | **WANDER** | How often a key's word moves a step; also, other nouns borrowed from outside the world |
 | KNOB3 | **RECALL** | How often the remembered word returns. Past 70 the phrases fix on it and loop back on themselves: "the mirror was, the mirror was pale." |
 | KNOB4 | **DAMAGE** | How often a key's phrase is made again as it is played; past 60 it may be broken instead |
-| SELECT | **WORLD** | Which of the fourteen worlds the keys' words come from. Turned into another world, every key takes a new word from it |
+| SELECT | **WORLD** | ALL, or one of the fourteen worlds, for the keys' words. Turned into another, every key takes a new word from it |
 | ALGORITHM | **LENGTH** | High values can append a further clause (from PLAIN up) |
 | PRESETS | **STYLE** | Statements at low values; mixed in middle; questions at high values |
 

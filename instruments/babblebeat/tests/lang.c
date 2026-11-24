@@ -99,7 +99,9 @@ int main(void){
  /* A key's word. Every kind of phrase made about a word has the word in it; the word next to it is another word,
   * and a step back from there can be the word again (a walk along its world, not a jump). */
  {bb_mind k;bb_init(&k,99);k.recall=0;
-  assert(bb_worlds()>=4&&bb_world_size(0)==12&&bb_world_label(0)[0]);
+  assert(bb_worlds()>=5&&bb_world_size(1)==12&&bb_world_label(1)[0]&&!strcmp(bb_world_label(0),"ALL"));
+  {int all=0;for(int t=1;t<bb_worlds();t++)all+=bb_world_size(t);assert(bb_world_size(0)==all);}
+  assert(bb_noun_of(0,0).text==bb_noun_of(1,0).text&&bb_noun_of(0,12).text==bb_noun_of(2,0).text);   /* (ALL: the worlds in turn) */
   for(int w=0;w<bb_worlds()*40;w++){
    bb_token word=bb_noun_of(w/40,w*7),nearby;
    assert(word.text&&word.role==BB_NOUN);
@@ -127,7 +129,7 @@ int main(void){
   * draw on every adjective and verb. */
  {bb_mind k;const char *voice="iIeAaOUVuEo12345wyrlmnNsSfTzvDhptkbdgCJ";long nouns=0;
   bb_init(&k,2026);k.recall=0;k.damage=0;k.wander=1.f;
-  for(int t=0;t<bb_worlds();t++)for(int i=0;i<bb_world_size(t);i++){
+  for(int t=1;t<bb_worlds();t++)for(int i=0;i<bb_world_size(t);i++){
    bb_token word=bb_noun_of(t,i);
    assert(word.text&&word.text[0]&&strlen(word.text)<=12&&word.phones[0]);
    for(const char *c=word.phones;*c;c++)assert(strchr(voice,*c));

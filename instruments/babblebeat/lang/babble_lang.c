@@ -11,6 +11,21 @@ typedef struct {const char *third,*base,*phones,*base_phones;} verb;
  * WordNet, their words in the order of its tree, so that neighbours are kin), adjectives, and verbs that take an
  * object (trans) or none (intr). Generated: tools/gen_lexicon.py */
 #include "babble_words.h"
+/* The worlds as the rest of the file knows them: world 0 is ALL, every world's nouns one after another (so its
+ * neighbours are kin too, and it runs from machines to deeds); worlds 1.. are WORLD[0..] themselves. */
+#define BB_THEMES_N (BB_WORLDS_N+1)
+static unsigned theme_size(int t){
+ unsigned n=0;
+ if(t)return WORLD[t-1].n;
+ for(int w=0;w<BB_WORLDS_N;w++)n+=WORLD[w].n;
+ return n;
+}
+static word theme_word(int t,unsigned i){
+ if(t)return WORLD[t-1].w[i%WORLD[t-1].n];
+ i%=theme_size(0);
+ for(int w=0;;w++){if(i<WORLD[w].n)return WORLD[w].w[i];i-=WORLD[w].n;}
+}
+static int theme_of(int t){return ((t%BB_THEMES_N)+BB_THEMES_N)%BB_THEMES_N;}
 static const bb_token THE={"the","DU",BB_OTHER},AND={"and","And",BB_OTHER},AGAIN={"again","Ugen",BB_OTHER},
  DOT={".","",BB_PUNCT},QUERY={"?","",BB_PUNCT},COMMA={",","",BB_PUNCT};
 /* the kinds of phrase (BB_STATE..BB_WHEN) and GRAMMAR's five ways of building one, as the screen names them */
@@ -70,13 +85,13 @@ static void add(bb_mind*m,bb_token x){if(m->count<BB_MAX_TOKENS)m->tok[m->count+
 static void lit(bb_mind*m,const bb_token *t){add(m,*t);}
 static bb_token noun(bb_mind*m){
  if(m->force_once){m->force_once=0;return m->forced;}
- int theme=(int)(m->theme%BB_WORLDS_N);
+ int theme=theme_of((int)m->theme);
  if(roll(m,100)<(int)(m->wander*100.f)){
   /* Recalled nouns attract nearby words toward their original world. */
-  theme=(int)(m->drift_theme%BB_WORLDS_N);
+  theme=theme_of((int)m->drift_theme);
  }
  if(m->has_memory&&roll(m,100)<(int)(m->recall*100.f))return m->remembered;
- return make(WORLD[theme].w[roll(m,(int)WORLD[theme].n)],BB_NOUN);
+ return make(theme_word(theme,(unsigned)roll(m,(int)theme_size(theme))),BB_NOUN);
 }
 static void N(bb_mind*m){add(m,noun(m));}
 static void A(bb_mind*m){add(m,make(adj[roll(m,SZ(adj))],BB_ADJ));}
@@ -189,7 +204,7 @@ const char *bb_pattern_label(const bb_mind*m){
 void bb_generate(bb_mind*m){
  if(roll(m,100)<(int)(m->wander*65.f)){
   m->drift_theme=(m->has_memory&&roll(m,100)<(int)(m->recall*100.f))
-   ?m->memory_theme:(unsigned)roll(m,BB_WORLDS_N);
+   ?m->memory_theme:(unsigned)roll(m,BB_THEMES_N);
  }
  /* STYLE: statements only .. any kind (half of them plain statements) .. questions only */
  static const uint8_t SAYS[]={BB_STATE,BB_STATE,BB_STATE,BB_NOT,BB_WAS,BB_WILL,BB_DIDNOT,BB_USEDTO,BB_MAY};
@@ -215,7 +230,7 @@ void bb_rewrite(bb_mind*m,int pattern){
 }
 /* where a noun is: its world and its place there (by its text's address: the words are the tables' own) */
 static int where(const char *text,int *theme,int *at){
- for(int t=0;t<BB_WORLDS_N;t++)for(unsigned i=0;i<WORLD[t].n;i++)if(WORLD[t].w[i].text==text){*theme=t;*at=(int)i;return 1;}
+ for(int t=0;t<BB_WORLDS_N;t++)for(unsigned i=0;i<WORLD[t].n;i++)if(WORLD[t].w[i].text==text){*theme=t+1;*at=(int)i;return 1;}
  return 0;
 }
 void bb_remember(bb_mind*m){
@@ -233,12 +248,12 @@ void bb_remember_word(bb_mind*m,const bb_token *w){
  {int theme,at;if(where(w->text,&theme,&at))m->memory_theme=(unsigned)theme;}
 }
 bb_token bb_noun_of(int theme,int i){
- int t=((theme%BB_WORLDS_N)+BB_WORLDS_N)%BB_WORLDS_N,n=(int)WORLD[t].n;
- return make(WORLD[t].w[((i%n)+n)%n],BB_NOUN);
+ int t=theme_of(theme),n=(int)theme_size(t);
+ return make(theme_word(t,(unsigned)(((i%n)+n)%n)),BB_NOUN);
 }
-int bb_worlds(void){return BB_WORLDS_N;}
-const char *bb_world_label(int theme){return WORLD[((theme%BB_WORLDS_N)+BB_WORLDS_N)%BB_WORLDS_N].name;}
-int bb_world_size(int theme){return (int)WORLD[((theme%BB_WORLDS_N)+BB_WORLDS_N)%BB_WORLDS_N].n;}
+int bb_worlds(void){return BB_THEMES_N;}
+const char *bb_world_label(int theme){int t=theme_of(theme);return t?WORLD[t-1].name:"ALL";}
+int bb_world_size(int theme){return (int)theme_size(theme_of(theme));}
 bb_token bb_noun_near(bb_mind*m,const bb_token *w){
  int theme,at;
  if(w&&where(w->text,&theme,&at))return bb_noun_of(theme,at+(roll(m,2)?1:-1));
