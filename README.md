@@ -1,6 +1,6 @@
 # STRATA, PALINDROME, BABBLEBEAT and STRABBLEDROME
 
-**[STRABBLEDROME — planned three-in-one switching firmware](instruments/strabbledrome/README.md)** is the fourth project. It aims to put all three instruments behind one GLO menu; it is not flashable yet.
+**[STRABBLEDROME — planned three-in-one switching firmware](instruments/strabbledrome/README.md)** is the fourth project: all three instruments behind one GLO menu. It builds for the FM-1 and passes its simulator test, but is not released: there is no installer yet.
 
 **[Project scope and instrument identities](docs/FIRMWARE_SCOPE.md)** — what STRATA, PALINDROME and BabbleBeat are, their internal modes/pages, current features, future directions, and boundaries.
 
@@ -13,7 +13,7 @@ has been validated on hardware yet.
 | **STRATA** | A drone and texture synth with an arpeggiator, a drum groove and Euclidean lanes | Released (`vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/) | [manual](https://savageperson334.github.io/strata-fm1/manual/) | [install](https://savageperson334.github.io/strata-fm1/install/) |
 | **PALINDROME** | A sound, looped, and made again from itself: a key strikes MORPH (a four-corner synth), the note is caught as a ring, SILT's grains loop it, and DRIFT makes each new generation from the last | Experimental prerelease (`palindrome-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/palindrome/) | [manual](https://savageperson334.github.io/strata-fm1/palindrome/manual/) | [install](https://savageperson334.github.io/strata-fm1/palindrome/install/) |
 | **BABBLEBEAT** | A word on every white key and a phrase about it, the black keys the same word in other kinds of phrase, GRAMMAR setting how all of them are built; a small formant-synthesis voice | Experimental prerelease (`babblebeat-vX.Y`) | [site](https://savageperson334.github.io/strata-fm1/babblebeat/) | [manual](https://savageperson334.github.io/strata-fm1/babblebeat/manual/) | [install](https://savageperson334.github.io/strata-fm1/babblebeat/install/) |
-| **[STRABBLEDROME](instruments/strabbledrome/README.md)** | A menu-driven three-in-one firmware with STRATA, PALINDROME and BabbleBeat | **In development; no firmware build yet** | [GitHub project](instruments/strabbledrome/README.md) | [Project plan](instruments/strabbledrome/README.md) | — |
+| **[STRABBLEDROME](instruments/strabbledrome/README.md)** | A menu-driven three-in-one firmware with STRATA, PALINDROME and BabbleBeat | **Builds and switches between all three; not released** | [GitHub project](instruments/strabbledrome/README.md) | [manual](instruments/strabbledrome/docs/MANUAL.md) | — |
 
 
 PALINDROME's source, manual and build notes are in [instruments/palindrome](instruments/palindrome) (it was
