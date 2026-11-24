@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual · STRABBLEDROME</title>
+<meta name="description" content="The manual for STRABBLEDROME, a firmware for the M-VAVE FM-1.">
+<style>
+/* paper and ink: warm white paper, ink-blue type, vermilion for what is played, mustard for asides; a shade of the
+   paper for code and callouts (CTL-1's; a firmware may restyle its site) */
+:root {
+  --paper: #fbf8f1; --sheet: #efe9dc; --rule: #ddd4c2; --ink: #1e2b5a; --muted: #5d6585;
+  --hot: #e5482e; --hot-t: #f8d3c9; --cool: #d9a21b; --cool-t: #f5e4b8;
+  --hot-ink: #c23a22;                                 /* the vermilion as text: 4.5:1 on the paper */
+  color-scheme: light;
+}
+body {
+  background: var(--paper); color: var(--ink); margin: 0;
+  font: 400 17px/1.6 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  padding-inline: 16px; padding-block: 32px 64px;
+}
+main { max-width: 46rem; margin: 0 auto; }
+.page > .site { max-width: 46rem; margin-inline: auto; }
+main:focus { outline: none; }
+h1, h2, h3 { font-family: inherit; text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 2.2rem; font-weight: 700; margin: 0 0 .4rem; letter-spacing: .02em; }
+h2 { font-size: 1.3rem; font-weight: 700; margin: 3rem 0 .8rem; padding-top: .8rem; border-top: 2px solid var(--ink); }
+h2 .num { color: var(--hot); margin-right: .5em; font-variant-numeric: tabular-nums; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 .5rem; }
+p, li { max-width: 65ch; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+li { margin: .2rem 0; }
+li::marker { color: var(--hot); }
+strong { font-weight: 700; }
+a { color: var(--ink); text-decoration-color: var(--hot); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { background: var(--hot-t); }
+:focus-visible { outline: 3px solid var(--hot-ink); outline-offset: 2px; }
+.skip { position: absolute; left: 16px; top: -100px; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 0 0 6px 6px; z-index: 1; }
+.skip:focus { top: 0; }
+code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .86em; }
+code { background: var(--sheet); padding: .08em .35em; border-radius: 3px; }
+pre { background: var(--sheet); border-radius: 6px; padding: 14px 16px; overflow-x: auto; line-height: 1.45; margin: 0 0 1.2rem; }
+pre code { background: none; padding: 0; font-size: inherit; }
+hr { display: none; }
+.table { overflow-x: auto; margin: 0 0 1.3rem; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .7rem .45rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: var(--muted); border-bottom: 2px solid var(--ink); }
+td:first-child { white-space: nowrap; }
+.lede { margin-bottom: 1.6rem; }
+.status { background: var(--sheet); border-radius: 6px; padding: 12px 16px; }
+.status p { margin: 0; }
+.site { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.2rem; margin: 0 0 1.6rem; padding-bottom: .5rem; border-bottom: 2px solid var(--ink); }
+.site .home { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: var(--ink); text-decoration: none; }
+.site .home:hover { color: var(--hot-ink); background: none; }
+.site nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: .2rem 1rem; font-size: .92rem; }
+.site nav a { color: var(--ink); text-underline-offset: 3px; }
+.site nav a[aria-current] { text-decoration: none; color: var(--hot-ink); }
+a.home { color: inherit; text-decoration: none; }
+a.home:hover { background: none; color: var(--hot-ink); }
+main > a.home { display: inline-block; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 .4rem; }
+.callout { border-left: 4px solid var(--cool); background: var(--cool-t); padding: 10px 16px; margin: 0 0 1.2rem; max-width: 65ch; border-radius: 0 6px 6px 0; }
+.callout p { margin: 0; }
+details { background: var(--sheet); border-radius: 6px; padding: 0 16px; margin: 0 0 1.2rem; }
+details > summary { cursor: pointer; padding: 10px 0; }
+details[open] > summary { margin-bottom: .4rem; }
+details > :last-child { margin-bottom: 1rem; }
+.swatch { display: inline-block; width: .7em; height: .7em; margin-right: .4em; vertical-align: .02em; }
+nav.contents ol { columns: 2 14rem; column-gap: 2rem; padding-left: 1.3rem; }
+.figs { display: flex; flex-wrap: wrap; gap: 20px; margin: .4rem 0 1.6rem; }
+figure { margin: 0; flex: 0 1 auto; }
+figure img { display: block; max-width: 100%; height: auto; }
+figure.shot img { width: 300px; image-rendering: pixelated; border-radius: 4px; box-shadow: 0 0 0 1px var(--rule); }
+figure.wide { flex-basis: 100%; }
+figure.wide img { width: 100%; }
+figcaption { color: var(--muted); font-size: .88rem; margin-top: .4rem; max-width: 300px; }
+figure.wide figcaption { max-width: none; }
+nav.contents li { break-inside: avoid; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+<style id="fm1nav-style">
+#fm1nav{max-width:46rem;margin:0 auto 1.4rem;padding:12px 0 10px;display:flex;flex-direction:column;align-items:flex-end;
+gap:8px;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+border-bottom:2px solid currentColor;box-sizing:border-box}
+#fm1nav a{color:inherit;text-decoration:none;background:none}
+#fm1nav .fm1nav-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 18px}
+#fm1nav .fm1nav-links a{opacity:.72;padding:2px 0;border-bottom:2px solid transparent}
+#fm1nav .fm1nav-links a:hover,#fm1nav .fm1nav-links a[aria-current]{opacity:1;border-bottom-color:currentColor}
+#fm1nav .fm1nav-swap{display:inline-flex;border:1.5px solid currentColor;border-radius:999px;overflow:hidden;
+font-size:12px;letter-spacing:.07em}
+#fm1nav .fm1nav-swap a{padding:5px 14px;opacity:.72}
+#fm1nav .fm1nav-swap a:hover{opacity:1}
+#fm1nav .fm1nav-swap a[data-project="strabbledrome"]{border-left:1px solid currentColor;letter-spacing:0}
+#fm1nav .fm1nav-swap a[aria-current]{opacity:1;background:currentColor;background:color-mix(in srgb,currentColor 22%,transparent)}
+@media (max-width:48rem){#fm1nav{padding-inline:16px}body>.page #fm1nav{padding-inline:0}}
+</style>
+<meta id="fm1theme-meta" name="theme-color" content="#eeeeea">
+<style id="fm1theme-style">
+:root { --paper: #f1f1ee; --sheet: #e2e2dd; --rule: #c6c6bf; --ink: #22252b; --muted: #5b606b; --hot: #3f5873; --hot-t: #dde3ea; --hot-ink: #2f4660; --cool: #5c6f58; --cool-t: #e0e6dd; --ground: #eeeeea; --card: #fbfbf9; --accent: #3a536e; --teal: #4b6a67; --bad: #a8484e; --fm1-scheme: light; }
+
+html { color-scheme: var(--fm1-scheme); }
+body { background: var(--paper) !important; color: var(--ink) !important; }
+body:has(.devicebox) { background: var(--ground) !important; }
+a { text-decoration-color: var(--hot); }
+a:focus-visible, button:focus-visible { outline-color: var(--hot-ink); }
+#fm1nav {
+  max-width: 60rem; color: var(--ink); border-bottom: 2px solid var(--rule);
+  padding: 10px 0 14px; margin-bottom: 1.6rem;
+}
+#fm1nav a { color: var(--ink); }
+#fm1nav .fm1nav-swap { border-color: var(--accent); }
+#fm1nav .fm1nav-swap a { color: var(--ink); padding: 7px 11px; }
+#fm1nav .fm1nav-swap a:hover { background: var(--hot-t); }
+#fm1nav .fm1nav-swap a[aria-current] {
+  background: var(--accent); color: var(--card); opacity: 1;
+  font-weight: 750;
+}
+body:has(.devicebox) > header h1 { color: var(--accent); }
+@media(max-width:540px) {
+  #fm1nav { align-items: stretch; }
+  #fm1nav .fm1nav-links { justify-content: space-between; gap: 8px; }
+  #fm1nav .fm1nav-swap { display: flex; flex-wrap: wrap; width: 100%; border-radius:12px; }
+  #fm1nav .fm1nav-swap a { flex: 1 1 42%; text-align: center; padding: 8px 5px; font-size: 11px; }
+  #fm1nav .fm1nav-swap a[data-project="strabbledrome"] { border-left:0; border-top:1px solid var(--rule); }
+}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<div class="page">
+<nav id="fm1nav" aria-label="STRABBLEDROME"><div class="fm1nav-links"><a href="../emu/">Emulator</a><a href="./" aria-current="page">Manual</a><a href="https://github.com/Savageperson334/strata-fm1/tree/main/instruments/strabbledrome">Source</a></div><div class="fm1nav-swap" role="group" aria-label="Firmware projects"><a href="../../manual/">STRATA</a><a href="../../palindrome/manual/">PALINDROME</a><a href="../../babblebeat/manual/">BABBLEBEAT</a><a href="./" data-project="strabbledrome" aria-current="true" title="All three in one firmware: preview, not released">STRABBLEDROME</a></div></nav>
+<main id="content" tabindex="-1"><h1>Manual</h1>
+<p class="lede"><strong>Three instruments in one firmware: STRATA, PALINDROME and BabbleBeat.</strong> This page covers only how to move between them. Each instrument plays exactly as it does by itself, and has its own manual:</p>
+<p><a href="https://savageperson334.github.io/strata-fm1/manual/">STRATA</a> · <a href="https://savageperson334.github.io/strata-fm1/palindrome/manual/">PALINDROME</a> · <a href="https://savageperson334.github.io/strata-fm1/babblebeat/manual/">BabbleBeat</a></p>
+<h2 id="switching">Switching</h2>
+<ol><li>Press <strong>GLO</strong>. The menu opens, from anywhere.</li><li>Turn <strong>SELECT</strong> to the instrument you want.</li><li>Press <strong>SEL</strong>. It starts.</li></ol>
+<p>To leave the menu without changing anything, press <strong>GLO</strong> or <strong>HOME</strong>.</p>
+<div class="figs"><figure class="shot"><img src="img/menu.png" alt="The menu" loading="lazy"><figcaption>The menu · GLO</figcaption></figure></div>
+<div class="table" tabindex="0" role="region" aria-label="Table: Switching (In the menu, Does)"><table><thead><tr><th>In the menu</th><th>Does</th></tr></thead><tbody><tr><td>SELECT</td><td>Moves the highlight</td></tr><tr><td>SEL</td><td>Opens the highlighted row</td></tr><tr><td>GLO or HOME</td><td>Back to the instrument you were in</td></tr></tbody></table></div>
+<p>Nothing is held, and no two buttons are pressed together.</p>
+<h2 id="what-happens-when-you-switch">What happens when you switch</h2>
+<ul><li><strong>One instrument runs at a time.</strong> Choosing another stops the first and starts the new one afresh, as if the FM-1 had just been switched on with it.</li><li><strong>What you made in the one you left is gone</strong>: PALINDROME's rings, BabbleBeat's words. STRATA's saved sound is kept, as always.</li><li><strong>Opening the menu does not stop anything.</strong> The instrument keeps sounding under the menu; it only stops when you open a different one.</li><li><strong>Coming back to the same instrument</strong> changes nothing: it is as you left it.</li></ul>
+<h2 id="while-the-menu-is-open">While the menu is open</h2>
+<p>No key, knob or button reaches the instrument. Turn a knob in the menu and nothing changes when you go back.</p>
+<h2 id="glo-inside-an-instrument">GLO inside an instrument</h2>
+<p>GLO is always the menu, so an instrument's own GLO guide is reached another way: open the menu and choose <strong>HELP / CONTROLS</strong>. It shows the button guide of the instrument that is running. GLO, HOME or SEL closes it.</p>
+<div class="figs"><figure class="shot"><img src="img/strata-guide.png" alt="An instrument&#x27;s own guide, from HELP" loading="lazy"><figcaption>HELP / CONTROLS</figcaption></figure></div>
+<p>With no instrument open yet, HELP / CONTROLS shows this page's controls instead.</p>
+<h2 id="the-menu-s-rows">The menu's rows</h2>
+<div class="table" tabindex="0" role="region" aria-label="Table: The menu&#x27;s rows (Row, Opens)"><table><thead><tr><th>Row</th><th>Opens</th></tr></thead><tbody><tr><td>STRATA</td><td>The drone and rhythm instrument</td></tr><tr><td>PALINDROME</td><td>The granular rings</td></tr><tr><td>BABBLEBEAT</td><td>The speaking instrument</td></tr><tr><td>HELP / CONTROLS</td><td>The running instrument's button guide</td></tr><tr><td>SYSTEM</td><td>The version, and which instruments are built in</td></tr></tbody></table></div>
+<p>A <code>*</code> marks the instrument that is running.</p>
+<h2 id="status">Status</h2>
+<p>A preview: simulator-tested and built for the FM-1, playable <a href="../emu/">in the browser</a>, not yet run on a real FM-1, and not released: there is no installer. Every other control, sound and page belongs to the instrument you are in, and is described in its manual.</p>
+</main>
+</div>
+</body>
+</html>
