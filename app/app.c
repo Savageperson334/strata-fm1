@@ -9,13 +9,17 @@
  *                   ROTATE and CHANCE, ALGORITHM its step length, PRESETS what it plays (a drum, or the arp's steps)
  * The screen's boxes sit as the knobs do on the panel: MASTER, SELECT, PRESETS and ALGORITHM in the left half, as on the
  * left of the screen; KNOB1..4 in the right half.
+ *   LFO             tap: the LFO's page, kept open until tapped again; held: the same while held. K1..K4 WAVE, WARP,
+ *                   HARMONIC, BLEND; SELECT SPREAD; ALGORITHM VIBRATO; PRESETS TREMOLO (its rate is MOTION, its depth
+ *                   on the tone and the filter DEPTH)
  *   PLAY            tap: all voices out (the chord is kept); again, the chord back in
  *                   hold PLAY and turn K1..K4: the bitcrusher before the reverb, BITS, SAMPLE, DRIVE, MIX
  *   OCT- / OCT+     the keys' octave
  *   REC             MUTATE: nudge the sound somewhere nearby
  *   HOME (hold 1 s) the sound back to its defaults
  *   SAVE            keep the sound, the octave and the chord (PLAY brings the chord back after a power-on)
- *   MIDI in         notes play voices while held (CC 64 holds them); CC 20..31 and 102..118 the twenty-nine controls
+ *   MIDI in         notes play voices while held (CC 64 holds them); CC 20..31 and 102..118 the first twenty-nine controls, the LFO's
+ *                   seven on CC 85, 86, 87, 89, 90, 14, 15
  *
  * Part of fm1-base's unity build (device/unity.c, host/plat_host.c), after the platform: gfx.c and announce.c are in
  * scope. The sound engine is dsp/strata_dsp.c, a unit of its own at -O2. */
@@ -23,7 +27,8 @@
 #include "strata_dsp.h"
 
 /* --------------------------------------------------------------- settings --- */
-#define SET_MAGIC 0x53545235u            /* "STR5" (0.5, with the crusher): another magic loads the defaults */
+#define SET_MAGIC 0x53545236u            /* "STR6" (0.6, with the LFO page): another magic loads the defaults */
+#define SET_MAGIC_V5 0x53545235u         /* "STR5" (0.5): this record without the LFO's seven (settings_v5_t) */
 #define SET_MAGIC_V4 0x53545234u         /* "STR4" (0.4): this record without the crusher (settings_v4_t) */
 #define SET_MAGIC_V3 0x53545233u         /* "STR3" (0.3): this record without the lanes (settings_v3_t) */
 #define SET_MAGIC_V2 0x53545232u         /* "STR2" (0.2): read and carried over (settings_v2_t) */
@@ -40,6 +45,15 @@ typedef struct {
     uint8_t rsv;
     sd_lane_t lane[SD_LANES];
 } settings_t;
+typedef struct {                         /* 0.5's record: 29 controls, the rest the same */
+    uint32_t magic;
+    float param[29];
+    int8_t octave;
+    uint8_t nchord;
+    uint8_t chord[SD_VOICES];
+    uint8_t arp, beat, euc, rsv;
+    sd_lane_t lane[SD_LANES];
+} settings_v5_t;
 typedef struct {                         /* 0.4's record: 25 controls, the rest the same */
     uint32_t magic;
     float param[25];
@@ -85,13 +99,15 @@ static const float DEFAULTS[SD_NPARAM] = {
     0.45f, 0.55f, 0.00f, 0.15f,                        /* RATE SHAPE ORDER FLOOR (the arp) */
     0.30f, 0.00f, 0.20f, 0.60f, 0.40f, 0.25f, 0.35f,   /* TEMPO GROOVE SWING LEVEL KIT ROOM DUCK (the beat) */
     0.55f, 0.45f, 0.20f, 0.00f,                        /* BITS SAMPLE DRIVE MIX (the crusher; MIX 0: off) */
+    0.00f, 0.50f, 0.50f, 0.00f, 0.50f, 0.00f, 0.00f,   /* WAVE WARP HARMONIC BLEND SPREAD VIBRATO TREMOLO (the LFO) */
 };
 
 static const char *const P_NAME[SD_NPARAM] = {"TONE", "RATIO", "MOTION", "SPACE", "FILTER", "DRIFT", "GRIT",
                                               "DEPTH", "SHIMMER", "FADE", "DECAY", "RESO", "AIR", "SUB",
                                               "RATE", "SHAPE", "ORDER", "FLOOR",
                                               "TEMPO", "GROOVE", "SWING", "LEVEL", "KIT", "ROOM", "DUCK",
-                                              "BITS", "SAMPLE", "DRIVE", "MIX"};
+                                              "BITS", "SAMPLE", "DRIVE", "MIX",
+                                              "WAVE", "WARP", "HARMONIC", "BLEND", "SPREAD", "VIBRATO", "TREMOLO"};
 static const char *const ORDER_NAME[4] = {"UP", "DOWN", "UP-DN", "RND"};
 /* the encoders, in the order the screen shows them: K1 K2 K3 K4 on top, SELECT ALGO PRESET below */
 static const uint8_t ENC_OF_CELL[7] = {EN_K1, EN_K2, EN_K3, EN_K4, EN_SELECT, EN_ALGO, EN_PRESET};
@@ -219,6 +235,23 @@ static void settings_load(void)
         set.nchord = v1.nchord;
         for (i = 0; i < SD_VOICES; i++)
             set.chord[i] = v1.chord[i];
+        got = (int)sizeof set;
+    }
+    if (got == (int)sizeof(settings_v5_t) && set.magic == SET_MAGIC_V5) {   /* 0.5's: kept, the LFO's added */
+        settings_v5_t v5;
+        int i;
+        bytes_copy(&v5, &set, sizeof v5);
+        settings_defaults();
+        for (i = 0; i < 29; i++)
+            set.param[i] = v5.param[i];
+        set.octave = v5.octave;
+        set.nchord = v5.nchord;
+        for (i = 0; i < SD_VOICES; i++)
+            set.chord[i] = v5.chord[i];
+        set.arp = v5.arp;
+        set.euc = v5.euc;
+        for (i = 0; i < SD_LANES; i++)
+            set.lane[i] = v5.lane[i];
         got = (int)sizeof set;
     }
     if (got != (int)sizeof set || !settings_ok())
@@ -354,9 +387,18 @@ static int cc_param(uint32_t cc)
 {
     if (cc >= 20u && cc <= 31u)
         return (int)(cc - 20u);
-    if (cc >= 102u && cc < 102u + (uint32_t)(SD_NPARAM - 12))
+    if (cc >= 102u && cc <= 118u)
         return (int)(cc - 102u) + 12;
-    return -1;
+    switch (cc) {                        /* the LFO's seven: more numbers MIDI leaves undefined */
+    case 85u: return P_LWAVE;
+    case 86u: return P_LWARP;
+    case 87u: return P_LHARM;
+    case 89u: return P_LBLEND;
+    case 90u: return P_LSPREAD;
+    case 14u: return P_LPITCH;
+    case 15u: return P_LLEVEL;
+    default: return -1;
+    }
 }
 
 static void midi_in(void)                /* audio interrupt */
@@ -560,6 +602,9 @@ static const char *value_text(int p, char *b)
     case P_AORDER: b[0] = 0; text_cat(b, ORDER_NAME[sd_arp_order(v)]); return "";
     case P_CBITS: int_text(sd_crush_bits(v), b); return "bit";
     case P_CRATE: hz_text(sd_crush_hz(v), b); return "Hz";
+    case P_LWAVE: b[0] = 0; text_cat(b, sd_lfo_wave_name(v)); return "";
+    case P_LHARM: b[0] = 'x'; fixed_text(sd_lfo_harm(v), sd_lfo_harm(v) < 1.0f || sd_lfo_harm(v) > 7.0f ? 2 : 1, b + 1); return "";
+    case P_LPITCH: int_text((int32_t)(v * v * 200.0f + 0.5f), b); return "ct";
     default: int_text((int32_t)(v * 100.0f + 0.5f), b); return "";
     }
 }
@@ -579,13 +624,14 @@ static struct {
     char msg[2][24];
     uint32_t msg_until;
     uint32_t keys, btn;
-    uint8_t layer;                       /* 0 main, 1 SEL held, 2 ARP held, 3 SEQ held, 4 EDIT held, 5 PLAY held */
+    uint8_t layer;                       /* 0 main, 1 SEL held, 2 ARP held, 3 SEQ held, 4 EDIT held, 5 PLAY held, 6 LFO */
     uint8_t lane;                        /* the lane EDIT's layer shows, 0..3 */
     uint8_t edit_turned;                 /* a knob turned while EDIT was held: its release does not switch the lanes */
     uint8_t vol;                         /* MASTER as the screen shows it, 0..100 */
     uint8_t arp_turned;                  /* a knob turned while ARP was held: its release does not switch the arp */
     uint8_t seq_turned;                  /* the same for SEQ and the beat */
     uint8_t play_turned;                 /* the same for PLAY and the crusher */
+    uint8_t lfo_turned, lfo_open;        /* the same for LFO; its page kept open (a tap) */
     int8_t touched;                      /* the cell turned last (lit a moment), -1 none */
     uint32_t touched_at;
     uint32_t enc_at[NE];                 /* when each encoder last moved: fast turns go further */
@@ -606,6 +652,8 @@ static int cell_param(int c)
         return -1;                       /* (the lanes' settings are not controls of the sound: cell_get) */
     if (ui.layer == 5)
         return c < 4 ? P_CBITS + c : -1;
+    if (ui.layer == 6)
+        return P_LWAVE + c;
     return c + 7 * ui.layer;
 }
 
@@ -867,9 +915,11 @@ static void lights(void)
     for (k = 0; k < NB; k++)             /* a held button lights while held */
         if (ui.btn >> k & 1u)
             lit |= 1u << k;
-    dim = 1u << B_SEL | 1u << B_ARP | 1u << B_SEQ | 1u << B_EDIT | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE | 1u << B_GLO;
+    dim = 1u << B_LFO | 1u << B_SEL | 1u << B_ARP | 1u << B_SEQ | 1u << B_EDIT | 1u << B_PLAY | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_REC | 1u << B_HOME | 1u << B_SAVE | 1u << B_GLO;
     if (ui.guide)
         lit |= 1u << B_GLO;
+    if (ui.lfo_open)
+        lit |= 1u << B_LFO;
     plat_lights(lit, keys, dim, dkeys, 1);
 }
 
@@ -915,6 +965,7 @@ static void input(void)
         case B_OCTDN: octave_step(-1); break;
         case B_OCTUP: octave_step(1); break;
         case B_PLAY: ui.play_turned = 0; break;
+        case B_LFO: ui.lfo_turned = 0; break;
         case B_REC: mutate(); break;
         case B_SAVE: save(); break;
         case B_HOME: ui.home_t = now ? now : 1u; break;
@@ -928,6 +979,8 @@ static void input(void)
         arp_toggle();                    /* ARP let go without a turn: the arp on / off */
     if ((ui.btn >> B_SEQ & 1u) && !(btn >> B_SEQ & 1u) && !ui.seq_turned)
         beat_toggle();                   /* SEQ let go without a turn: the beat on / off */
+    if ((ui.btn >> B_LFO & 1u) && !(btn >> B_LFO & 1u) && !ui.lfo_turned)
+        ui.lfo_open = (uint8_t)!ui.lfo_open;   /* LFO let go without a turn: its page kept open / closed */
     if ((ui.btn >> B_PLAY & 1u) && !(btn >> B_PLAY & 1u) && !ui.play_turned)
         play_button();                   /* PLAY let go without a turn: the chord out / in */
     if ((ui.btn >> B_EDIT & 1u) && !(btn >> B_EDIT & 1u) && !ui.edit_turned)
@@ -948,7 +1001,9 @@ static void input(void)
         ui.redraw_guide = ui.redraw_head = 1;
     }
     /* a held button's layer: EDIT the lanes', SEQ the beat's, ARP the arp's, SEL the sound's second */
-    c = (btn >> B_PLAY & 1u) ? 5 : (btn >> B_EDIT & 1u) ? 4 : (btn >> B_SEQ & 1u) ? 3 : (btn >> B_ARP & 1u) ? 2 : (int)((btn >> B_SEL) & 1u);
+    c = (btn >> B_LFO & 1u) ? 6 : (btn >> B_PLAY & 1u) ? 5 : (btn >> B_EDIT & 1u) ? 4 : (btn >> B_SEQ & 1u) ? 3 : (btn >> B_ARP & 1u) ? 2 : (int)((btn >> B_SEL) & 1u);
+    if (!c && ui.lfo_open)
+        c = 6;                           /* (the LFO's page, kept open) */
     if (c != ui.layer) {
         ui.layer = (uint8_t)c;
         ui.redraw_params = 1;
@@ -968,6 +1023,8 @@ static void input(void)
             ui.seq_turned = 1;
         if (ui.layer == 5)
             ui.play_turned = 1;
+        if (ui.layer == 6)
+            ui.lfo_turned = 1;
         if (ui.layer == 4) {
             ui.edit_turned = 1;
             ui.touched = (int8_t)c;
@@ -1009,7 +1066,12 @@ static void draw_head(void)
     } else if (ui.layer >= 2) {          /* a held button's settings, and whether its part is on */
         int on = ui.layer == 2 ? set.arp : ui.layer == 3 ? set.beat : ui.layer == 5 ? set.param[P_CMIX] > 0.002f : set.euc;
         cv_text(8, 4, &FONT_B, APP_NAME, C_WHITE);
-        cv_text(98, 9, &FONT_XS, ui.layer == 2 ? "ARP SETTINGS" : ui.layer == 3 ? "BEAT SETTINGS" : ui.layer == 5 ? "CRUSHER" : "EUCLID LANES", C_HI);
+        cv_text(98, 9, &FONT_XS, ui.layer == 2 ? "ARP SETTINGS" : ui.layer == 3 ? "BEAT SETTINGS" : ui.layer == 5 ? "CRUSHER" : ui.layer == 6 ? "LFO" : "EUCLID LANES", C_HI);
+        if (ui.layer == 6) {             /* the LFO: its rate (MOTION) */
+            hz_text(sd_motion_hz(set.param[P_MOTION]), t);
+            text_cat(t, "Hz");
+            cv_text(232 - text_w(&FONT_XS, t), 9, &FONT_XS, t, C_WHITE);
+        } else
         cv_text(232 - text_w(&FONT_XS, on ? "ON" : "OFF"), 9, &FONT_XS, on ? "ON" : "OFF", on ? C_WHITE : C_GRAY);
     } else {
         cv_text(8, 4, &FONT_B, APP_NAME, C_WHITE);
@@ -1065,6 +1127,22 @@ static void draw_scope(void)
     cv_begin(240, 92, C_BLACK);
     if (ui.layer == 4) {
         draw_lanes();
+    } else if (ui.layer == 6) {          /* the LFO: two of its cycles as the knobs shape them, where it is now */
+        float ph = sd_lfo_phase();
+        cv_rect(0, y0, 240, 1, C_LINE);
+        cv_rect(120, y0 - amp, 1, 2 * amp, C_LINE);
+        for (i = 0; i <= 96; i++) {
+            float t = (float)i * (2.0f / 96.0f);
+            int32_t x = (i * 239) / 96, y = y0 - (int32_t)(sd_lfo_at(t) * (float)(amp - 2));
+            if (i)
+                cv_line(px, py, x, y, C_HI);
+            px = x;
+            py = y;
+        }
+        {
+            int32_t x = (int32_t)(ph * 119.5f), y = y0 - (int32_t)(sd_lfo() * (float)(amp - 2));
+            cv_rect(x - 2, y - 2, 5, 5, C_WHITE);
+        }
     } else {
         sd_scope(sc);
         cv_rect(0, y0, 240, 1, C_LINE);
@@ -1156,7 +1234,7 @@ static void draw_params(void)
 static void draw_guide(void)
 {
     static const char *const G[12][3] = {
-        {"FX", "-", ""}, {"SEL", "HOLD:", "MORE"}, {"ENV", "-", ""}, {"LFO", "-", ""}, {"EDIT", "LANES", "+HOLD"}, {"GLO", "THIS", "GUIDE"},
+        {"FX", "-", ""}, {"SEL", "HOLD:", "MORE"}, {"ENV", "-", ""}, {"LFO", "LFO", "PAGE"}, {"EDIT", "LANES", "+HOLD"}, {"GLO", "THIS", "GUIDE"},
         {"HOME", "HOLD:", "RESET"}, {"SAVE", "SAVE", "SOUND"}, {"ARP", "ARP", "+HOLD"}, {"SEQ", "BEAT", "+HOLD"}, {"PLAY", "FADE", "+HOLD"}, {"REC", "MUT-", "ATE"}};
     int i;
     cv_begin(240, 120, C_BLACK);

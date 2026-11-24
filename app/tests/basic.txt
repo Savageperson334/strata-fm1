@@ -165,3 +165,14 @@ shot guide.png
 release GLO
 wait 100
 expect guide 0
+# LFO: a tap keeps its page open; the wave melted toward TRI and SAW, a second LFO blended in, then closed
+tap LFO
+wait 100
+expect layer 6
+turn K1 20 30
+turn K4 40 20
+wait 300
+shot lfo.png
+tap LFO
+wait 100
+expect layer 0

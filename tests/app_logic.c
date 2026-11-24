@@ -331,6 +331,26 @@ int main(void)
     btn_tap(B_SEQ);
     expect("beat", 0);
 
+    printf("LFO: a tap keeps its page open, another closes it; held and turned it sets it\n");
+    btn_tap(B_LFO);
+    run_ms(50);
+    expect("layer", 6);
+    enc_pending[EN_K1] = 20;             /* WAVE */
+    run_ms(150);
+    expect("layer", 6);
+    btn_tap(B_LFO);
+    run_ms(50);
+    expect("layer", 0);
+    if (set.param[P_LWAVE] < 0.2f) { printf("  FAIL WAVE %.2f\n", set.param[P_LWAVE]); fails++; } else printf("  ok   WAVE moved\n");
+    btn_now |= 1u << B_LFO;
+    run_ms(50);
+    enc_pending[EN_K1] = -20;
+    run_ms(150);
+    btn_now &= ~(1u << B_LFO);
+    run_ms(50);
+    expect("layer", 0);                  /* (turned while held: not kept open) */
+    expect("p29", 0);
+
     printf("PLAY held: the crusher's layer; a turn does not fade the chord\n");
     expect("p28", 0);
     btn_now |= 1u << B_PLAY;
@@ -407,6 +427,28 @@ int main(void)
     expect("euc", 0);
     run_ms(100);
     if (sd_clock_on()) { printf("  FAIL the clock should stop\n"); fails++; } else printf("  ok   lanes off: the clock stops\n");
+
+    printf("0.5's saved sound carries over\n");
+    {
+        settings_v5_t v5;
+        int i;
+        memset(&v5, 0, sizeof v5);
+        v5.magic = SET_MAGIC_V5;
+        for (i = 0; i < 29; i++) v5.param[i] = 0.5f;
+        v5.param[28] = 0.7f;
+        v5.octave = 1;
+        v5.nchord = 1;
+        v5.chord[0] = 50;
+        for (i = 0; i < SD_LANES; i++) v5.lane[i] = set.lane[i];
+        memcpy(store, &v5, sizeof v5);
+        store_len = (int)sizeof v5;
+        memset(&set, 0, sizeof set);
+        app_init();
+        run_ms(50);
+        expect("p28", 70);
+        expect("p33", 50);               /* the LFO's SPREAD at its default */
+        expect("octave", 1);
+    }
 
     printf("0.3's saved sound carries over\n");
     {

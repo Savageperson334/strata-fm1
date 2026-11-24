@@ -26,6 +26,8 @@ static const float P_DEFAULT[SD_NPARAM] = {
     0.30f, /* BTEMPO: 90 BPM */ 0.00f, /* BGROOVE: PULSE */ 0.20f, /* BSWING */ 0.60f, /* BLEVEL */
     0.40f, /* BKIT */ 0.25f, /* BROOM */ 0.35f, /* BDUCK */
     0.55f, /* CBITS: 8 */ 0.45f, /* CRATE */ 0.20f, /* CDRIVE */ 0.00f, /* CMIX: off */
+    0.00f, /* LWAVE: SINE */ 0.50f, /* LWARP */ 0.50f, /* LHARM: x2 */ 0.00f, /* LBLEND */ 0.50f, /* LSPREAD */
+    0.00f, /* LPITCH */ 0.00f, /* LLEVEL */
 };
 
 static float clamp01(float v) { return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v; }
@@ -90,6 +92,7 @@ typedef struct {
     float bp1, bp2;                      /* AIR's band-pass state */
     float idx_now;                       /* the FM index at the end of the last block (ramped) */
     float ag;                            /* the arpeggiator's gain on this voice, 0..1 (1 with the arp off) */
+    float trem;                          /* the LFO's tremolo at the end of the last block (ramped) */
     float level;                         /* for the screen */
 } voice_t;
 static voice_t V[SD_VOICES];
@@ -576,8 +579,69 @@ static void arp_block(uint32_t n)
 }
 
 /* -------------------------------------------------------------- the rest --- */
-static float lfo_ph;
+static float lfo_ph, lfo2_ph;            /* the LFO and its second (HARMONIC), each in its cycle */
+static uint32_t lfo_cyc, lfo2_cyc;       /* cycles each has gone round (STEPS and DRIFT draw on them) */
 static float lfo_val;
+static const float HARM[SD_LFO_HARMS] = {0.25f, 0.5f, 1.5f, 2.0f, 3.0f, 5.0f, 7.39f};
+static const char *const WAVE_NAME[6] = {"SINE", "TRI", "SAW", "SQUARE", "STEPS", "DRIFT"};
+static int harm_of(float v) { int h = (int)(clamp01(v) * (float)SD_LFO_HARMS); return h >= SD_LFO_HARMS ? SD_LFO_HARMS - 1 : h; }
+float sd_lfo_harm(float v) { return HARM[harm_of(v)]; }
+const char *sd_lfo_wave_name(float v) { int w = (int)(clamp01(v) * 5.0f + 0.5f); return WAVE_NAME[w > 5 ? 5 : w]; }
+static float hash_unit(uint32_t c, uint32_t seed)   /* -1..1, the same for the same cycle */
+{
+    uint32_t h = c * 2654435761u ^ (seed + 1u) * 0x9E3779B9u;
+    h ^= h >> 15; h *= 0x2C1B3C6Du; h ^= h >> 12; h *= 0x297A2D39u; h ^= h >> 15;
+    return (float)(h >> 8) * (2.0f / 16777216.0f) - 1.0f;
+}
+/* one LFO's value at phase ph (0..1) of cycle cyc: the cycle bent by WARP, then the wave, melted between its
+ * neighbours by WAVE */
+static float lfo_wave(float ph, uint32_t cyc, uint32_t seed, float wave, float warp)
+{
+    float k = 0.5f + (warp - 0.5f) * 0.9f, u, x, f, a, b;
+    int i, j;
+    u = ph < k ? ph / k * 0.5f : 0.5f + (ph - k) / (1.0f - k) * 0.5f;
+    x = clamp01(wave) * 5.0f;
+    i = (int)x;
+    if (i > 4) i = 4;
+    f = x - (float)i;
+    for (j = 0; j < 2; j++) {
+        int w = i + j;
+        float v;
+        if (f < 0.001f && j) break;
+        switch (w) {
+        case 0: v = fm_sin_turns(u); break;
+        case 1: v = u < 0.25f ? 4.0f * u : u < 0.75f ? 2.0f - 4.0f * u : 4.0f * u - 4.0f; break;
+        case 2: v = 2.0f * u - 1.0f; break;
+        case 3: v = u < 0.5f ? 1.0f : -1.0f; break;
+        case 4: v = hash_unit(cyc, seed); break;
+        default: {
+            float c = 0.5f - 0.5f * fm_sin_turns(u * 0.5f + 0.25f);    /* 0..1, eased */
+            v = hash_unit(cyc, seed) * (1.0f - c) + hash_unit(cyc + 1u, seed) * c;
+        }
+        }
+        if (j) b = v; else a = v;
+    }
+    return f < 0.001f ? a : a + (b - a) * f;
+}
+/* the LFO as heard by a voice whose place on the cycle is `off` turns on: the first, the second blended in */
+static float lfo_voice(float off)
+{
+    float ph = lfo_ph + off, ph2 = lfo2_ph + off, bl = p[P_LBLEND] * 0.5f, v;
+    uint32_t c = lfo_cyc + (uint32_t)ph, c2 = lfo2_cyc + (uint32_t)ph2;
+    v = lfo_wave(ph - fm_floorf(ph), c, 0u, p[P_LWAVE], p[P_LWARP]);
+    if (bl > 0.001f)
+        v += (lfo_wave(ph2 - fm_floorf(ph2), c2, 7u, p[P_LWAVE], p[P_LWARP]) - v) * bl;
+    return v;
+}
+float sd_lfo_phase(void) { return lfo_ph; }
+float sd_lfo_at(float t)
+{
+    float r = sd_lfo_harm(p_target[P_LHARM]), bl = p_target[P_LBLEND] * 0.5f, t2 = t * r, v;
+    v = lfo_wave(t - fm_floorf(t), (uint32_t)t, 0u, p_target[P_LWAVE], p_target[P_LWARP]);
+    if (bl > 0.001f)
+        v += (lfo_wave(t2 - fm_floorf(t2), (uint32_t)t2, 7u, p_target[P_LWAVE], p_target[P_LWARP]) - v) * bl;
+    return v;
+}
 static float dc_x[2], dc_y[2];
 #define SCOPE_N 256u
 static float scope_ring[SCOPE_N];
@@ -595,6 +659,7 @@ void sd_init(void)
         v->req_note = v->note = 48;
         v->req_gate = 0;
         v->env = 0.0f;
+        v->trem = 1.0f;
         v->pcA = 0.0f;
         v->pcB = 0.37f;                  /* the pairs start apart: no phasey attack */
         v->pmA = 0.11f;
@@ -688,10 +753,14 @@ void sd_render(float *outl, float *outr, uint32_t n)
     }
 
     /* the LFO, once a block */
-    lfo_ph += sd_motion_hz(p[P_MOTION]) * (float)n * (1.0f / SD_RATE);
-    if (lfo_ph >= 1.0f)
-        lfo_ph -= 1.0f;
-    lfo_val = fm_sin_turns(lfo_ph);
+    {
+        float d = sd_motion_hz(p[P_MOTION]) * (float)n * (1.0f / SD_RATE);
+        lfo_ph += d;
+        while (lfo_ph >= 1.0f) { lfo_ph -= 1.0f; lfo_cyc++; }
+        lfo2_ph += d * sd_lfo_harm(p[P_LHARM]);
+        while (lfo2_ph >= 1.0f) { lfo2_ph -= 1.0f; lfo2_cyc++; }
+    }
+    lfo_val = lfo_voice(0.0f);
 
     beat_block();
     arp_block(n);
@@ -733,7 +802,7 @@ void sd_render(float *outl, float *outr, uint32_t n)
         int gate = v->req_gate, want = v->req_note;
         float tgt, c, f, detA, detB, incA, incB, incmA, incmB, incS, lfo_v, idx0, idx1, didx;
         float panA_l, panA_r, panB_l, panB_r, lvl, bpg, bpk, bpa1, bpa2, bpa3, peak = 0.0f;
-        float agt, agc;
+        float agt, agc, trem0, dtrem;
         int w;
 
         if (!gate && v->env < 0.00002f) {           /* silent: nothing to do */
@@ -758,7 +827,9 @@ void sd_render(float *outl, float *outr, uint32_t n)
             v->wand[w] += (v->wand_t[w] - v->wand[w]) * 0.004f;
             (void)rnd();
         }
-        f = mtof((float)v->note);
+        /* each voice at its own place on the LFO (SPREAD): vibrato (PITCH) here, the tone and tremolo below */
+        lfo_v = lfo_voice((float)s * p[P_LSPREAD] * 0.3333f);
+        f = mtof((float)v->note) * fm_exp2f(p[P_LPITCH] * p[P_LPITCH] * (2.0f / 12.0f) * lfo_v);
         detA = fm_exp2f((-drift * 14.0f + v->wand[0] * drift * 9.0f) * (1.0f / 1200.0f));
         detB = fm_exp2f((drift * 14.0f + v->wand[1] * drift * 9.0f) * (1.0f / 1200.0f));
         incA = f * detA * (1.0f / SD_RATE);
@@ -768,7 +839,6 @@ void sd_render(float *outl, float *outr, uint32_t n)
         incS = f * 0.5f * (1.0f / SD_RATE);
 
         /* each voice breathes at its own point of the LFO */
-        lfo_v = fm_sin_turns(lfo_ph + (float)s * 0.1667f);
         idx1 = tone_i * (1.0f + depth * 0.9f * lfo_v);
         if (idx1 < 0.0f)
             idx1 = 0.0f;
@@ -797,6 +867,12 @@ void sd_render(float *outl, float *outr, uint32_t n)
             panB_l = 1.0f - pb; panB_r = pb;
         }
         lvl = 0.21f * (1.0f + v->wand[2] * drift * 0.35f);
+        {                                            /* LEVEL: tremolo, ramped across the block */
+            float t1 = 1.0f - p[P_LLEVEL] * (0.5f - 0.5f * lfo_v);
+            trem0 = v->trem;
+            dtrem = (t1 - trem0) * inv_n;
+            v->trem = t1;
+        }
 
         /* AIR's band-pass around three times the pitch */
         {
@@ -814,7 +890,7 @@ void sd_render(float *outl, float *outr, uint32_t n)
             float mA, mB, cA, cB, idx, e, sub, out_l, out_r;
             v->env += (tgt - v->env) * c;
             v->ag += (agt - v->ag) * agc;
-            e = v->env * v->env * lvl * v->ag;           /* squared: fades sound even */
+            e = v->env * v->env * lvl * v->ag * (trem0 + dtrem * (float)i);   /* squared: fades sound even */
             idx = idx0 + didx * (float)i;
             mA = fm_sin_turns(v->pmA + fb * (v->yA1 + v->yA2));
             v->yA2 = v->yA1;

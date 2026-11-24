@@ -152,9 +152,30 @@ while it is on. A tap of PLAY still fades the chord out and in; turning a knob w
 
 ---
 
+## The LFO page
+
+**Tap LFO** and its page stays open (the button lit) until you tap LFO again; **hold LFO** to see it only while
+held. The screen draws two cycles of the LFO as the knobs shape it, with a dot where it is now. MOTION (on the main
+layer) is still its speed, and DEPTH (under SEL) how far it moves the tone and the filter. As it starts it is the
+gentle sine STRATA always had.
+
+| Knob (LFO) | Control | What it does | Range |
+| --- | --- | --- | --- |
+| KNOB1 | **WAVE** | SINE, TRI, SAW, SQUARE, STEPS (a new random level each cycle), DRIFT (a smooth random wander); between two names, a blend of both | 6 shapes |
+| KNOB2 | **WARP** | Bends the cycle: its first half squeezed (left) or stretched (right); a square becomes a pulse, a sine a lopsided swell | middle: straight |
+| KNOB3 | **HARMONIC** | The speed of a second LFO against the first, locked to it | x1/4, x1/2, x1.5, x2, x3, x5, x7.39 |
+| KNOB4 | **BLEND** | How much of that second LFO: at the top, half and half. With HARMONIC this makes complex, repeating (or, at x7.39, never-quite-repeating) shapes | none to half |
+| SELECT | **SPREAD** | Where each voice sits on the cycle: all together (they breathe as one) or spread round it (they take turns) | 0–100 |
+| ALGORITHM | **VIBRATO** | The LFO on the pitch | 0 to 200 cents |
+| PRESETS | **TREMOLO** | The LFO on the level | none to full |
+
+The LFO's seven are on MIDI CC 85, 86, 87, 89, 90, 14 and 15. SAVE keeps them.
+
+---
+
 ## The other buttons
 
-Four more buttons do something besides PLAY, ARP, SEQ, EDIT and the octave buttons; the rest do nothing in STRATA. (PLAY: a tap fades out and in; held, the bitcrusher.)
+Four more buttons do something besides PLAY, ARP, SEQ, EDIT, LFO and the octave buttons; the rest do nothing in STRATA. (PLAY: a tap fades out and in; held, the bitcrusher.)
 
 - **GLO, held, is the guide.** The top half of the screen shows what every button does, laid out as the buttons
   are. Let go and the wave is back. When a button's name tells you nothing, hold GLO.

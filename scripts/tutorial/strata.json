@@ -190,6 +190,40 @@
           "How much of the crushed sound replaces the clean one. 0 (as it starts): off."
         ]
       }
+    },
+    "lfo": {
+      "title": "LFO",
+      "how": "tap LFO (or hold it)",
+      "knobs": {
+        "KNOB1": [
+          "WAVE",
+          "SINE, TRI, SAW, SQUARE, STEPS (a random level each cycle) or DRIFT (a smooth random wander); between two names, a blend of both."
+        ],
+        "KNOB2": [
+          "WARP",
+          "Bends the cycle: its first half squeezed or stretched. A square becomes a pulse, a sine a lopsided swell. The middle is straight."
+        ],
+        "KNOB3": [
+          "HARMONIC",
+          "The speed of a second LFO, locked to the first: x1/4 to x7.39."
+        ],
+        "KNOB4": [
+          "BLEND",
+          "How much of the second LFO, up to half and half: complex, repeating shapes."
+        ],
+        "SELECT": [
+          "SPREAD",
+          "Where each voice sits on the cycle: all together, or spread round it so they take turns."
+        ],
+        "ALGORITHM": [
+          "VIBRATO",
+          "The LFO on the pitch, up to 200 cents."
+        ],
+        "PRESETS": [
+          "TREMOLO",
+          "The LFO on the level, up to full."
+        ]
+      }
     }
   },
   "buttons": {
@@ -250,6 +284,12 @@
       "label": "GUIDE",
       "sub": "hold",
       "text": "Held down, the screen itself shows what every button does, laid out as the buttons are, with a line for the keys. Let go to return. Nothing else changes while it is held."
+    },
+    "LFO": {
+      "label": "LFO",
+      "sub": "tap: page",
+      "hold": "lfo",
+      "text": "A tap opens the LFO's page and keeps it open until LFO is tapped again; held, it shows while held. It draws the LFO and sets its WAVE, WARP, HARMONIC, BLEND, SPREAD, VIBRATO and TREMOLO. Its speed is MOTION, its depth on the tone and filter DEPTH."
     }
   }
 }

@@ -42,6 +42,15 @@ enum {
     P_CRATE,                             /* the sample rate it holds to, 44.1 kHz .. about 400 Hz */
     P_CDRIVE,                            /* how hard it is pushed in: clean .. folded and clipped */
     P_CMIX,                              /* how much of it: none (off) .. all */
+    /* the LFO's (the panel's LFO layer): its shape, and what else it moves besides the tone and the filter (DEPTH) */
+    P_LWAVE,                             /* SINE, TRI, SAW, SQUARE, STEPS (sample and hold), DRIFT (smooth random),
+                                          * each melting into the next */
+    P_LWARP,                             /* the cycle bent: its first half squeezed (left) .. even .. stretched (right) */
+    P_LHARM,                             /* a second LFO's speed against the first: x1/4 .. x7.4 (SD_LFO_HARMS) */
+    P_LBLEND,                            /* how much of the second LFO: none .. half and half */
+    P_LSPREAD,                           /* the voices' places on the cycle: all together .. spread round it */
+    P_LPITCH,                            /* vibrato: none .. 2 semitones either way */
+    P_LLEVEL,                            /* tremolo: none .. full */
     SD_NPARAM
 };
 
@@ -60,6 +69,11 @@ void sd_render(float *l, float *r, uint32_t n);
 /* the latest output, 64 points at 1/16 rate (about 23 ms), for the screen */
 void sd_scope(float *dst64);
 float sd_lfo(void);                      /* the MOTION LFO, -1..1 */
+float sd_lfo_phase(void);                /* where it is in its cycle, 0..1 */
+float sd_lfo_at(float t);                /* the LFO's shape as the knobs set it, t cycles in (for the screen) */
+const char *sd_lfo_wave_name(float v);
+#define SD_LFO_HARMS 7
+float sd_lfo_harm(float v);              /* HARMONIC as a ratio */
 
 /* the arpeggiator: the sounding voices one at a time, lowest to highest (or as ORDER says), each swelling up while the
  * rest sink to FLOOR; one voice alone pulses on and off */
