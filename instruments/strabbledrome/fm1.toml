@@ -18,3 +18,5 @@ install = "https://savageperson334.github.io/strata-fm1/strabbledrome/install/"
 site = "https://savageperson334.github.io/strata-fm1/strabbledrome/"
 credits = "Built on fm1-base by Charles Vestal and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments)."
 description = "STRATA, PALINDROME and BabbleBeat in one firmware. One press of GLO opens the menu; SELECT chooses, SEL opens, GLO or HOME goes back. One instrument runs at a time, and a change starts the other afresh. In an instrument every other control is its own."
+tags = ["synth", "sampler", "speech"]
+screenshot = "docs/img/menu.png"
