@@ -4,6 +4,16 @@ Milestone 2 of [the plan](README.md). Measured 23 November 2026 on STRATA 0.4.2,
 
 **Result: all three fit in one image.** No loader and no second flash region are needed. One buffer has to be shared, and the three apps have to be compiled apart.
 
+**Confirmed by the combined build** (24 November 2026, all three instruments in):
+
+| | Predicted below | Linked |
+| --- | ---: | ---: |
+| Flash image | about 153,000 | 174,480 |
+| RAM (.data + .bss) | 48,532 | 48,756 of 98,304 |
+| RAM pool | 265,732 | 265,992 of 344,064 |
+
+The image is larger than the sum because each instrument's `app.c` is now compiled for speed in a unit of its own, as expected. It is 30% of the slot.
+
 ## Where the numbers come from
 
 - **Device totals** are the FM-1 builds in CI (`tests.yml`, job `device`): the linker's own report.

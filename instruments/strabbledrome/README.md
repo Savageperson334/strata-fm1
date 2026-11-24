@@ -2,7 +2,7 @@
 
 **A fourth M-VAVE FM-1 firmware project: STRATA + PALINDROME + BabbleBeat, selectable from one instrument.**
 
-**Status: milestones 1 and 2 done.** The launcher exists (`app.c`): the menu, the change of instrument and its tests, built for the simulator, the browser and the FM-1 on every push. No instrument is built into it yet, and there is no installer, published emulator or package. The [audit](AUDIT.md) shows all three fit in one image. The three standalone releases are playable and remain independent.
+**Status: milestones 1 to 5 done; not released.** All three instruments are built in and switch from one menu (`app.c`). It passes its simulator test and builds for the FM-1 (174 KB image, 49 of 96 KB RAM, 266 of 336 KB pool) and for the browser on every push. It has not run on a real FM-1, and there is no installer, published emulator or package identity yet: that is milestone 7. [Manual: switching between the three](docs/MANUAL.md) · [Audit](AUDIT.md)
 
 [STRATA source](../../app/) · [PALINDROME source](../palindrome/) · [BabbleBeat source](../babblebeat/) · [Repository](../../README.md)
 
@@ -60,10 +60,10 @@ A flash-resident module/loader is a fallback option **only if the combined image
 
 1. **Launcher proof (done):** Create the real app shell and a consistent GLO menu on host + browser + device, even before integrating sound engines.
 2. **Memory and symbol audit (done, [AUDIT.md](AUDIT.md)):** Prove that app callbacks, pool buffers, persistence and linker sections can be shared or namespaced. Record exact code/flash/RAM totals.
-3. **Integrate STRATA:** Drone, six voices, arpeggiator, drums, Euclidean lanes and saved patches still work. Reserve FX/ENV/LFO for its future modulation expansion.
-4. **Integrate PALINDROME:** Three 1.49-second SILT rings, MORPH injector, SCAN, FLOW, WEAVE, REC and safe switching out of the PCM buffer.
-5. **Integrate BabbleBeat:** Grammar, voice, key mappings, mutation and remembered words.
-6. **Full system tests:** Change instruments many times without crashes, stale audio, stuck buttons, memory overlap or patch corruption. Exercise the same GLO menu in the physical UI and browser emulator.
+3. **Integrate STRATA (done; its own tests still run on standalone STRATA, the combined test covers starting it, playing it and its guide):** Drone, six voices, arpeggiator, drums, Euclidean lanes and saved patches still work. Reserve FX/ENV/LFO for its future modulation expansion.
+4. **Integrate PALINDROME (done, likewise):** Three 1.49-second SILT rings, MORPH injector, SCAN, FLOW, WEAVE, REC and safe switching out of the PCM buffer.
+5. **Integrate BabbleBeat (done, likewise):** Grammar, voice, key mappings, mutation and remembered words.
+6. **Full system tests (begun: `tests/basic.txt` changes instruments repeatedly and in a hurry; not yet on hardware):** Change instruments many times without crashes, stale audio, stuck buttons, memory overlap or patch corruption. Exercise the same GLO menu in the physical UI and browser emulator.
 7. **Separate release:** Only after a native build, device checks and recovery validation should STRABBLEDROME receive its own package identity, VERSION, installer and fourth playable site.
 
 ### Boundaries
@@ -74,7 +74,15 @@ A flash-resident module/loader is a fallback option **only if the combined image
 - No fake installation links or packaged firmware before an actual successful build.
 - No LFO, FX or ENV button permanently stolen from STRATA.
 
-## Build and run the launcher
+## How it is put together
+
+- `app.c` is the launcher: the menu, the change of instrument, and the platform's drawing handed on (`shim.h`).
+- `engines/strata.c`, `palindrome.c`, `babblebeat.c` each include that instrument's own `app.c`, unchanged, as a unit of its own, with its `app_` calls renamed (`engine.h`). The sound engines are included the same way.
+- STRATA's reverb buffers and PALINDROME's rings share one workspace (`FM1_WORKSPACE`, an `#ifdef` in each engine). The launcher clears it on every change.
+- GLO never reaches an instrument. HELP in the menu presents GLO to the running instrument so that it shows its own guide.
+- Not done: remembering the last instrument across power-off, and keeping an instrument's state when you leave it.
+
+## Build and run
 
 ~~~sh
 python3 base/tools/build.py instruments/strabbledrome --host

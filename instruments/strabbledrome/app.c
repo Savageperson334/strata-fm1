@@ -120,6 +120,13 @@ static void finish_change(void)
     }
     changing = leaving = -1;
 }
+/* back from the menu to an instrument that went on running: the menu has been drawn over its screen, and an
+ * instrument that redraws only what changes (STRATA) would leave the menu standing, so it draws its first screen
+ * again. Its sound and its settings are as they were */
+static void resume(void)
+{
+    if (ready(owner) && changing < 0 && ENGINE[owner].ui_init) ENGINE[owner].ui_init();
+}
 /* the instrument's guide closed again (one that toggles: GLO let go, pressed, let go) */
 static void close_guide(void)
 {
@@ -164,11 +171,12 @@ void app_input_only(void)
         if (cursor < 0) cursor = 0;
         if (cursor >= NMENU) cursor = NMENU - 1;
         if (nb & (1u << B_SEL)) {
-            if (cursor < NENGINE) { change(cursor); view = V_ENGINE; swallow = 1; }
+            if (cursor < NENGINE) { change(cursor); view = V_ENGINE; swallow = 1; resume(); }
             else if (cursor == M_SYSTEM) view = V_SYSTEM;
-            else view = ready(owner) && changing < 0 ? V_GUIDE : V_HELP;   /* (HELP: the instrument's own guide, if one runs) */
+            else if (ready(owner) && changing < 0) { view = V_GUIDE; resume(); }   /* (HELP: the instrument's own guide, if one runs) */
+            else view = V_HELP;
         } else if (nb & ((1u << B_GLO) | (1u << B_HOME))) {
-            if (chosen >= 0) { view = V_ENGINE; swallow = 1; }
+            if (chosen >= 0) { view = V_ENGINE; swallow = 1; resume(); }
             else app_say("CHOOSE AN INSTRUMENT:", "SEL");
         }
     } else if (nb & ((1u << B_GLO) | (1u << B_HOME) | (1u << B_SEL))) {
