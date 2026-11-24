@@ -35,7 +35,7 @@ enum { E_STRATA, E_PALINDROME, E_BABBLEBEAT, NENGINE };
 #define CALLS(p) p##_init, p##_ui_init, p##_frame, p##_input_only, p##_panic, p##_render, p##_say
 static const engine ENGINE[NENGINE] = {
     {"STRATA", "DRONE / RHYTHM", 0, CALLS(strata)},
-    {"PALINDROME", "GRANULAR RINGS", 1, CALLS(palindrome)},
+    {"PALINDROME", "THREE RINGS", 0, CALLS(palindrome)},
     {"BABBLEBEAT", "ROBOTIC SPEECH", 0, CALLS(babblebeat)},
 };
 static int ready(int e) { return e >= 0 && e < NENGINE && ENGINE[e].render != 0; }

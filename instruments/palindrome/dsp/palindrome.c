@@ -1,22 +1,14 @@
 /* SPDX-License-Identifier: MPL-2.0 */
-/* Shared device / host / WebAssembly audio engine. No allocation in render.
+/* PALINDROME's engine (dsp/palindrome.h says what it is). Shared by the FM-1, the simulator and the browser.
  *
- * Who touches what: the render (the audio interrupt on the FM-1) writes a capture's samples, the grains and the
- * voices; the UI (pm_ring_*, pm_capture, pm_service) owns the rings' records, which ring is selected and the
- * controls' targets. A ring's samples are written only while it is being captured, when nothing may read it; once
- * pm_service has made it a ring they are never written again. */
+ * Who touches what: the panel (pm_set, pm_note, pm_capture, pm_jump ...) only leaves requests and targets; the render
+ * (the audio interrupt on the FM-1) acts on them at the start of its next block, and alone writes the rings, the
+ * voices and the grains. A ring being captured is not ready, so nothing reads it while it is written. */
 #include "palindrome.h"
 #include "fastmath.h"
-#include "plat.h"                        /* PLAT_POOL; its clamp is the integer one: floats use fclamp */
-#define MASK (PM_BUFFER-1u)
+#include "plat.h"                        /* PLAT_POOL */
 #define INV_RATE (1.0f/44100.0f)
-#ifndef GEN_LEVEL
-#define GEN_LEVEL .2f                     /* how loud (rms) a generation is made */
-#endif
-#ifndef GEN_GAIN
-#define GEN_GAIN 1.f                      /* a generation's grains against the ring kept under them (set by measurement) */
-#endif
-#define SEAM 256u                        /* a capture's ends are eased over this many samples: the loop closes clean */
+#define SEAM 256u                        /* a capture's ends eased over this many samples: the loop closes clean */
 #ifdef FM1_WORKSPACE                     /* in a firmware of several instruments (STRABBLEDROME): the rings in the
                                           * memory they share, of which only the instrument running has the use */
 extern uint32_t FM1_WORKSPACE[];
@@ -24,598 +16,424 @@ extern uint32_t FM1_WORKSPACE[];
 #else
 static int16_t memory[PM_RINGS][PM_BUFFER] PLAT_POOL;
 #endif
+
 typedef struct {
-    float phase, m1, m2, env, modal, filt, inc;
-    float life;                          /* 1 as it is struck, dying away from there (DECAY); held at 1 at its top */
+    uint32_t age;                        /* samples since it was struck; PM_NOTE: over */
+    float phase, m1, m2, modal, filt, inc, amp, x, y;
     int note;
 } Voice;
 typedef struct {
-    float pos, speed, age, step, pan, amp, atk, up, down, gain;
-    const int16_t *mem;                  /* the ring it reads: its own to the end, whatever is selected meanwhile */
-    int slot, active, dying;
+    float pos, inc, age, step, amp, gain;
+    int ring, active, dying;
 } Grain;
-/* the SILT controls each ring keeps for itself */
-static const uint8_t RING_PAR[]={S_POS,S_SIZE,S_DENSITY,S_SPRAY,S_PITCH,S_REVERSE,S_SHAPE,
-                                 S_TIMING,S_VARY,S_SCATTER,S_DETUNE,S_CLUSTER,G_STEREO,G_SCAN,S_LOOP,S_WEAVE,S_MODE};
-#define NPAR ((int)sizeof RING_PAR)
-typedef struct {
-    volatile int ready;                  /* a finished ring: its samples are final */
-    int id, parent, source, locked;
-    float par[sizeof RING_PAR];
-} Ring;
-static Ring ring[PM_RINGS];
-static volatile int selected;            /* the slot the grains start in; -1 none */
-static int next_id;
-/* a capture */
-static volatile int cap_state,cap_event,cap_abort;
-static volatile uint32_t cap_i;          /* samples written so far */
-static int cap_slot,cap_source,cap_parent,cap_carry;   /* (cap_carry: the slot copied under it, -1 none) */
-static uint32_t norm_i;
-static float cap_peak,cap_gain,cap_sq;   /* (cap_sq: the sum of its samples' squares, for a generation's level) */
-static float cap_dc;
-static float lane_phase[PM_RINGS],lane_scan[PM_RINGS],lane_launch[PM_RINGS],lane_next[PM_RINGS];
-static float lane_pos[PM_RINGS],lane_rate[PM_RINGS],lane_weight[PM_RINGS],lane_timing[PM_RINGS];
-static int lane_mode[PM_RINGS];
-static volatile uint32_t kill_req[PM_RINGS];
-static uint32_t kill_seen[PM_RINGS];
 
 static Voice voice[PM_VOICES];
 static Grain grain[PM_GRAINS];
-static volatile int requested[PM_VOICES];
-static volatile uint32_t struck[PM_VOICES];   /* counts each pm_note with a note: a strike, even of the same note */
-static uint32_t struck_seen[PM_VOICES];
-static volatile int monitor;
-static int dropped_id;
-static volatile int grains_on;
-static volatile uint32_t burst_request;
-static volatile int gpitch[PM_PITCHES];        /* the keys held for the grains, semitones (PM_NO_PITCH: none) */
-static volatile uint32_t strike_request[PM_PITCHES];
-static uint32_t strike_seen[PM_PITCHES];
-static int turn;                         /* whose turn among the held pitches */
-
-static uint32_t burst_seen, half, rng;
+static volatile float target[PM_PARAMS], rtarget[PM_RINGS][PM_RPARAMS];
+static float p[PM_PARAMS], rp[PM_RINGS][PM_RPARAMS];
+static const float DEFAULTS[PM_PARAMS] = {
+    .30f, .65f, .40f, .55f, .45f, .25f,  /* X Y COMPLEX TONE MOVE SHAPE: modal-ish FM, moving, a bell */
+    .80f, .80f, .80f, .70f, .25f, .55f,  /* the rings' levels, MORPH's, DAMP, WIDTH */
+};
+static const float RDEFAULTS[PM_RPARAMS] = {
+    0.f, .55f, .70f, .5f, .75f, 0.f,     /* POSITION, SIZE 0.17 s, DENSITY 2 (the plain recording), PITCH 0,
+                                          * SPEED as recorded, SPREAD none */
+};
+/* requests from the panel: each a count the render follows */
+#define NQ 8u
+static volatile int note_q[NQ];
+static volatile uint32_t note_w;
+static uint32_t note_r;
+static volatile int playing, gate[PM_RINGS], key_semis[PM_RINGS];
+static volatile float jump_to[PM_RINGS];
+static volatile uint32_t jump_req[PM_RINGS];
+static uint32_t jump_seen[PM_RINGS];
+static volatile int cap_req_ring, cap_req_src;
+static volatile uint32_t cap_req;
+static uint32_t cap_seen;
+/* the rings */
+static volatile int ready[PM_RINGS];
+static float head[PM_RINGS], pos_now[PM_RINGS], ring_amp[PM_RINGS], spawn_at[PM_RINGS], spawn_next[PM_RINGS];
+static float ring_lp[PM_RINGS];
+static volatile float head_now[PM_RINGS], level_now[PM_RINGS];
+/* a capture */
+enum { CAP_IDLE, CAP_REC, CAP_FINISH };
+static volatile int cap_state, cap_ring = -1, cap_src;
+static volatile uint32_t cap_i;
+static volatile int cap_event = -1;      /* for pm_service: the ring finished, PM_EV_SILENT, or -1 */
+static uint32_t norm_i;
+static float cap_peak, cap_gain, cap_dc, cap_lp, half_sample;
+static int half;
+/* the rest */
+static uint32_t rng = 0x9E3779B9u;
+static float dc_l, dc_r, prev_l, prev_r, scope[64];
 static volatile uint32_t scope_wr;
-static float half_sample, clock_phase, dry_gain, wet_gain;
-static float capture_lp, dc_l, dc_r, prev_l, prev_r, scope[64];
-static volatile float target[PM_PARAMS];
-static float p[PM_PARAMS];
-static float mx,my;
-static volatile float position_now;
-static float gate_env,noise_lp,write_amt;   /* the gate's ear on the sound; the hiss's low part; the gate and
-                                          * dropouts' hand on the level (eased over ~2 ms) */
-static int dropping;
-static const float defaults[PM_PARAMS]={
- .35f,.65f,.35f,.5f,.4f,0,.55f,
- .30f,.55f,.42f,.08f,.5f,0,0,            /* SCAN begins within the audio instead of at the silent seam */
- 1.f,.20f,.18f,.5f,.65f,.35f,.75f,          /* (MIX: while grains sound they are what is heard; SHAPE: a bell) */
- 0,.5f,0,0,0,                            /* a clean recording: no hiss, no crush, no gate, no dropouts */
- 0,0,0,0,0,                              /* grains on an even pulse, all one length and pitch, one at a time */
- .7f,                                    /* DECAY: a struck note, gone in a few seconds */
- 0.f,                                    /* DRIFT: off until the user enables it */
- .15f,                                   /* slow moving readhead; FLOW adds a wandering offset */
- 0.f,                                    /* WEAVE: selected ring only */
- .375f};                                 /* CLOUD mode (legacy grain behavior) */
-static float fclamp(float x,float a,float b){return x<a?a:x>b?b:x;}
-static float wrap(float x){return x-fm_floorf(x);}
-static float rnd(void){rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return (float)(rng>>8)*(1.0f/16777216.0f);}
-static float soft(float x){return x/(1.0f+(x<0?-x:x));}
-void pm_set(int id,float v){if(id>=0&&id<PM_PARAMS&&v>=0&&v<=1)target[id]=v;}
-float pm_get(int id){return id>=0&&id<PM_PARAMS?target[id]:0;}
-void pm_note(int slot,int note){
-    if(slot<0||slot>=PM_VOICES)return;
-    requested[slot]=note>=0&&note<=127?note:-1;
-    if(note>=0&&note<=127)struck[slot]++;
-}
-int pm_voice_sounding(int slot){
-    if(slot<0||slot>=PM_VOICES||requested[slot]<0)return 0;
-    return struck[slot]!=struck_seen[slot]||voice[slot].life>.003f;      /* (just struck, or not yet died away) */
-}
-void pm_monitor(int on){monitor=on!=0;}
-int pm_capture_dropped(void){return dropped_id;}
-void pm_grains(int on){if(on&&!grains_on)burst_request++;grains_on=on!=0;}
-int pm_grains_on_ring(int slot){
-    int n=0;if(slot<0||slot>=PM_RINGS)return 0;
-    for(int i=0;i<PM_GRAINS;i++)if(grain[i].active&&grain[i].slot==slot)n++;
-    return n;
-}
-float pm_ring_mix_weight(int slot){
-    return slot>=0&&slot<PM_RINGS&&ring[slot].ready?lane_weight[slot]:0.f;
-}
-void pm_burst(void){burst_request++;}
-void pm_grain_pitch(int slot,int semis){
-    if(slot>=0&&slot<PM_PITCHES)gpitch[slot]=semis>=-48&&semis<=48?semis:PM_NO_PITCH;
-}
-void pm_strike(int slot){if(slot>=0&&slot<PM_PITCHES)strike_request[slot]++;}
-void pm_panic(void){
-    for(int i=0;i<PM_VOICES;i++){requested[i]=-1;voice[i].env=0;voice[i].note=-1;voice[i].life=0;struck_seen[i]=struck[i];}
-    for(int i=0;i<PM_GRAINS;i++)grain[i].active=0;
-    for(int i=0;i<PM_PITCHES;i++){gpitch[i]=PM_NO_PITCH;strike_seen[i]=strike_request[i];}
-    grains_on=0;burst_seen=burst_request; wet_gain=0;dry_gain=1;
-    capture_lp=dc_l=dc_r=prev_l=prev_r=0;
-    cap_state=PM_CAP_IDLE;cap_event=0;cap_abort=0;      /* a running capture is dropped; the rings stay */
-}
-void pm_init(void){
-    /* (plain loops: the FM-1's toolchain has no <string.h>) */
-    static const Voice voice0;static const Grain grain0;
-    for(int r=0;r<PM_RINGS;r++){
-        for(uint32_t i=0;i<PM_BUFFER;i++)memory[r][i]=0;
-        ring[r].ready=0;ring[r].id=ring[r].parent=ring[r].source=ring[r].locked=0;
-        lane_phase[r]=lane_scan[r]=lane_launch[r]=lane_pos[r]=lane_weight[r]=0;
-        lane_next[r]=1;
-        kill_seen[r]=kill_req[r]=0;
-    }
-    for(int i=0;i<PM_VOICES;i++)voice[i]=voice0;
-    for(int i=0;i<PM_GRAINS;i++)grain[i]=grain0;
-    for(int i=0;i<64;i++)scope[i]=0;
-    half=scope_wr=burst_request=burst_seen=0;
-    selected=-1;next_id=1;cap_i=0;cap_slot=cap_carry=-1;monitor=0;dropped_id=0;
-    rng=0x9f26ad31u;half_sample=clock_phase=0;turn=0;
-    pm_panic();
-    for(int i=0;i<PM_PARAMS;i++)p[i]=target[i]=defaults[i];
-    gate_env=noise_lp=0;write_amt=1;dropping=0;
-    mx=p[M_X];my=p[M_Y];
-}
-float pm_morph_x(void){return mx;}
-float pm_morph_y(void){return my;}
-int pm_active_grains(void){int n=0;for(int i=0;i<PM_GRAINS;i++)n+=grain[i].active;return n;}
-void pm_scope(float *out,uint32_t n){
-    if(n>64)n=64;uint32_t end=scope_wr;
-    for(uint32_t i=0;i<n;i++)out[i]=scope[(end-n+i)&63u];
-}
-float pm_position(void){return position_now;}
+static volatile float morph_x, morph_y, newest_age = -1.f;
+static int newest = -1;
 
-/* ------------------------------------------------------------------ the rings (the UI's side) --- */
-static void keep(int slot){for(int k=0;k<NPAR;k++)ring[slot].par[k]=target[RING_PAR[k]];}
-static void bring(int slot){for(int k=0;k<NPAR;k++)target[RING_PAR[k]]=ring[slot].par[k];}
-static float ring_value(int slot,int id){
-    if(slot==selected)return p[id];
-    for(int k=0;k<NPAR;k++)if(RING_PAR[k]==id)return ring[slot].par[k];
-    return p[id];
+static float fclamp(float x, float a, float b) { return x < a ? a : x > b ? b : x; }
+static float wrap(float x) { return x - fm_floorf(x); }
+static float rnd(void) { rng ^= rng << 13; rng ^= rng >> 17; rng ^= rng << 5; return (float)(rng >> 8) * (1.0f / 16777216.0f); }
+static float soft(float x) { return x / (1.0f + (x < 0 ? -x : x)); }
+
+/* ------------------------------------------------------------------ the panel's side --- */
+void pm_set(int id, float v) { if (id >= 0 && id < PM_PARAMS) target[id] = fclamp(v, 0, 1); }
+float pm_get(int id) { return id >= 0 && id < PM_PARAMS ? target[id] : 0; }
+void pm_rset(int r, int id, float v) { if (r >= 0 && r < PM_RINGS && id >= 0 && id < PM_RPARAMS) rtarget[r][id] = fclamp(v, 0, 1); }
+float pm_rget(int r, int id) { return r >= 0 && r < PM_RINGS && id >= 0 && id < PM_RPARAMS ? rtarget[r][id] : 0; }
+float pm_size_s(float v) { return .02f * fm_exp2f(5.64f * fclamp(v, 0, 1)); }          /* 20 ms .. 1 s */
+float pm_overlap(float v) { return .25f * fm_exp2f(4.32f * fclamp(v, 0, 1)); }         /* .25 .. 5 */
+int pm_semis(float v) { float s = (fclamp(v, 0, 1) - .5f) * 48.f; return (int)(s < 0 ? s - .5f : s + .5f); }
+float pm_speed(float v)
+{
+    float s = (fclamp(v, 0, 1) - .5f) * 4.f;
+    if (s > -.12f && s < .12f) return 0.f;                     /* (a dead zone: the middle is still) */
+    return s;
 }
-static int ring_mode(int slot){
-    int k=(int)(ring_value(slot,S_MODE)*3.999f);
-    return k<0?0:k>3?3:k;
+void pm_note(int note)
+{
+    if (note < 0 || note > 127) return;
+    note_q[note_w % NQ] = note;
+    note_w++;
 }
-int pm_ring_count(void){int n=0;for(int r=0;r<PM_RINGS;r++)n+=ring[r].ready;return n;}
-int pm_ring_locked(int slot){return slot>=0&&slot<PM_RINGS&&ring[slot].ready?ring[slot].locked:0;}
-int pm_ring_lock(int slot,int locked){
-    if(slot<0||slot>=PM_RINGS||!ring[slot].ready||cap_state!=PM_CAP_IDLE)return -1;
-    ring[slot].locked=!!locked;return 0;
+int pm_notes(void) { int n = 0; for (int j = 0; j < PM_VOICES; j++) n += voice[j].note >= 0 && voice[j].age < PM_NOTE; return n; }
+float pm_note_age(void) { return newest_age; }
+float pm_morph_x(void) { return morph_x; }
+float pm_morph_y(void) { return morph_y; }
+void pm_play(int on) { playing = on != 0; }
+void pm_gate(int r, int on) { if (r >= 0 && r < PM_RINGS) gate[r] = on != 0; }
+void pm_jump(int r, float pos) { if (r >= 0 && r < PM_RINGS) { jump_to[r] = wrap(pos); jump_req[r]++; } }
+void pm_key_pitch(int r, int semis) { if (r >= 0 && r < PM_RINGS) key_semis[r] = semis < -48 ? -48 : semis > 48 ? 48 : semis; }
+int pm_key_semis(int r) { return r >= 0 && r < PM_RINGS ? key_semis[r] : 0; }
+int pm_ring_ready(int r) { return r >= 0 && r < PM_RINGS && ready[r]; }
+int pm_ring_count(void) { int n = 0; for (int r = 0; r < PM_RINGS; r++) n += ready[r]; return n; }
+float pm_head(int r) { return r >= 0 && r < PM_RINGS ? head_now[r] : 0; }
+float pm_ring_level(int r) { return r >= 0 && r < PM_RINGS ? level_now[r] : 0; }
+#ifdef PLAT_HOST
+const int16_t *pm_ring_pcm(int r) { return pm_ring_ready(r) ? memory[r] : 0; }
+#endif
+void pm_ring_wave(int r, float *lo, float *hi, uint32_t n)
+{
+    uint32_t written = 0, step;
+    if (r < 0 || r >= PM_RINGS || !n) return;
+    if (ready[r]) written = PM_BUFFER;
+    else if (cap_state == CAP_REC && cap_ring == r) written = cap_i;
+    step = PM_BUFFER / n;
+    for (uint32_t k = 0; k < n; k++) {
+        uint32_t a = k * step, b = a + step;
+        float l = 1, h = -1;
+        if (b <= written)
+            for (uint32_t i = a; i < b; i += 4) {
+                float v = (float)memory[r][i] * (1.f / 32768.f);
+                if (v < l) l = v;
+                if (v > h) h = v;
+            }
+        lo[k] = l; hi[k] = h;
+    }
 }
-int pm_ring_selected(void){return selected;}
-int pm_ring_info(int slot,int *id,int *parent,int *source){
-    if(slot<0||slot>=PM_RINGS||!ring[slot].ready)return 0;
-    if(id)*id=ring[slot].id;
-    if(parent)*parent=ring[slot].parent;
-    if(source)*source=ring[slot].source;
+int pm_grain(int i, float *at, float *env, int *r)
+{
+    Grain *g;
+    if (i < 0 || i >= PM_GRAINS) return 0;
+    g = &grain[i];
+    if (!g->active) return 0;
+    *at = g->pos * (1.f / (float)PM_BUFFER);
+    *env = fm_sin_turns(g->age * .5f);
+    *r = g->ring;
     return 1;
 }
-int pm_ring_select(int slot){
-    int old=selected;
-    if(slot<0||slot>=PM_RINGS||!ring[slot].ready||cap_state!=PM_CAP_IDLE)return -1;
-    if(slot==old)return 0;
-    if(old>=0&&ring[old].ready)keep(old);
-    bring(slot);
-    selected=slot;
+int pm_active_grains(void) { int n = 0; for (int i = 0; i < PM_GRAINS; i++) n += grain[i].active; return n; }
+int pm_capture(int r, int src)
+{
+    if (r < 0 || r >= PM_RINGS || cap_state != CAP_IDLE || cap_req != cap_seen) return -1;
+    cap_req_ring = r; cap_req_src = src;
+    cap_req++;
     return 0;
 }
-int pm_ring_delete(int slot){
-    int best=-1;
-    if(slot<0||slot>=PM_RINGS||!ring[slot].ready)return -1;
-    if(cap_state!=PM_CAP_IDLE&&cap_carry==slot)return -1;   /* (a running capture is reading it) */
-    ring[slot].ready=0;ring[slot].locked=0;
-    kill_req[slot]++;                    /* its grains fade out */
-    if(selected==slot){                  /* the newest of those left */
-        for(int r=0;r<PM_RINGS;r++)if(ring[r].ready&&(best<0||ring[r].id>ring[best].id))best=r;
-        if(best>=0)bring(best);
-        selected=best;
-    }
-    return 0;
+int pm_capture_ring(void) { return cap_state != CAP_IDLE ? cap_ring : cap_req != cap_seen ? cap_req_ring : -1; }
+int pm_capture_source(void) { return cap_req != cap_seen ? cap_req_src : cap_src; }
+float pm_capture_progress(void)
+{
+    if (cap_state == CAP_REC) return (float)cap_i * (1.f / (float)PM_BUFFER);
+    return cap_state == CAP_FINISH ? 1.f : 0.f;
 }
-void pm_ring_clear(void){
-    if(cap_state!=PM_CAP_IDLE)cap_abort=1;
-    for(int r=0;r<PM_RINGS;r++)if(ring[r].ready){ring[r].ready=0;ring[r].locked=0;kill_req[r]++;}
-    selected=-1;
-}
-void pm_ring_wave(int slot,float *lo,float *hi,uint32_t n){
-    uint32_t count,span;
-    if(!n)return;
-    if(slot<0||slot>=PM_RINGS){for(uint32_t i=0;i<n;i++){lo[i]=1;hi[i]=-1;}return;}
-    /* a finished ring: all of it; the one being captured: as far as it has been written; else nothing */
-    count=ring[slot].ready?PM_BUFFER:(cap_state!=PM_CAP_IDLE&&cap_slot==slot)?cap_i:0u;
-    if(count>PM_BUFFER)count=PM_BUFFER;
-    span=PM_BUFFER/n;
-    for(uint32_t i=0;i<n;i++){
-        uint32_t base=i*span;
-        float a=0,b=0;
-        if(base+span>count){lo[i]=1;hi[i]=-1;continue;}
-        for(uint32_t j=0;j<8;j++){
-            float v=(float)memory[slot][(base+j*span/8u)&MASK]*(1.f/32768.f);
-            if(v<a)a=v;
-            if(v>b)b=v;
-        }
-        lo[i]=a;hi[i]=b;
-    }
-}
-/* ------------------------------------------------------------------ a capture (the UI's side) --- */
-static float cap_keep=-1.f;              /* a generation's share of the old ring (-1: an ordinary capture, CARRY's) */
-int pm_capture_keep(int source,float keep){
-    int r=pm_capture(source);
-    if(!r)cap_keep=keep<0?0:keep>1?1:keep;   /* (the render reads it with the first sample it writes: set at once) */
-    return r;
-}
-#ifdef PLAT_HOST
-const int16_t *pm_ring_pcm(int slot){return slot>=0&&slot<PM_RINGS&&ring[slot].ready?memory[slot]:0;}
-#endif
-int pm_capture(int source){
-    int slot=-1,sel=selected;
-    if(cap_state!=PM_CAP_IDLE)return PM_ERR_BUSY;
-    if(source==PM_SRC_SILT&&(sel<0||!ring[sel].ready))return PM_ERR_NOSRC;
-    dropped_id=0;
-    for(int r=0;r<PM_RINGS;r++)if(!ring[r].ready){slot=r;break;}
-    if(slot<0){
-        /* no room: the oldest ring gives up its place. Not the selected one: the capture is about to read it (as
-         * SILT's source, or under CARRY) while it writes */
-        for(int r=0;r<PM_RINGS;r++)if(r!=sel&&!ring[r].locked&&(slot<0||ring[r].id<ring[slot].id))slot=r;
-        if(slot<0)return PM_ERR_FULL;    /* (one ring only, and it selected: cannot be) */
-        dropped_id=ring[slot].id;
-        ring[slot].ready=0;ring[slot].locked=0;
-        kill_req[slot]++;                /* its grains fade out */
-    }
-    cap_slot=slot;cap_source=source==PM_SRC_SILT?PM_SRC_SILT:PM_SRC_MORPH;
-    cap_parent=cap_source==PM_SRC_SILT?ring[sel].id:0;
-    cap_carry=sel>=0&&ring[sel].ready?sel:-1;
-    cap_i=0;norm_i=0;cap_peak=0;cap_sq=0;cap_dc=0;cap_event=0;cap_abort=0;cap_keep=-1.f;
-    gate_env=0;write_amt=1;dropping=0;
-    cap_state=PM_CAP_RECORDING;          /* (last: from here the render writes it) */
-    return 0;
-}
-int pm_capture_state(void){return cap_state;}
-float pm_capture_progress(void){
-    int st=cap_state;
-    return st==PM_CAP_IDLE?0.f:st==PM_CAP_FINISHING?1.f:(float)cap_i*(1.f/PM_BUFFER);
-}
-int pm_capture_slot(void){return cap_state==PM_CAP_IDLE?-1:cap_slot;}
-int pm_capture_source(void){return cap_source;}
-int pm_service(int *slot){
-    int ev=cap_event,old=selected;
-    if(!ev)return PM_EV_NONE;
-    if(ev==PM_EV_COMMITTED){
-        Ring *r=&ring[cap_slot];
-        if(old>=0&&ring[old].ready)keep(old);
-        /* the new ring starts with the settings in use. Made from SILT's grains, what those already did to its
-         * sound is set back, so that it is not done twice over */
-        if(cap_source==PM_SRC_SILT){
-            target[S_PITCH]=.5f;target[S_REVERSE]=0;target[S_SCATTER]=0;target[S_DETUNE]=0;
-            /* The mix is PRINTED into this ring; don't immediately layer the ancestors again. */
-            target[S_WEAVE]=0;
-        }
-        r->id=next_id++;r->parent=cap_parent;r->source=cap_source;r->locked=0;
-        keep(cap_slot);
-        r->ready=1;
-        selected=cap_slot;
-        if(slot)*slot=cap_slot;
-    }
-    cap_event=0;
-    cap_state=PM_CAP_IDLE;
-    return ev;
+int pm_service(void)
+{
+    int e = cap_event;
+    if (e == -1) return -1;
+    if (e >= 0) ready[e] = 1;                                  /* (its samples final: from now it may be read) */
+    cap_event = -1;
+    cap_state = CAP_IDLE;
+    return e;
 }
 #ifdef PLAT_WEB
 /* For the browser emulator's guide (web/emu/app_worklet.js reads it, scripts/tutorial/tutorial.js follows it): the
- * rings there are (bits 0..3), the selected ring's number (4..7, 0 none), a capture running (8), how far it is in
- * percent (9..15), grains sounding (16..20). Only in the WebAssembly build. */
-__attribute__((used, visibility("default"))) uint32_t pm_web_state(void){
-    int sel=selected,id=sel>=0&&ring[sel].ready?ring[sel].id:0;
-    return (uint32_t)pm_ring_count()|((uint32_t)(id&15)<<4)|((uint32_t)(cap_state!=PM_CAP_IDLE)<<8)|
-           ((uint32_t)(pm_capture_progress()*100.f)<<9)|((uint32_t)(pm_active_grains()&31)<<16);
+ * rings recorded (bits 0..3), the ring being captured plus one (4..7), a capture running (8), how far it is in percent
+ * (9..15), grains sounding (16..20). Only in the WebAssembly build. */
+__attribute__((used, visibility("default"))) uint32_t pm_web_state(void)
+{
+    int c = pm_capture_ring();
+    return (uint32_t)pm_ring_count() | ((uint32_t)(c + 1) << 4) | ((uint32_t)(c >= 0) << 8) |
+           ((uint32_t)(pm_capture_progress() * 100.f) << 9) | ((uint32_t)(pm_active_grains() & 31) << 16);
 }
 #endif
-/* ------------------------------------------------------------------ the grains --- */
-/* a grain's loudness now: up over its first part (SHAPE: how much of it), down over the rest, eased at both ends */
-static float grain_env(const Grain *g){
-    float t=g->age<g->atk?g->age*g->up:(1.f-g->age)*g->down;
-    return t*t*(3.f-2.f*t);
+void pm_scope(float *out, uint32_t n)
+{
+    uint32_t w = scope_wr;
+    for (uint32_t i = 0; i < n; i++) out[i] = scope[(w - n + i) & 63u];
 }
-int pm_grain(int i,float *at,float *env,int *slot){
-    if(i<0||i>=PM_GRAINS||!grain[i].active)return 0;
-    *at=grain[i].pos*(1.0f/PM_BUFFER);
-    *env=grain_env(&grain[i])*grain[i].gain;
-    if(slot)*slot=grain[i].slot;
-    return grain[i].speed<0?-1:1;
+void pm_panic(void)
+{
+    for (int j = 0; j < PM_VOICES; j++) { voice[j].note = -1; voice[j].age = PM_NOTE; voice[j].amp = 0; }
+    for (int i = 0; i < PM_GRAINS; i++) grain[i].active = 0;
+    note_r = note_w;
+    playing = 0;
+    for (int r = 0; r < PM_RINGS; r++) { gate[r] = 0; ring_amp[r] = 0; }
+    if (cap_state == CAP_REC) { cap_state = CAP_IDLE; ready[cap_ring] = 0; cap_ring = -1; }  /* (a half capture: dropped) */
+    cap_seen = cap_req;
+    dc_l = dc_r = prev_l = prev_r = 0;
 }
-/* Four distinct algorithms. The source audio stays immutable; mode affects only how grains read it. */
-static void spawn(int slot,float position,float amp,float semis){
-    int s=-1;
-    if(slot<0||slot>=PM_RINGS||!ring[slot].ready)return;
-    for(int i=0;i<PM_GRAINS;i++)if(!grain[i].active){s=i;break;}
-    if(s<0)return;
-    Grain *g=&grain[s];
-    int mode=ring_mode(slot);
-    float size=ring_value(slot,S_SIZE),vary=ring_value(slot,S_VARY);
-    float seconds=.020f+.480f*size*size;
-    if(mode==0)seconds=.070f+.34f*size;     /* LOOP: coherent overlap */
-    if(mode==2)seconds=.020f+.11f*size;     /* PULSE: distinct attacks */
-    if(mode==3)seconds=.012f+.17f*size;     /* FRACTURE: short fragments */
-    if(vary>.005f)seconds=fclamp(seconds*fm_exp2f((rnd()-.5f)*4.f*vary),.010f,.75f);
-    float scatter=ring_value(slot,S_SCATTER),detune=ring_value(slot,S_DETUNE);
-    float st=(ring_value(slot,S_PITCH)-.5f)*48.f+semis;
-    if(scatter>.005f&&rnd()<scatter){
-        static const int8_t JUMP[7]={12,-12,7,-5,24,19,-24};
-        st+=(float)JUMP[(int)(rnd()*(2.f+scatter*4.99f))];
+void pm_init(void)
+{
+    for (int i = 0; i < PM_PARAMS; i++) target[i] = p[i] = DEFAULTS[i];
+    for (int r = 0; r < PM_RINGS; r++) {
+        for (int i = 0; i < PM_RPARAMS; i++) rtarget[r][i] = rp[r][i] = RDEFAULTS[i];
+        ready[r] = 0; head[r] = pos_now[r] = 0; ring_amp[r] = 0; spawn_at[r] = 0; spawn_next[r] = 1;
+        ring_lp[r] = 0; key_semis[r] = 0; gate[r] = 0; jump_seen[r] = jump_req[r];
     }
-    if(detune>.005f)st+=(rnd()-.5f)*detune;
-    if(mode==3){st+=(rnd()-.5f)*12.f;position=wrap(position+(rnd()-.5f)*.85f);}
-    float speed=fclamp(.5f*fm_exp2f(st*(1.f/12.f)),.03f,4.f);
-    if(rnd()<fclamp(ring_value(slot,S_REVERSE)+(mode==3?.30f:0.f),0,1))speed=-speed;
-    float spray=ring_value(slot,S_SPRAY);
-    if(mode==0)spray*=.1f;
-    if(mode==3)spray=fclamp(spray+.3f,0,1);
-    g->pos=wrap(position+(rnd()-.5f)*spray)*(float)(PM_BUFFER-1u);
-    g->speed=speed;g->age=0;g->step=1.0f/(seconds*44100.f);
-    g->atk=mode==2?.07f:.03f+.94f*ring_value(slot,S_SHAPE);
-    g->up=1.f/g->atk;g->down=1.f/(1.f-g->atk);
-    g->pan=.5f+(rnd()-.5f)*ring_value(slot,G_STEREO);
-    g->mem=memory[slot];g->slot=slot;g->gain=1;g->dying=0;
-    g->amp=amp;g->active=1;
+    cap_state = CAP_IDLE; cap_ring = -1; cap_event = -1; cap_seen = cap_req;
+    newest = -1; newest_age = -1;
+    morph_x = DEFAULTS[M_X]; morph_y = DEFAULTS[M_Y];
+    pm_panic();
 }
-/* the next held key's pitch, in turn (none held: the recorded pitch) */
-static float next_pitch(void){
-    for(int k=0;k<PM_PITCHES;k++){
-        int j=(turn+k)%PM_PITCHES,st=gpitch[j];
-        if(st!=PM_NO_PITCH){turn=j+1;return (float)st;}
-    }
-    return 0.f;
-}
-/* one start: CLUSTER grains together, each on the next held key (slot >= 0: all on that key, just played) */
-static void trigger(int ring_slot,float position,int key_slot){
-    static const float AMP[4]={.75f,.58f,.50f,.45f};
-    int k=1+(int)(ring_value(ring_slot,S_CLUSTER)*3.99f);
-    int st=key_slot>=0?gpitch[key_slot]:PM_NO_PITCH;
-    for(int j=0;j<k;j++)
-        spawn(ring_slot,position,AMP[k-1],key_slot<0?next_pitch():st==PM_NO_PITCH?0.f:(float)st);
-}
-static float read_grain(const int16_t *mem,float pos){
-    uint32_t a=(uint32_t)pos;float f=pos-(float)a;
-    float x=(float)mem[a&MASK],y=(float)mem[(a+1u)&MASK];
-    return (x+(y-x)*f)*(1.0f/32768.f);
-}
-void pm_render(float *left,float *right,uint32_t n){
-    if(!n)return;
-    for(int j=0;j<PM_PARAMS;j++)p[j]+=(target[j]-p[j])*.15f;
-    float w[4], motion=p[M_MOVE];
-    clock_phase=wrap(clock_phase+(float)n*INV_RATE*(.015f+motion*motion*1.2f));
-    mx=fclamp(p[M_X]+motion*.35f*fm_sin_turns(clock_phase),0,1);
-    my=fclamp(p[M_Y]+motion*.35f*fm_sin_turns(clock_phase+.25f),0,1);
-    w[0]=(1-mx)*my;w[1]=mx*my;w[2]=(1-mx)*(1-my);w[3]=mx*(1-my);
-    float fade=1.0f/(441.f+88200.f*p[G_FADE]*p[G_FADE]);
-    float tone=.02f+.62f*p[M_TONE]*p[M_TONE];
-    /* WEAVE: 0 selected solo; 50 selected + parent/nearest; 100 all rings.
-     * Each blend is normalized, so more recordings do not multiply output gain. */
-    float sum=0.f,weave=fclamp(p[S_WEAVE],0,1);
-    int first=-1,second=-1;
-    if(selected>=0&&ring[selected].ready){
-        int sid=ring[selected].id,parent=ring[selected].parent;
-        for(int ri=0;ri<PM_RINGS;ri++)if(ri!=selected&&ring[ri].ready&&ring[ri].id==parent)first=ri;
-        if(first<0){
-            int best=0x7fffffff;
-            for(int ri=0;ri<PM_RINGS;ri++)if(ri!=selected&&ring[ri].ready){
-                int d=ring[ri].id-sid;if(d<0)d=-d;
-                if(d<best){best=d;first=ri;}
-            }
-        }
-        for(int ri=0;ri<PM_RINGS;ri++)if(ri!=selected&&ri!=first&&ring[ri].ready)second=ri;
-    }
-    for(int ri=0;ri<PM_RINGS;ri++){
-        float w=0;
-        if(ri==selected&&ring[ri].ready)w=1.f;
-        if(ri==first)w=.8f*fclamp(weave*2.f,0,1);
-        if(ri==second)w=.8f*fclamp((weave-.5f)*2.f,0,1);
-        lane_weight[ri]=w;sum+=w;
-    }
-    for(int ri=0;ri<PM_RINGS;ri++){
-        lane_weight[ri]=sum>0?lane_weight[ri]/sum:0.f;
-        if(!ring[ri].ready)continue;
-        float scan=ring_value(ri,G_SCAN),lo=ring_value(ri,S_LOOP);
-        float speed=lo<.03f?0.f:fm_exp2f(4.f*(lo-.5f));
-        lane_phase[ri]=wrap(lane_phase[ri]+speed*(float)n*(1.f/(2.f*PM_BUFFER)));
-        lane_scan[ri]=wrap(lane_scan[ri]+scan*.3f*(float)n*INV_RATE);
-        float base=ring_value(ri,S_POS),sway=scan*.45f*fm_sin_turns(lane_scan[ri]);
-        lane_pos[ri]=speed>0?wrap(base+lane_phase[ri]+sway):fclamp(base+sway,0,1);
-        lane_mode[ri]=ring_mode(ri);
-        float density=ring_value(ri,S_DENSITY);
-        lane_rate[ri]=1.f+39.f*density*density;
-        if(lane_mode[ri]==0)lane_rate[ri]=12.f+25.f*density;
-        if(lane_mode[ri]==2)lane_rate[ri]=1.f+13.f*density;
-        lane_timing[ri]=ring_value(ri,S_TIMING);
-    }
-    position_now=selected>=0?lane_pos[selected]:0.f;
 
-    float modal_decay=1.f-1.f/(2205.f+132300.f*p[M_EXCITE]*p[M_EXCITE]);
-    int on=grains_on;
-    /* what a capture does to its sound: put in (NOISE, COLOR, CRUSH), kept out (GATE), left out (DROP) */
-    float hiss=p[R_NOISE]*p[R_NOISE]*.5f,color=p[R_COLOR];
-    float gate_at=p[R_GATE]*p[R_GATE]*.25f;
-    float steps=p[R_CRUSH]>.01f?fm_exp2f(14.f-12.f*p[R_CRUSH]):0.f;     /* 16384 .. 4 steps a side; 0: untouched */
-    float drop_p=p[R_DROP]*p[R_DROP]*.5f;
-    /* --- the capture's state for this block --- */
-    if(cap_abort){cap_abort=0;cap_event=0;cap_state=PM_CAP_IDLE;}
-    int capturing=cap_state==PM_CAP_RECORDING;
-    int16_t *dest=memory[cap_slot>=0?cap_slot:0];
-    const int16_t *under=capturing&&cap_carry>=0&&(cap_keep>=0?cap_keep>.005f:p[R_CARRY]>.005f)?memory[cap_carry]:0;
-    int from_silt=cap_source==PM_SRC_SILT;
-    if(cap_state==PM_CAP_FINISHING&&!cap_event){
-        /* finishing: its level evened (the loudest sample to about .7; never more than four times up), a stretch a
-         * block, then it is offered to pm_service. Nothing to speak of in it: dropped */
-        if(!norm_i){
-            if(cap_peak<.004f)cap_gain=0;
-            else if(cap_keep<0)cap_gain=fclamp(.7f/cap_peak,.5f,4.f);
-            else{
-                /* a generation: evened by how loud it is throughout, so that one after another neither swells
-                 * nor dies away (as far up as its loudest sample has room for) */
-                float rms=fm_sqrtf(cap_sq*(1.f/PM_BUFFER));
-                cap_gain=fclamp(fm_minf(GEN_LEVEL/(rms+1e-6f),.95f/cap_peak),.25f,16.f);
-            }
+/* --------------------------------------------------------------------- the render --- */
+/* a note's loudness at u (0..1 through its life). SHAPE: a pluck (0) .. a bell .. a swell (1); always back to nothing
+ * at the ring's end, so a note recorded loops without a seam */
+static float shape_amp(float u, float s)
+{
+    float a = .004f + .55f * s * s, k = .3f + 5.f * (1.f - s), v;
+    if (u >= 1.f) return 0;
+    v = u < a ? u / a : fm_expf(-k * (u - a) / (1.f - a));
+    if (u > .9f) v *= (1.f - u) * 10.f;
+    return v;
+}
+static float read_ring(const int16_t *m, float pos)
+{
+    uint32_t i = (uint32_t)pos;
+    float f = pos - (float)i, a = m[i & (PM_BUFFER - 1u)], b = m[(i + 1u) & (PM_BUFFER - 1u)];
+    return (a + (b - a) * f) * (1.f / 32768.f);
+}
+static void spawn(int r)
+{
+    int n = 0, free = -1;
+    float size = pm_size_s(rp[r][R_SIZE]), ov = pm_overlap(rp[r][R_DENSITY]), sp = rp[r][R_SPREAD];
+    float semis = (float)pm_semis(rp[r][R_PITCH]) + (float)key_semis[r];
+    for (int i = 0; i < PM_GRAINS; i++) {
+        if (grain[i].active && grain[i].ring == r) n++;
+        else if (!grain[i].active && free < 0) free = i;
+    }
+    if (n >= PM_RING_GRAINS || free < 0) return;
+    Grain *g = &grain[free];
+    g->ring = r;
+    g->pos = wrap(head[r] + pos_now[r] + sp * (rnd() - .5f) * .3f) * (float)PM_BUFFER;
+    g->inc = .5f * fm_exp2f(semis * (1.f / 12.f));            /* (the ring is at half rate) */
+    g->age = 0;
+    g->step = 1.f / (size * 44100.f);
+    g->amp = 1.f / fm_sqrtf(ov < 2.f ? 1.f : ov * .5f);
+    g->gain = 1; g->dying = 0; g->active = 1;
+}
+void pm_render(float *left, float *right, uint32_t n)
+{
+    float vw[PM_VOICES][4], vc[PM_VOICES], vt[PM_VOICES], va0[PM_VOICES], dva[PM_VOICES];
+    float step[PM_RINGS], interval[PM_RINGS], rlev[PM_RINGS], pan[PM_RINGS], damp, inv_n;
+    int capturing, sounding = 0;
+    if (!n) return;
+    inv_n = 1.f / (float)n;
+    for (int j = 0; j < PM_PARAMS; j++) p[j] += (target[j] - p[j]) * .15f;
+    for (int r = 0; r < PM_RINGS; r++)
+        for (int j = 0; j < PM_RPARAMS; j++) rp[r][j] += (rtarget[r][j] - rp[r][j]) * (j == R_POS ? .3f : .15f);
+
+    /* --- requests --- */
+    if (cap_req != cap_seen) {
+        cap_seen = cap_req;
+        if (cap_state == CAP_IDLE) {
+            int r = cap_req_ring;
+            cap_ring = r; cap_src = cap_req_src; ready[r] = 0;
+            for (int i = 0; i < PM_GRAINS; i++) if (grain[i].active && grain[i].ring == r) grain[i].dying = 1;
+            cap_i = 0; cap_peak = 0; cap_dc = 0; cap_lp = 0; half = 0; norm_i = 0;
+            cap_state = CAP_REC;
         }
-        if(cap_gain>0){
-            uint32_t end=norm_i+2048u;
-            for(uint32_t i=norm_i;i<end;i++)dest[i]=(int16_t)fclamp((float)dest[i]*cap_gain,-32767.f,32767.f);
-            norm_i=end;
-            if(norm_i>=PM_BUFFER)cap_event=PM_EV_COMMITTED;
-        }else cap_event=PM_EV_SILENT;
     }
-    for(int r=0;r<PM_RINGS;r++){             /* a deleted ring's grains: out, quickly */
-        uint32_t k=kill_req[r];
-        if(k!=kill_seen[r]){kill_seen[r]=k;for(int j=0;j<PM_GRAINS;j++)if(grain[j].active&&grain[j].slot==r)grain[j].dying=1;}
+    while (note_r != note_w) {                                 /* a note struck: a free voice, or the oldest */
+        int note = note_q[note_r % NQ], v = 0;
+        note_r++;
+        for (int j = 1; j < PM_VOICES; j++) if (voice[j].age > voice[v].age) v = j;
+        voice[v].note = note; voice[v].age = 0;
+        voice[v].inc = 440.f * fm_exp2f(((float)note - 69.f) * (1.f / 12.f)) * INV_RATE;
+        voice[v].phase = voice[v].m1 = voice[v].m2 = voice[v].filt = 0; voice[v].modal = 1; voice[v].amp = 0;
+        newest = v;
     }
-    uint32_t br=burst_request;
-    if(br!=burst_seen){
-        burst_seen=br;
-        if(selected>=0)for(int j=0;j<3;j++)trigger(selected,lane_pos[selected],-1);
-    }
-    for(int j=0;j<PM_PITCHES;j++){
-        uint32_t sr=strike_request[j];
-        if(sr!=strike_seen[j]){
-            strike_seen[j]=sr;
-            if(selected>=0){
-                trigger(selected,lane_pos[selected],j);
-                trigger(selected,lane_pos[selected],j);
-            }
+    for (int r = 0; r < PM_RINGS; r++) {
+        uint32_t k = jump_req[r];
+        if (k != jump_seen[r]) {                               /* a slice: the head there (the old grains fade out) */
+            jump_seen[r] = k;
+            head[r] = wrap(jump_to[r] - pos_now[r]);
+            for (int i = 0; i < PM_GRAINS; i++) if (grain[i].active && grain[i].ring == r) grain[i].dying = 1;
+            spawn_at[r] = spawn_next[r];                       /* (a grain from there at once) */
         }
     }
-    /* DECAY: how long a struck MORPH note lives: 80 ms .. 10 s to a third of its level; at the top, held */
-    float life_k=p[M_SUSTAIN]>=.97f?1.f:1.f-INV_RATE/(.08f*fm_exp2f(p[M_SUSTAIN]*7.f));
-    for(int j=0;j<PM_VOICES;j++){            /* a note struck (again): its life from the top, its bell rung again */
-        uint32_t k=struck[j];
-        if(k!=struck_seen[j]){struck_seen[j]=k;voice[j].life=1;voice[j].modal=1;}
-    }
-    int sounding=0;
-    for(int j=0;j<PM_VOICES;j++){
-        Voice *v=&voice[j];int req=requested[j];
-        if(req>=0&&v->note!=req&&v->env<.002f){
-            v->note=req;v->inc=440.f*fm_exp2f((req-69.f)/12.f)*INV_RATE;
-            v->phase=v->m1=v->m2=0;v->modal=1;v->filt=0;
+
+    /* --- MORPH: each note's place in its life, and the hidden envelopes from the knobs as they are now --- */
+    for (int j = 0; j < PM_VOICES; j++) {
+        Voice *v = &voice[j];
+        float u = (float)v->age * (1.f / (float)PM_NOTE), u1 = (float)(v->age + n) * (1.f / (float)PM_NOTE);
+        float c = fm_sin_turns(fclamp(u, 0, 1) * .5f), mv = p[M_MOVE], x, y;
+        va0[j] = v->amp;
+        dva[j] = 0;
+        if (v->note < 0 || v->age >= PM_NOTE) { vw[j][0] = vw[j][1] = vw[j][2] = vw[j][3] = 0; vc[j] = vt[j] = 0; v->amp = 0; continue; }
+        sounding++;
+        /* X and Y toward their mirror image and back (a palindrome); brighter early, plainer late; darker on */
+        x = fclamp(p[M_X] + mv * (1.f - 2.f * p[M_X]) * c, 0, 1);
+        y = fclamp(p[M_Y] + mv * (1.f - 2.f * p[M_Y]) * c, 0, 1);
+        v->x = x; v->y = y;
+        vw[j][0] = (1 - x) * y; vw[j][1] = x * y; vw[j][2] = (1 - x) * (1 - y); vw[j][3] = x * (1 - y);
+        vc[j] = fclamp(p[M_COMPLEX] * (1.f + mv * (.9f * (1.f - u) - .45f)), 0, 1);
+        {
+            float t = p[M_TONE] * (1.f - .55f * mv * u);
+            vt[j] = .02f + .62f * t * t;
         }
-        if(req>=0||v->env>.0001f)sounding++;
+        dva[j] = (shape_amp(u1, p[M_SHAPE]) - va0[j]) * inv_n;
     }
-    float norm=sounding>1?1.f/(.7f+.3f*sounding):1.f;
-    for(uint32_t i=0;i<n;i++){
-        float dl=0,dr=0,gl=0,gr=0;int active=0;
-        for(int j=0;j<PM_VOICES;j++){
-            Voice *v=&voice[j];int req=requested[j];
-            if(req>=0&&v->note!=req&&v->env<.002f){
-                v->note=req;v->inc=440.f*fm_exp2f((req-69.f)/12.f)*INV_RATE;
-                v->phase=v->m1=v->m2=0;v->modal=1;v->filt=0;
+    if (newest >= 0 && voice[newest].note >= 0 && voice[newest].age < PM_NOTE) {
+        morph_x = voice[newest].x; morph_y = voice[newest].y;
+        newest_age = (float)voice[newest].age * (1.f / (float)PM_NOTE);
+    } else { morph_x = p[M_X]; morph_y = p[M_Y]; newest_age = -1.f; }
+
+    /* --- the rings: heads, how often grains start, levels --- */
+    for (int r = 0; r < PM_RINGS; r++) {
+        int on = ready[r] && (playing || gate[r]);
+        float size = pm_size_s(rp[r][R_SIZE]), ov = pm_overlap(rp[r][R_DENSITY]);
+        step[r] = pm_speed(rp[r][R_SPEED]) * (1.f / (float)PM_NOTE);
+        interval[r] = size * 44100.f / ov;
+        rlev[r] = on ? p[G_RING1 + r] * p[G_RING1 + r] * 1.2f : 0.f;
+        pan[r] = .5f + ((float)r - 1.f) * .4f * p[G_WIDTH];
+        pos_now[r] = rp[r][R_POS];
+        if (!on && ring_amp[r] < .001f) ring_amp[r] = 0;
+    }
+    damp = .08f + .9f * (1.f - p[G_DAMP]) * (1.f - p[G_DAMP]);
+    capturing = cap_state == CAP_REC;
+
+    for (uint32_t i = 0; i < n; i++) {
+        float dl = 0, dr = 0, wl = 0, wr = 0, w_ring[PM_RINGS] = {0, 0, 0}, morph, l, rr;
+        /* MORPH's notes */
+        for (int j = 0; j < PM_VOICES; j++) {
+            Voice *v = &voice[j];
+            float a, base, sig = 0, cx, val, pn;
+            if (v->note < 0 || v->age >= PM_NOTE) continue;
+            v->amp = va0[j] + dva[j] * (float)i;
+            a = v->phase; base = fm_sin_turns(a); cx = vc[j];
+            if (vw[j][0] > .0001f) sig += vw[j][0] * fm_sin_turns(a + (.06f + .65f * cx) * fm_sin_turns(a * 2.f));
+            if (vw[j][1] > .0001f) sig += vw[j][1] * (.55f * base + (.28f * fm_sin_turns(v->m1) + .17f * fm_sin_turns(v->m2)) * (.3f + .7f * cx) * v->modal);
+            if (vw[j][2] > .0001f) sig += vw[j][2] * (base + cx * (.55f * fm_sin_turns(a * 2.f) + .32f * fm_sin_turns(a * 3.f) + .13f * fm_sin_turns(a * 5.f))) / (1.f + cx);
+            if (vw[j][3] > .0001f) {
+                float q = wrap(base * (1.f + 3.f * cx) * .25f + .25f), folded = 1.f - 4.f * (q > .5f ? q - .5f : .5f - q);
+                sig += vw[j][3] * ((1 - cx) * base + cx * folded);
             }
-            /* its level follows its life: 1 while held (DECAY at the top), else dying away from the strike */
-            v->life*=life_k;
-            float gate=(req>=0&&req==v->note&&v->life>.003f)?v->life:0.f;
-            float c=(req>=0&&req!=v->note)?.004f:fade;
-            v->env+=(gate-v->env)*c;
-            if(v->env<.00003f&&!gate){v->env=0;continue;}
-            float a=v->phase, base=fm_sin_turns(a), sig=0;
-            /* a struck note is at its richest and brightest as it is struck, and plainer and darker as it dies
-             * away (held, DECAY at the top: as the knobs say throughout) */
-            float complex=p[M_COMPLEX]*(.3f+.7f*v->life);
-            if(w[0]>.0001f)
-                sig+=w[0]*fm_sin_turns(a+(.06f+.65f*complex)*fm_sin_turns(a*2.f));
-            if(w[1]>.0001f)
-                sig+=w[1]*(.55f*base+.28f*fm_sin_turns(v->m1)+.17f*fm_sin_turns(v->m2))*v->modal;
-            if(w[2]>.0001f)
-                sig+=w[2]*(base+complex*(.55f*fm_sin_turns(a*2.f)+.32f*fm_sin_turns(a*3.f)+.13f*fm_sin_turns(a*5.f)))/(1.f+complex);
-            if(w[3]>.0001f){
-                float x=base*(1.f+3.f*complex);
-                /* Continuous triangle fold. */
-                float q=wrap(x*.25f+.25f);
-                float folded=1.f-4.f*(q>.5f?q-.5f:.5f-q);
-                sig+=w[3]*((1-complex)*base+complex*folded);
-            }
-            v->modal*=modal_decay;
-            v->phase=wrap(a+v->inc);
-            v->m1=wrap(v->m1+v->inc*2.756f);
-            v->m2=wrap(v->m2+v->inc*5.404f);
-            v->filt+=(sig-v->filt)*tone*(.45f+.55f*v->life);
-            float val=v->filt*v->env*.32f*norm;
-            float pan=.5f+((float)j-1.5f)*p[M_SPREAD]*.27f;
-            dl+=val*(1.f-pan);dr+=val*pan;
+            v->modal *= .99997f;
+            v->phase = wrap(a + v->inc);
+            v->m1 = wrap(v->m1 + v->inc * 2.756f);
+            v->m2 = wrap(v->m2 + v->inc * 5.404f);
+            v->filt += (sig - v->filt) * vt[j];
+            val = v->filt * v->amp * .34f / (sounding > 1 ? .7f + .3f * (float)sounding : 1.f);
+            pn = .5f + ((float)j - 1.5f) * .12f;
+            dl += val * (1.f - pn); dr += val * pn;
+            v->age++;
         }
-        if(on){
-            /* Each ring advances on its own clock; weighted event rates keep the 16-grain ceiling. */
-            for(int ri=0;ri<PM_RINGS;ri++)if(lane_weight[ri]>.0001f){
-                lane_launch[ri]+=lane_rate[ri]*INV_RATE*lane_weight[ri];
-                if(lane_launch[ri]>=lane_next[ri]){
-                    lane_launch[ri]-=lane_next[ri];
-                    int m=lane_mode[ri];float timing=lane_timing[ri];
-                    if(m==2)lane_next[ri]=1.f;
-                    else if(m==3)lane_next[ri]=.35f+1.3f*rnd();
-                    else lane_next[ri]=timing>.005f?(1.f-timing)+timing*4.f*rnd()*rnd():1.f;
-                    if(lane_next[ri]<.05f)lane_next[ri]=.05f;
-                    trigger(ri,lane_pos[ri],-1);
+        /* the rings: heads round, grains started, read and windowed */
+        for (int r = 0; r < PM_RINGS; r++) {
+            float want = rlev[r] > 0 ? 1.f : 0.f;
+            ring_amp[r] += (want - ring_amp[r]) * .002f;
+            if (!ready[r] && ring_amp[r] < .001f) continue;
+            head[r] = wrap(head[r] + step[r]);
+            if (want > 0) {
+                spawn_at[r] += 1.f;
+                if (spawn_at[r] >= spawn_next[r]) {
+                    float sp = rp[r][R_SPREAD];
+                    spawn_at[r] = 0;
+                    spawn_next[r] = interval[r] * (1.f + sp * .9f * (rnd() * 2.f - 1.f));
+                    if (spawn_next[r] < 64.f) spawn_next[r] = 64.f;
+                    spawn(r);
                 }
             }
         }
-
-        for(int j=0;j<PM_GRAINS;j++){
-            Grain *g=&grain[j];if(!g->active)continue;active++;
-            float sample=read_grain(g->mem,g->pos)*grain_env(g)*g->amp*g->gain;
-            gl+=sample*(1.f-g->pan);gr+=sample*g->pan;
-            g->pos+=g->speed;
-            if(g->pos>=PM_BUFFER)g->pos-=PM_BUFFER;
-            if(g->pos<0)g->pos+=PM_BUFFER;
-            g->age+=g->step;if(g->age>=1.f)g->active=0;
-            if(g->dying){g->gain-=1.f/128.f;if(g->gain<=0)g->active=0;}
+        for (int k = 0; k < PM_GRAINS; k++) {
+            Grain *g = &grain[k];
+            float w, s;
+            int r;
+            if (!g->active) continue;
+            r = g->ring;
+            w = fm_sin_turns(g->age * .5f);
+            s = read_ring(memory[r], g->pos) * w * w * g->amp * g->gain;
+            w_ring[r] += s;
+            g->pos += g->inc;
+            if (g->pos >= (float)PM_BUFFER) g->pos -= (float)PM_BUFFER;
+            g->age += g->step;
+            if (g->age >= 1.f) g->active = 0;
+            if (g->dying) { g->gain -= 1.f / 96.f; if (g->gain <= 0) g->active = 0; }
         }
-        gl=soft(gl*1.4f);gr=soft(gr*1.4f);
-        float dry=dl+dr, wet=gl+gr;
-        /* The capture's source: MORPH alone, or SILT's grains alone (never the two by accident). Written at half
-         * rate: pair averaging after a mild lowpass (DAMP darkens it). */
-        float rec=from_silt?wet:dry;
-        capture_lp+=(rec-capture_lp)*(.25f+.3f*(1-p[G_DAMP]));
-        if(!half){half_sample=capture_lp;half=1;}
-        else{
-            half=0;
-            if(capturing){
-                uint32_t ci=cap_i;
-                float in=(half_sample+capture_lp)*.5f;
-                cap_dc+=(in-cap_dc)*.006f;in-=cap_dc;            /* nothing under about 20 Hz: generation on
-                                                                  * generation it would pile up */
-                float loud=in<0?-in:in,nz=rnd()*2.f-1.f,want,out;
-                /* GATE listens to the sound itself (not the hiss): quick to open, about 75 ms to close */
-                gate_env+=(loud-gate_env)*(loud>gate_env?.2f:.0006f);
-                if((ci&255u)==0)dropping=rnd()<drop_p;          /* DROP: every 12 ms the next 12 may be left out */
-                want=(gate_at<=0||gate_env>gate_at)&&!dropping?1.f:0.f;
-                write_amt+=(want-write_amt)*.02f;
-                noise_lp+=(nz-noise_lp)*.04f;                    /* NOISE: a rumble (COLOR 0) .. a hiss (COLOR 100) */
-                in+=hiss*((1.f-color)*noise_lp*5.f+color*(nz-noise_lp));
-                out=in*write_amt;                                /* (gated or dropped: silence) */
-                if(under){
-                    float old=(float)under[ci]*(1.f/32768.f),k=cap_keep;
-                    if(k<0){
-                        /* Never sum two full-scale recordings into a runaway feedback source. */
-                        k=fclamp(p[R_CARRY],0,1);
-                        out=out*(1.f-k)+old*k;
-                    }else out=out*(1.f-k)*GEN_GAIN+old*k;
-                }
-                if(steps>0)out=fm_floorf(out*steps+.5f)/steps;    /* CRUSH */
-                if(ci<SEAM)out*=(float)ci*(1.f/SEAM);            /* the ends eased: the loop closes without a click */
-                else if(ci>=PM_BUFFER-SEAM)out*=(float)(PM_BUFFER-1u-ci)*(1.f/SEAM);
-                out=fclamp(out,-.999f,.999f);
-                if(out>cap_peak)cap_peak=out;
-                if(-out>cap_peak)cap_peak=-out;
-                cap_sq+=out*out;
-                dest[ci]=(int16_t)(out*32767.f);
-                cap_i=++ci;
-                if(ci>=PM_BUFFER){capturing=0;cap_state=PM_CAP_FINISHING;}
+        for (int r = 0; r < PM_RINGS; r++) {
+            float s;
+            ring_lp[r] += (w_ring[r] - ring_lp[r]) * damp;
+            s = ring_lp[r] * ring_amp[r] * (rlev[r] > 0 ? rlev[r] : p[G_RING1 + r] * p[G_RING1 + r] * 1.2f);
+            w_ring[r] = s;
+            wl += s * (1.f - pan[r]); wr += s * pan[r];
+        }
+        morph = p[G_MORPH] * p[G_MORPH] * 1.3f;
+        /* a capture: at half rate, MORPH alone, or all that is heard but the ring it writes */
+        if (capturing) {
+            float src = cap_src == PM_SRC_MORPH ? (dl + dr) : (dl + dr) * morph;
+            if (cap_src != PM_SRC_MORPH) for (int r = 0; r < PM_RINGS; r++) if (r != cap_ring) src += w_ring[r];
+            cap_lp += (src - cap_lp) * .55f;
+            if (!half) { half_sample = cap_lp; half = 1; }
+            else {
+                uint32_t ci = cap_i;
+                float in = (half_sample + cap_lp) * .5f;
+                half = 0;
+                cap_dc += (in - cap_dc) * .006f; in -= cap_dc;          /* nothing under about 20 Hz */
+                if (ci < SEAM) in *= (float)ci * (1.f / SEAM);
+                else if (ci >= PM_BUFFER - SEAM) in *= (float)(PM_BUFFER - 1u - ci) * (1.f / SEAM);
+                in = fclamp(in, -.999f, .999f);
+                if (in > cap_peak) cap_peak = in;
+                if (-in > cap_peak) cap_peak = -in;
+                memory[cap_ring][ci] = (int16_t)(in * 32767.f);
+                cap_i = ++ci;
+                if (ci >= PM_BUFFER) { capturing = 0; cap_state = CAP_FINISH; norm_i = 0; }
             }
         }
-        /* Turning grains off releases existing grains while returning to dry. */
-        float mix=(on||active>0)?p[G_MIX]:0.f;
-        if(monitor&&mix>.3f)mix=.3f;         /* MORPH's own page, or a capture of it: MORPH in front, whatever MIX says */
-        wet_gain+=(mix-wet_gain)*.002f;dry_gain+=(1.f-mix-dry_gain)*.002f;
-        float l=(dl*dry_gain+gl*wet_gain)*p[G_LEVEL]*2.f;
-        float r=(dr*dry_gain+gr*wet_gain)*p[G_LEVEL]*2.f;
-        float ol=l-prev_l+.9995f*dc_l,orr=r-prev_r+.9995f*dc_r;
-        prev_l=l;prev_r=r;dc_l=ol;dc_r=orr;
-        left[i]=soft(ol);right[i]=soft(orr);
-        if((i&15u)==0)scope[scope_wr++&63u]=(left[i]+right[i])*.5f;
+        l = dl * morph + wl;
+        rr = dr * morph + wr;
+        {
+            float ol = l - prev_l + .9995f * dc_l, orr = rr - prev_r + .9995f * dc_r;
+            prev_l = l; prev_r = rr; dc_l = ol; dc_r = orr;
+            left[i] = soft(ol * 1.3f); right[i] = soft(orr * 1.3f);
+        }
+        if ((i & 15u) == 0) scope[scope_wr++ & 63u] = (left[i] + right[i]) * .5f;
+    }
+    for (int r = 0; r < PM_RINGS; r++) {
+        head_now[r] = wrap(head[r] + pos_now[r]);
+        level_now[r] = ring_amp[r] * (ready[r] ? 1.f : 0.f);
+        ring_lp[r] = fm_flush(ring_lp[r]);
+    }
+    /* a finished capture: its level evened (the loudest sample to about .7, at most four times up), a stretch a
+     * block, then handed to pm_service; nothing in it: left empty */
+    if (cap_state == CAP_FINISH && cap_event == -1) {
+        if (!norm_i) cap_gain = cap_peak < .004f ? 0.f : fclamp(.7f / cap_peak, .5f, 4.f);
+        if (cap_gain > 0) {
+            uint32_t end = norm_i + 2048u;
+            for (uint32_t i = norm_i; i < end; i++) memory[cap_ring][i] = (int16_t)fclamp((float)memory[cap_ring][i] * cap_gain, -32767.f, 32767.f);
+            norm_i = end;
+            if (norm_i >= PM_BUFFER) cap_event = cap_ring;
+        } else cap_event = PM_EV_SILENT;
     }
 }

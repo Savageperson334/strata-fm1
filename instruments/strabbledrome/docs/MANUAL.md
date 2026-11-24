@@ -35,7 +35,7 @@ No key, knob or button reaches the instrument. Turn a knob in the menu and nothi
 
 ## GLO inside an instrument
 
-GLO is always the menu, so an instrument's own GLO guide is reached another way: open the menu and choose **HELP / CONTROLS**. It shows the button guide of the instrument that is running. GLO, HOME or SEL closes it.
+GLO is always the menu, so an instrument's own guide (held GLO, by itself) is reached another way: open the menu and choose **HELP / CONTROLS**. It shows the button guide of the instrument that is running. GLO, HOME or SEL closes it.
 
 ![An instrument's own guide, from HELP](img/strata-guide.png "HELP / CONTROLS")
 
@@ -46,7 +46,7 @@ With no instrument open yet, HELP / CONTROLS shows this page's controls instead.
 | Row | Opens |
 | --- | --- |
 | STRATA | The drone and rhythm instrument |
-| PALINDROME | The granular rings |
+| PALINDROME | Three rings |
 | BABBLEBEAT | The speaking instrument |
 | HELP / CONTROLS | The running instrument's button guide |
 | SYSTEM | The version, and which instruments are built in |

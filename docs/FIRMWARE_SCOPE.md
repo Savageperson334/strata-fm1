@@ -10,7 +10,7 @@ This repository contains **three existing custom firmwares for the M-VAVE FM-1**
 | Firmware | Creative object | What the player does | System's central memory | Short identity |
 | --- | --- | --- | --- | --- |
 | **STRATA** | An ongoing live sound and its rhythm | Latch voices; steer timbre, pulses, evolving patterns | Saved sound/chord/settings, plus live musical state | **Grow and steer sound** |
-| **PALINDROME** | A recorded piece of sound | Inject a source; record a ring; play and alter grains; record a new generation | Separate **audio rings**, each with its own sound and SILT parameters | **Transform and inherit sound** |
+| **PALINDROME** | A recorded piece of sound | Strike MORPH; catch the note in a ring; scan, slice and transpose the rings; resample them into each other | Three **audio rings**, each with its own sound and scan settings | **Catch and scan sound** |
 | **BabbleBeat** | A phrase with grammatical roles | Generate a structured sentence; mutate it; remember a word; play/speak it | **Linguistic state**: current tokens, theme drift and a remembered noun | **Transform and perform language** |
 
 There is a family resemblance: each combines something recognizable with controllable mutation and can become stranger over time. **That does not mean each should accumulate the other two's engines.** A unified sound editor, general-purpose workstation, or cross-firmware patch format is not the design goal.
@@ -19,7 +19,7 @@ There is a family resemblance: each combines something recognizable with control
 
 - **STRATA / PALINDROME / BabbleBeat** are **firmwares / instruments**, not modes inside one flashed program.
 - **STRATA's ARP, SEQ and EDIT** are cooperating *performance subsystems* of one continuous instrument; they can run together.
-- **PALINDROME's SILT, MORPH, RINGS, SHAPE, MOTION, MIX and REC FX** are persistent *control pages* around a continuously running synthesis/capture/granular engine. A page switch is not necessarily an audio switch.
+- **PALINDROME's SCAN, MORPH and MIX** are persistent *control pages* around one running engine. A page switch is not an audio switch.
 - **BabbleBeat's WORDS and VOICE** are two *control pages* of one language-to-audio process, not two competing sound engines.
 - Website navigation switches *which firmware's information/emulator you are viewing*. Its colors signal instrument identity; the browser switch does **not** magically change firmware installed on the physical device.
 
@@ -51,46 +51,32 @@ My understanding of the desired expansion is that it should make the existing dr
 
 **Scope guardrails:** Do not mistake the proposed four-LFO matrix, additive trigger modes, lane-to-LFO routing or advanced per-step behavior for shipped capability. Do not sacrifice live knob response, understandable default controls, or stable audio simply to add more modulation destinations.
 
-## 3. PALINDROME — sound records itself, then becomes something else
+## 3. PALINDROME — a sound caught in three rings and scanned
 
-### Identity
+### Identity (1.0)
 
-**SILT is the instrument; MORPH is the injector.** The defining gesture is **make a recording, manipulate it, capture its output into another distinct recording**, and return to any earlier generation without destroying it.
+**MORPH makes a sound; REC catches it in one of three rings; the rings are scanned.** The circles are three fixed
+recordings of 1.49 s, always on the screen, empty or not. The playing surface takes after a granular looper (a head
+per ring, grains from the head: POSITION, SIZE, DENSITY, PITCH, SPEED, SPREAD) and a pocket sampler's keys (sixteen
+places round the ring on the white keys, or the ring transposed).
 
-**The key idea (0.8): a sound, looped, and made again from itself.** A key strikes MORPH (an envelope-shaped, complex seed, never noise); the note is caught as a ring; SILT loops it; **DRIFT** makes the next generation from the last by itself, each evened to the same loudness. DRIFT off, the loop is stable; up, it drifts. All of it follows from the first touch.
+**A MORPH note lasts exactly one ring.** It plays MORPH as set, and hidden envelopes carry X and Y toward their mirror
+image and back (MOVE), brighter early, darker late; its loudness (SHAPE) is silent again by the ring's end. Caught from
+its first sample, a note is a ring that loops without a seam.
 
-SILT is not just an effect hanging off MORPH. The selected ring and its granular manipulation are the primary surface. The system has a visual and audible history: **concentric circles for separate audio generations**.
+### Implemented today
 
-### Implemented / documented today
+- **SCAN (EDIT/HOME):** the selected ring's six controls; each ring keeps its own. SEL: the keys SLICE or PITCH.
+- **MORPH (FX):** X, Y, COMPLEX, TONE, MOVE, SHAPE; the keys strike notes. REC here arms: the next note fills the selected ring.
+- **MIX (ARP):** the three rings' levels, MORPH's, DAMP, WIDTH. REC on SCAN or MIX resamples everything heard but the selected ring into it.
+- **PLAY:** the rings going round; a held key sounds its ring either way. **GLO** held: the guide. SAVE, ENV, LFO and SEQ do nothing.
 
-**MORPH — source page (FX).** An independent four-corner XY synth blends **FM, modal, additive and wavefolding** sounds. Keys strike source notes that die away (DECAY; at its top they hold). X/Y, complexity, brightness, orbit/motion and excitation shape the source. MORPH may continue sounding on other pages.
+### Boundaries
 
-**SILT — home/primary page (EDIT or HOME).** A granular playback engine operates the **selected recorded ring**. POSITION, SIZE, DENSITY, SPRAY, REVERSE and PITCH make it an instrument in its own right. Up to 16 grains are active globally; up to four latched keyboard pitches can play grains, including when automatic playback is off.
-
-**Recording (REC).** One press starts a finite capture into a **new ring**. The current design has **three 1.49-second rings**. The first capture comes from MORPH if there is no ring; on MORPH's page it takes the synth source, while SILT-focused playing captures processed grains of the selected ring. Capture completes automatically. With nothing sounding REC is armed and starts with the next sound. A capture always makes a new ring; when all three are in use the **oldest ring (never the selected one) makes room**, and the screen names it beforehand. MORPH is monitored on its own page and during its capture, otherwise the grains are heard alone, so a sound and its recording do not stack up. The interface shows source/progress/armed/drops state and changes to the new ring when capture finishes. Returning to an older ring and recording it again can create a *branch*, not a forced linear chain.
-
-**Ring management (SEL).** SELECT chooses the ring. **CARRY** can deliberately mix a prior ring into a future capture; deletions must be deliberately armed and confirmed. Rings hold independent playback settings and their own PCM.
-
-**Additional pages:**
-- **ENV — SILT SHAPE:** grain envelope, length variation, scattered pitch, detune, cluster.
-- **LFO — SILT MOTION:** automatic scan/position movement and timing irregularity.
-- **ARP — MIX** and **SEQ — REC FX:** balance, fade, stereo/spread/level; and record-only transformations including noise/color/crush/gate/drop/damp. REC FX changes the *next recording*, not previously recorded PCM.
-
-**UI philosophy:** Ordinary functions need **one click/press**, with persistent pages and legible source/ring feedback. No important hidden hold gesture should be necessary in the browser. MASTER stays volume; SELECT is the ring selector. SAVE is currently unused, rather than secretly retaining stock-firmware behavior; ARP opens MIX and SEQ opens REC FX; GLO, held, is the on-screen guide.
-
-### The key conceptual boundary
-
-**A ring is not automatically an additive live loop layer.** Multiple circles primarily indicate preserved generations or branches. The selected ring is the one you edit and granularly play. Mixing or carrying prior material must be **intentional**; adding a ring is not permission to sum every ring and feed it back indefinitely.
-
-Likewise, a ring is **recorded audio**, while MORPH is a continuously playing **source**. The ring's current knob settings should not permanently alter its original captured PCM until a *new* generation is recorded.
-
-### Direction / non-goals
-
-A useful continuation includes clearer provenance (which ring was recorded from which), expressive ways to compare and revisit generations, safer source and capture decisions, more interesting modulation of granular playback, and maintaining the intuitive visual link between sound and concentric rings.
-
-But **not** by replacing SILT with a full multi-track DAW, overwriting the ring being played, treating recording as instant when it actually takes time, or merging everything into a single circular buffer. Hardware RAM and CPU budgets constrain ring count, duration and density. The full prior [SILT-first redesign plan](PALINDROME_SILT_FIRST_REDESIGN.md) contains earlier architectural decisions and cautions; it must be read with the **current** implementation in mind, because some of that plan has already shipped.
-
-**Current limitations:** Ring audio/settings are volatile (no ring storage across power-off), no MIDI input in the PALINDROME app, and physical-device performance remains unverified. A published experimental firmware package is not equivalent to hardware qualification.
+Three rings in RAM (their size is what the pool allows: 3 × 64 KB, shared with the other instruments inside
+STRABBLEDROME); nothing saved at power-off; recording a ring replaces it; no MIDI input yet; not yet run on a real
+FM-1. The earlier designs (0.5 to 0.9: SILT, generations, DRIFT, WEAVE) are in the git history and in
+[PALINDROME_SILT_FIRST_REDESIGN.md](PALINDROME_SILT_FIRST_REDESIGN.md).
 
 ## 4. BabbleBeat — language is the oscillator's score
 

@@ -110,7 +110,7 @@ The grooves:
 | HEART | A slow lub-dub |
 | DRIVE | Driving: kick on every beat, busy hats |
 
-SAVE keeps whether the beat is on and its settings.
+SAVE keeps the beat's settings. The beat never starts by itself: at power-on it is off, whatever was saved, until you tap SEQ.
 
 ---
 
@@ -133,13 +133,28 @@ A drum lane replaces that drum in the preset groove; with SEQ off, lanes play al
 | PRESETS | **PLAYS** | OFF, KICK, SNARE, HAT, OPEN (open hat), PERC, or ARP | 7 choices |
 
 The lanes start out as a kick (4 hits over 16), a hat (5 over 12), the arp (7 over 16) and a perc (3 over 9). SAVE
-keeps whether the lanes are on and all four lanes' settings.
+keeps all four lanes' settings; like the beat, the lanes are off at power-on until you tap EDIT.
+
+---
+
+## The bitcrusher
+
+**Hold PLAY** and turn KNOB1 to KNOB4 for the bitcrusher. It sits between the filter and the reverb, so the reverb
+tails stay smooth while the drone underneath gets coarse. MIX starts at 0 (off); the top of the screen says CRUSH
+while it is on. A tap of PLAY still fades the chord out and in; turning a knob while PLAY is held doesn't.
+
+| Knob (PLAY held) | Control | What it does | Range |
+| --- | --- | --- | --- |
+| KNOB1 | **BITS** | How many steps the sound is cut into | 16 bits to 2 |
+| KNOB2 | **SAMPLE** | The rate it holds each sample for: lower is grittier and more aliased | 44.1 kHz to about 400 Hz |
+| KNOB3 | **DRIVE** | How hard it is pushed in first (clipped before it is crushed) | clean to hard |
+| KNOB4 | **MIX** | How much of the crushed sound replaces the clean one | 0 (off) to 100 % |
 
 ---
 
 ## The other buttons
 
-Four more buttons do something besides PLAY, ARP, SEQ, EDIT and the octave buttons; the rest do nothing in STRATA.
+Four more buttons do something besides PLAY, ARP, SEQ, EDIT and the octave buttons; the rest do nothing in STRATA. (PLAY: a tap fades out and in; held, the bitcrusher.)
 
 - **GLO, held, is the guide.** The top half of the screen shows what every button does, laid out as the buttons
   are. Let go and the wave is back. When a button's name tells you nothing, hold GLO.
@@ -184,8 +199,9 @@ STRATA takes MIDI in over USB and the TRS jack, on any channel.
 - **Notes** play voices while held, like a normal synth. The sustain pedal (CC 64) holds them.
 - **CC 123** (all notes off) releases the MIDI voices.
 - Keys tapped on the FM-1 go out over USB as notes, so a computer can record them.
-- **CC 20 to 31 and CC 102 to 114** set the twenty-five controls. (Up to 0.4 they ran from CC 20 to 44, which
-  included two numbers that computers and keyboards send on their own.)
+- **CC 20 to 31 and CC 102 to 118** set the twenty-nine controls. (Up to 0.4 they ran from CC 20 to 44, which
+  included two numbers that computers and keyboards send on their own.) CC 115 to 118 are the bitcrusher's BITS,
+  SAMPLE, DRIVE and MIX.
 
 | CC | Control | CC | Control | CC | Control |
 | --- | --- | --- | --- | --- | --- |
@@ -211,7 +227,7 @@ STRATA takes MIDI in over USB and the TRS jack, on any channel.
 | The knobs do M-VAVE things | STRATA isn't installed yet: the screen should say STRATA at the top. |
 | "OVERLOAD" on the screen | The sound took too long to make, so the oldest voice was let go. Use fewer voices or less AIR. |
 | The voices pulse or take turns | The arp is on: tap ARP to switch it off. |
-| Drums are playing | The beat or the lanes are on: tap SEQ or EDIT to stop them (the top of the screen says BEAT or EUC). |
+| Drums are playing | The beat or the lanes are on: tap SEQ or EDIT to stop them (the top of the screen says BEAT or EUC). They are always off at power-on. |
 | The arp ignores RATE | A lane is stepping it (RATE shows EUC): hold EDIT and set that lane's PLAYS to something else. |
 | The drone pumps or dips | That's DUCK: hold SEQ and turn PRESETS down. |
 | Want the original sound back | Hold HOME for a second. |

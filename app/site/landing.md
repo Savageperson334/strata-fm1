@@ -11,6 +11,7 @@ in and keeps going; tap it again and it fades away. Every knob changes the sound
 2. Turn KNOB4 for more reverb and KNOB1 to make it brighter.
 3. Tap ARP for a slow ripple through the notes, SEQ for a drum groove, EDIT for four drifting Euclidean lanes.
 4. Press PLAY to fade everything out, and again to bring the same notes back.
+5. Hold PLAY and turn KNOB4 (MIX) for the bitcrusher before the reverb; KNOB1 to KNOB3 set its BITS, SAMPLE and DRIVE.
 
 ## Get it
 

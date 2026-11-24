@@ -168,6 +168,28 @@
           "What the lane plays: OFF, KICK, SNARE, HAT, OPEN, PERC or ARP."
         ]
       }
+    },
+    "play": {
+      "title": "CRUSHER",
+      "how": "PLAY held",
+      "knobs": {
+        "KNOB1": [
+          "BITS",
+          "How many steps the sound is cut into: 16 bits down to 2."
+        ],
+        "KNOB2": [
+          "SAMPLE",
+          "The rate each sample is held for: 44.1 kHz down to about 400 Hz. Lower is grittier."
+        ],
+        "KNOB3": [
+          "DRIVE",
+          "How hard the sound is pushed in, clipped, before it is crushed."
+        ],
+        "KNOB4": [
+          "MIX",
+          "How much of the crushed sound replaces the clean one. 0 (as it starts): off."
+        ]
+      }
     }
   },
   "buttons": {
@@ -187,7 +209,7 @@
       "label": "BEAT",
       "sub": "hold: set",
       "hold": "seq",
-      "text": "A tap starts or stops the drum beat under the drone. Held down, the knobs set its tempo, groove, swing, level, kit, room and ducking."
+      "text": "A tap starts or stops the drum beat under the drone (it is always off at power-on). Held down, the knobs set its tempo, groove, swing, level, kit, room and ducking."
     },
     "EDIT": {
       "label": "LANES",
@@ -197,8 +219,9 @@
     },
     "PLAY": {
       "label": "FADE",
-      "sub": "out / back",
-      "text": "Fades every voice out and remembers the chord. Press it again to bring the same notes back."
+      "sub": "hold: crush",
+      "hold": "play",
+      "text": "A tap fades every voice out and remembers the chord; again, the same notes come back. Held down, KNOB1 to KNOB4 set the bitcrusher before the reverb: BITS, SAMPLE, DRIVE, MIX."
     },
     "REC": {
       "label": "MUTATE",
